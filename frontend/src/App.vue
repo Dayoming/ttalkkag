@@ -69,3 +69,9 @@ export default {
   },
 };
 </script>
+
+<style>
+main {
+  font-size: small;
+}
+</style>

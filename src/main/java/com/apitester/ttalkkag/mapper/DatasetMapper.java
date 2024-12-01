@@ -1,0 +1,18 @@
+package com.apitester.ttalkkag.mapper;
+
+import com.apitester.ttalkkag.entity.Dataset;
+import com.apitester.ttalkkag.entity.DatasetVariable;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface DatasetMapper {
+    List<Dataset> findAllDatasets();
+    List<DatasetVariable> findVariablesByDatasetId(Long id);
+    List<Dataset> searchDatasets(String query);
+    Dataset findDatasetById(Long id);
+    void insertDataset(Dataset dataset);
+    void deleteDataset(Long id);
+    void updateDataset(Dataset dataset);
+}

@@ -30,7 +30,7 @@ public class SecurityConfig {
         http
                 // 인증/인가 설정
                 .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
-                        .requestMatchers("/api/auth/**").permitAll()  // 회원가입, 로그인은 인증 없이 접근 가능
+                        .requestMatchers("/api/auth/**", "/api/dataset/**").permitAll()  // 회원가입, 로그인은 인증 없이 접근 가능
                         .requestMatchers("/api/test/**").authenticated())  // 인증 필요
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // CORS 설정

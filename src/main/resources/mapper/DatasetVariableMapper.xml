@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.apitester.ttalkkag.mapper.DatasetVariableMapper">
+    <!-- 변수 삽입 -->
+    <insert id="insertVariable" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dataset_variable (dataset_id, name, type, description, created_at)
+        VALUES (#{datasetId}, #{name}, #{type}, #{description}, NOW())
+    </insert>
+
+    <!-- 변수 삭제 -->
+    <delete id="deleteVariable">
+        DELETE FROM dataset_variable WHERE id = #{id}
+    </delete>
+
+    <!-- 특정 데이터셋 포함 변수 삭제 -->
+    <delete id="deleteVariableByDatasetId" parameterType="long">
+        DELETE FROM dataset_variable
+        WHERE dataset_id = #{datasetId}
+    </delete>
+</mapper>
