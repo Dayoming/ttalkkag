@@ -18,7 +18,7 @@
           </button>
         </div>
 
-        <div class="form-floating mb-3">
+        <div class="mb-3">
           <input
             type="text"
             class="form-control"
@@ -27,10 +27,9 @@
             v-model="verificationCode"
             required
           />
-          <label for="verificationCode">전송된 코드를 입력해 주세요. </label>
         </div>
 
-        <div class="form-floating mb-3">
+        <div class="mb-3">
           <input
             type="password"
             class="form-control"
@@ -39,10 +38,9 @@
             v-model="password"
             required
           />
-          <label for="password">비밀번호를 입력해 주세요.</label>
         </div>
 
-        <div class="form-floating mb-3">
+        <div class="mb-3">
           <input
             type="password"
             class="form-control"
@@ -51,9 +49,6 @@
             v-model="confirmPassword"
             required
           />
-          <label for="confirmPassword"
-            >비밀번호를 한 번 더 입력해 주세요.</label
-          >
         </div>
 
         <button class="btn btn-dark w-100 py-2" type="submit">OK</button>
@@ -109,6 +104,10 @@ export default {
 </script>
 
 <style scoped>
+.form-floating {
+  font-size: small;
+}
+
 h1 {
     text-align: center;
 }
@@ -123,6 +122,10 @@ h1 {
   background: #ffffff;
   border-radius: 10px;
   border: 1px solid #e4e4e4;
+}
+
+.signup-form input {
+  font-size: small;
 }
 
 .form-floating label {

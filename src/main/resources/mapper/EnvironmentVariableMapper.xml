@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.apitester.ttalkkag.mapper.EnvironmentVariableMapper">
+    <select id="findByEnvironmentId" resultType="EnvironmentVariable">
+        SELECT * FROM environment_variable WHERE environment_id = #{environmentId}
+    </select>
+
+    <insert id="insertVariable">
+        INSERT INTO environment_variable (environment_id, `key`, `value`)
+        VALUES (#{environmentId}, #{key}, #{value})
+    </insert>
+
+    <update id="updateVariable">
+        UPDATE environment_variable
+        SET `key` = #{key}, `value` = #{value}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteVariable">
+        DELETE FROM environment_variable WHERE id = #{id}
+    </delete>
+</mapper>

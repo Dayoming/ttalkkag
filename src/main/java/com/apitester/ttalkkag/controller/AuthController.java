@@ -6,6 +6,7 @@ import com.apitester.ttalkkag.mapper.UserMapper;
 import com.apitester.ttalkkag.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 
 @RestController
+@Transactional
 @RequestMapping("/api/auth")
 public class AuthController {
     @Autowired
@@ -85,9 +88,11 @@ public class AuthController {
 
         // 액세스 토큰 발급
         String accessToken = jwtTokenUtil.generateToken(email);
+        System.out.println(accessToken);
 
         // 리프레시 토큰 발급
         String refreshToken = jwtTokenUtil.generateRefreshToken(email);
+        System.out.println(refreshToken);
 
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
@@ -100,6 +105,40 @@ public class AuthController {
     public Map<String, Object> logout() {
         Map<String, Object> response = new HashMap<>();
         return response;
+    }
+
+    @PostMapping("/refresh-token")
+    public Map<String, Object> refreshAccessToken(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        String refreshToken = request.get("refreshToken");
+
+        try {
+            // 리프레시 토큰 검증
+            String email = jwtTokenUtil.getEmailFromToken(refreshToken);
+
+            // 토큰이 유효한지 확인 (추가 검증 로직 필요하면 작성)
+            if (email == null || !jwtTokenUtil.validateToken(refreshToken)) {
+                response.put("errorMessage", "유효하지 않은 리프레시 토큰입니다.");
+                return response;
+            }
+
+            // 사용자 이메일로 사용자 정보 확인 (DB에서 사용자를 조회)
+            User user = userMapper.findByEmail(email);
+            if (user == null) {
+                response.put("errorMessage", "해당 사용자가 존재하지 않습니다.");
+                return response;
+            }
+
+            // 새로운 액세스 토큰 생성
+            String newAccessToken = jwtTokenUtil.generateToken(email);
+
+            response.put("accessToken", newAccessToken);
+            return response;
+
+        } catch (Exception e) {
+            response.put("errorMessage", "리프레시 토큰 처리 중 오류가 발생했습니다.");
+            return response;
+        }
     }
 }
 

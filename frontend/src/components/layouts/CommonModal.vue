@@ -1,6 +1,6 @@
 <template>
-  <div class="modal fade show" id="commonModal" tabindex="-1" role="dialog" aria-labelledby="commonModalLabel" aria-hidden="true">
-    <div v-if="isVisible" class="modal-dialog" role="document">
+  <div v-if="isVisible" class="modal fade show" id="commonModal" tabindex="-1" role="dialog" aria-labelledby="commonModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ title }}</h5>
@@ -8,6 +8,7 @@
         </div>
         <div class="modal-body">
           <slot name="body"></slot>
+          <p v-if="showError" class="text-danger mt-2">{{ errorMessage }}</p>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeModal">Close</button>
@@ -43,4 +44,15 @@ export default {
   display: block;
   background-color: rgba(0, 0, 0, 0.5);
 }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn {
+  min-width: 80px;
+}
+
 </style>

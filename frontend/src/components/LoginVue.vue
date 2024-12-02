@@ -55,6 +55,7 @@ export default {
         alert(response.data.errorMessage);
         return;
       }
+
       localStorage.setItem("accessToken", response.data.accessToken);
       localStorage.setItem("refreshToken", response.data.refreshToken);
       this.$router.push("/test-api");

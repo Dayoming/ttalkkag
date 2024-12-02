@@ -58,4 +58,15 @@ const router = createRouter({
     routes,
 });
 
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem("accessToken");
+  
+    if (to.name !== "LoginVue" && !token) {
+      // 로그인 페이지로 리다이렉트
+      return next({ name: "LoginVue" });
+    }
+    
+    next(); // 다른 경우는 정상적으로 이동
+});
+
 export default router;
