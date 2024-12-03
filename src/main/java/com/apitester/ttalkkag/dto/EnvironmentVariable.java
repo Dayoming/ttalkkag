@@ -1,4 +1,4 @@
-package com.apitester.ttalkkag.entity;
+package com.apitester.ttalkkag.dto;
 
 import lombok.Data;
 

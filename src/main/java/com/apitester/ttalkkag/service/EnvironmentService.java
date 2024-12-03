@@ -1,8 +1,8 @@
 package com.apitester.ttalkkag.service;
 
-import com.apitester.ttalkkag.entity.Environment;
-import com.apitester.ttalkkag.entity.EnvironmentVariable;
-import com.apitester.ttalkkag.entity.User;
+import com.apitester.ttalkkag.dto.Environment;
+import com.apitester.ttalkkag.dto.EnvironmentVariable;
+import com.apitester.ttalkkag.dto.User;
 import com.apitester.ttalkkag.mapper.EnvironmentMapper;
 import com.apitester.ttalkkag.mapper.EnvironmentVariableMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;

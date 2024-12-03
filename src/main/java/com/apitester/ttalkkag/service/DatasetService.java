@@ -1,7 +1,7 @@
 package com.apitester.ttalkkag.service;
 
-import com.apitester.ttalkkag.entity.Dataset;
-import com.apitester.ttalkkag.entity.DatasetVariable;
+import com.apitester.ttalkkag.dto.Dataset;
+import com.apitester.ttalkkag.dto.DatasetVariable;
 import com.apitester.ttalkkag.mapper.DatasetMapper;
 import com.apitester.ttalkkag.mapper.DatasetVariableMapper;
 import lombok.RequiredArgsConstructor;

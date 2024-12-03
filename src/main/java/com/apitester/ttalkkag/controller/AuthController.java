@@ -1,7 +1,7 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.config.JwtTokenUtil;
-import com.apitester.ttalkkag.entity.User;
+import com.apitester.ttalkkag.dto.User;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import com.apitester.ttalkkag.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 
 @RestController

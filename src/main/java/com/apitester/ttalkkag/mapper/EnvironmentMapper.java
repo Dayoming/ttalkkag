@@ -1,6 +1,6 @@
 package com.apitester.ttalkkag.mapper;
 
-import com.apitester.ttalkkag.entity.Environment;
+import com.apitester.ttalkkag.dto.Environment;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

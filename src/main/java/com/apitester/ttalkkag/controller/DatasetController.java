@@ -1,7 +1,7 @@
 package com.apitester.ttalkkag.controller;
 
-import com.apitester.ttalkkag.entity.Dataset;
-import com.apitester.ttalkkag.entity.DatasetVariable;
+import com.apitester.ttalkkag.dto.Dataset;
+import com.apitester.ttalkkag.dto.DatasetVariable;
 import com.apitester.ttalkkag.service.DatasetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

@@ -1,7 +1,7 @@
 package com.apitester.ttalkkag.mapper;
 
-import com.apitester.ttalkkag.entity.Dataset;
-import com.apitester.ttalkkag.entity.DatasetVariable;
+import com.apitester.ttalkkag.dto.Dataset;
+import com.apitester.ttalkkag.dto.DatasetVariable;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

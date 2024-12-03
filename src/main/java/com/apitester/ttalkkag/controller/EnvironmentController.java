@@ -1,7 +1,7 @@
 package com.apitester.ttalkkag.controller;
 
-import com.apitester.ttalkkag.entity.Environment;
-import com.apitester.ttalkkag.entity.EnvironmentVariable;
+import com.apitester.ttalkkag.dto.Environment;
+import com.apitester.ttalkkag.dto.EnvironmentVariable;
 import com.apitester.ttalkkag.service.EnvironmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

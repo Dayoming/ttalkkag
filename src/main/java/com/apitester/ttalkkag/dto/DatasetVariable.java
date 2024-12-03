@@ -1,14 +1,13 @@
-package com.apitester.ttalkkag.entity;
+package com.apitester.ttalkkag.dto;
 
 import lombok.Data;
 
-import java.util.List;
-
 @Data
-public class Dataset {
+public class DatasetVariable {
     private Long id;
+    private Long datasetId;
+    private String type;
     private String name;
     private String description;
     private String createdAt;
-    private List<DatasetVariable> variables;
 }

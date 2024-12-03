@@ -1,6 +1,6 @@
 package com.apitester.ttalkkag.mapper;
 
-import com.apitester.ttalkkag.entity.User;
+import com.apitester.ttalkkag.dto.User;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
