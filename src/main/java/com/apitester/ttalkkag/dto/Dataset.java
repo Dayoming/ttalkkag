@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class Dataset {
     private Long id;
+    private Long userId;
     private String name;
     private String description;
     private String createdAt;

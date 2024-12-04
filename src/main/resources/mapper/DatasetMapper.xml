@@ -6,6 +6,7 @@
     <select id="findAllDatasets" resultMap="DatasetResultMap">
         SELECT id, name, description, created_at
         FROM dataset
+        WHERE user_id = #{userId}
     </select>
 
     <!-- 데이터셋 ID로 조회 -->
@@ -17,8 +18,8 @@
 
     <!-- 데이터셋 삽입 -->
     <insert id="insertDataset" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO dataset (name, description, created_at)
-        VALUES (#{name}, #{description}, NOW())
+        INSERT INTO dataset (name, user_id, description, created_at)
+        VALUES (#{name}, #{userId}, #{description}, NOW())
     </insert>
 
     <!-- 데이터셋 삭제 -->

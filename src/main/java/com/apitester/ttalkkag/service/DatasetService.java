@@ -4,6 +4,7 @@ import com.apitester.ttalkkag.dto.Dataset;
 import com.apitester.ttalkkag.dto.DatasetVariable;
 import com.apitester.ttalkkag.mapper.DatasetMapper;
 import com.apitester.ttalkkag.mapper.DatasetVariableMapper;
+import com.apitester.ttalkkag.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -19,9 +21,11 @@ public class DatasetService {
 
     private final DatasetMapper datasetMapper;
     private final DatasetVariableMapper datasetVariableMapper;
+    private final UserMapper userMapper;
 
-    public List<Dataset> getAllDatasets() {
-        return datasetMapper.findAllDatasets();
+    public List<Dataset> getAllDatasets(String userEmail) {
+        Long userId = userMapper.findByEmail(userEmail).getId();
+        return datasetMapper.findAllDatasets(userId);
     }
 
     public Map<String, Object> getDatasetById(Long id) {
@@ -30,8 +34,9 @@ public class DatasetService {
         return response;
     }
 
-    public List<Dataset> getAllDatasetsWithVariables() {
-        List<Dataset> datasets = datasetMapper.findAllDatasets();
+    public List<Dataset> getAllDatasetsWithVariables(String userEmail) {
+        Long userId = userMapper.findByEmail(userEmail).getId();
+        List<Dataset> datasets = datasetMapper.findAllDatasets(userId);
         for (Dataset dataset : datasets) {
             List<DatasetVariable> variables = datasetMapper.findVariablesByDatasetId(dataset.getId());
             System.out.println(variables);
@@ -44,17 +49,40 @@ public class DatasetService {
         return datasetMapper.searchDatasets(query);
     }
 
-    public Map<String, Object> addDataset(Dataset dataset, List<DatasetVariable> variables) {
+    public Map<String, Object> addDataset(String userEmail, Map<String, Object> requestData) {
         Map<String, Object> response = new HashMap<>();
-        datasetMapper.insertDataset(dataset);
+        try {
+            Long userId = userMapper.findByEmail(userEmail).getId();
+            // RequestBody에서 Dataset 정보와 변수 리스트를 추출
+            Dataset dataset = new Dataset();
+            dataset.setUserId(userId);
+            dataset.setName((String) requestData.get("name"));
+            dataset.setDescription((String) requestData.get("description"));
 
-        for (DatasetVariable variable : variables) {
-            variable.setDatasetId(dataset.getId());
-            datasetVariableMapper.insertVariable(variable);
+            List<DatasetVariable> variables = ((List<Map<String, String>>) requestData.get("variables"))
+                    .stream()
+                    .map(variableData -> {
+                        DatasetVariable variable = new DatasetVariable();
+                        variable.setType(variableData.get("type"));
+                        variable.setName(variableData.get("name"));
+                        variable.setDescription(variableData.get("description"));
+                        return variable;
+                    })
+                    .collect(Collectors.toList());
+
+            datasetMapper.insertDataset(dataset);
+
+            for (DatasetVariable variable : variables) {
+                variable.setDatasetId(dataset.getId());
+                datasetVariableMapper.insertVariable(variable);
+            }
+
+            response.put("message", "Dataset " + dataset.getName() + "이(가) 정상적으로 추가되었습니다.");
+            return response;
+        } catch (Exception e) {
+            response.put("errorMessage", "Error: " + e.getMessage());
+            return response;
         }
-
-        response.put("message", "Dataset이 정상적으로 추가되었습니다.");
-        return response;
     }
 
     public Map<String, Object> deleteDataset(Long id) {

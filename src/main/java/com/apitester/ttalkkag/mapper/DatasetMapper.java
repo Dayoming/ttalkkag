@@ -8,7 +8,7 @@ import java.util.List;
 
 @Mapper
 public interface DatasetMapper {
-    List<Dataset> findAllDatasets();
+    List<Dataset> findAllDatasets(Long userId);
     List<DatasetVariable> findVariablesByDatasetId(Long id);
     List<Dataset> searchDatasets(String query);
     Dataset findDatasetById(Long id);

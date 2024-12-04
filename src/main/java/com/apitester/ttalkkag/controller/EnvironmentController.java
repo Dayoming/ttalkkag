@@ -42,7 +42,6 @@ public class EnvironmentController {
 
     @PutMapping("/variables/{id}")
     public void updateVariable(@RequestBody EnvironmentVariable variable) {
-        System.out.println(variable);
         environmentService.updateVariable(variable);
     }
 
