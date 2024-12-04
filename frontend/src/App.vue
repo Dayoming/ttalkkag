@@ -5,11 +5,15 @@
       <div class="row">
         <CommonSideBar
           :projects="projects"
+          :tempApis="tempApis"
+          @select-temp-api="loadTempApi"
           @select-project="handleSidebarProjectSelection"
         />
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents">
           <router-view
             v-bind:projects="projects"
+            :tempApi="selectedTempApi"
+            @temp-save-api="saveTempApi"
             @select-project="handleSidebarProjectSelection"
           />
         </main>
@@ -33,6 +37,8 @@ export default {
   name: "App",
   data() {
     return {
+      selectedTempApi: null, // 현재 선택된 임시 저장된 API
+      tempApis: [], // 임시 저장된 API 데이터
       selectedProject: "MyProject",
       projects: [
         {
@@ -62,6 +68,26 @@ export default {
         projectsVue.selectProject(projectName);
       }
     },
+    // API를 임시 저장
+    saveTempApi(apiData) {
+      const existingApiIndex = this.tempApis.findIndex(
+        (api) => api.name === apiData.name
+      );
+      if (existingApiIndex !== -1) {
+        // 동일 이름의 API가 이미 존재하면 업데이트
+        this.tempApis[existingApiIndex] = apiData;
+      } else {
+        // 새 API 데이터 추가
+        this.tempApis.push(apiData);
+      }
+    },
+    // 사이드바에서 임시 저장된 API 선택
+    loadTempApi(apiName) {
+      const tempApi = this.tempApis.find((api) => api.name === apiName);
+      if (tempApi) {
+        this.selectedTempApi = tempApi;
+      }
+    },
   },
   components: {
     NavHeader,
@@ -73,5 +99,9 @@ export default {
 <style>
 main {
   font-size: small;
+}
+
+.main-contents {
+  height: 100vh;
 }
 </style>

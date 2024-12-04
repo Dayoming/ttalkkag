@@ -60,6 +60,13 @@
               </a>
             </li>
           </template>
+          <template v-if="currentRoute === '/test-api'">
+            <li v-for="api in tempApis" :key="api.name" class="nav-item">
+              <a href="#" class="nav-link" @click.prevent="$emit('select-temp-api', api.name)">
+                {{ api.name }}
+              </a>
+            </li>
+          </template>
         </ul>
       </div>
     </div>
@@ -69,7 +76,7 @@
 <script>
 export default {
   name: "CommonSideBar",
-  props: ["projects"],
+  props: ["projects", "tempApis"],
   computed: {
     currentRoute() {
       return this.$route.path;
