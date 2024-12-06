@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.apitester.ttalkkag.mapper.ProjectMapper">
+    <!-- 사용자별 프로젝트 조회 -->
+    <select id="getProjectsByUserId" resultType="com.apitester.ttalkkag.dto.Project">
+        SELECT
+            id AS id,
+            name AS name,
+            user_id AS userId,
+            create_at AS createAt
+        FROM project
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 프로젝트 생성 -->
+    <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project (name, create_at, user_id)
+        VALUES (#{name}, NOW(), #{userId})
+    </insert>
+
+    <!-- 프로젝트 삭제 -->
+    <delete id="deleteProject">
+        DELETE FROM project
+        WHERE id = #{id}
+    </delete>
+
+    <insert id="insertFolder" parameterType="ProjectItems">
+        INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
+        VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, #{createAt})
+    </insert>
+
+    <select id="findByProjectId" parameterType="long" resultType="ProjectItems">
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            parent_id AS parentId,
+            type AS type,
+            name AS name,
+            depth AS depth,
+            create_at AS createAt
+        FROM project_items
+        WHERE project_id = #{projectId}
+    </select>
+
+    <select id="findByParentId" parameterType="long" resultType="ProjectItems">
+        SELECT * FROM project_items WHERE parent_id = #{parentId}
+    </select>
+
+    <!-- 항목 삭제 -->
+    <delete id="deleteByItemId">
+        DELETE FROM project_items WHERE id = #{id}
+    </delete>
+</mapper>

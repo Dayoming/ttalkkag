@@ -78,7 +78,10 @@
               >
                 <i class="bi bi-x-lg"></i>
               </button>
-              <button class="btn btn-light" @click="toggleEditMode(variable.id)">
+              <button
+                class="btn btn-light"
+                @click="toggleEditMode(variable.id)"
+              >
                 <i
                   :class="
                     variable.isEditing ? 'bi bi-check-lg' : 'bi bi-pen-fill'
@@ -222,45 +225,72 @@ export default {
       }
     },
     addVariable() {
-      this.variables.push({ key: "", value: "", isEditing: true });
+      this.variables.push({
+        id: null, // 새 변수는 ID가 없습니다.
+        key: "",
+        value: "",
+        isEditing: true,
+      });
     },
     async deleteVariable(variableId) {
       await this.$axios.delete(`/api/environments/variables/${variableId}`);
       this.fetchVariables();
     },
-    toggleEditMode(index) {
-      const variable = this.variables[index];
-      if (variable) {
-        // isEditing 상태를 토글
-        if (variable.isEditing) {
-          // 키와 값이 비어 있으면 에러 처리
-          if (!variable.key.trim() || !variable.value.trim()) {
-            alert("Key와 Value를 모두 입력해주세요.");
-            return;
-          }
-          // 등록 후 isEditing 상태를 false로 설정
-          variable.isEditing = false;
-          // 서버로 데이터 전송 (필요 시 비동기 호출 추가 가능)
+    toggleEditMode(variableId) {
+      const variable = this.variables.find((v) => v.id === variableId);
+
+      if (!variable) {
+        console.error(`Variable with ID ${variableId} not found.`);
+        return;
+      }
+
+      if (variable.isEditing) {
+        // 키와 값 검증
+        if (!variable.key.trim() || !variable.value.trim()) {
+          alert("Key와 Value를 모두 입력해주세요.");
+          return;
+        }
+
+        // 새 변수인지 기존 변수인지 확인
+        if (!variable.id) {
+          // 새 변수 저장
           this.saveVariable(variable);
         } else {
-          // 수정 모드로 전환
-          variable.isEditing = true;
+          // 기존 변수 업데이트
+          this.updateVariable(variable);
         }
+
+        // 수정 모드 종료
+        variable.isEditing = false;
       } else {
-        console.error(`Invalid index: ${index}`);
+        // 수정 모드로 전환
+        variable.isEditing = true;
       }
     },
     async saveVariable(variable) {
       try {
-        await this.$axios.post(`/api/environments/variables`, {
+        const response = await this.$axios.post(`/api/environments/variables`, {
           environmentId: this.selectedEnvironment.id,
           key: variable.key,
           value: variable.value,
         });
+        variable.id = response.data.id;
         alert("변수가 정상적으로 저장되었습니다.");
       } catch (error) {
         console.error("변수 저장 실패", error);
         alert("변수 저장 중 오류가 발생했습니다.");
+      }
+    },
+    async updateVariable(variable) {
+      try {
+        await this.$axios.put(`/api/environments/variables/${variable.id}`, {
+          key: variable.key,
+          value: variable.value,
+        });
+        alert("변수가 성공적으로 업데이트되었습니다.");
+      } catch (error) {
+        console.error("변수 업데이트 실패", error);
+        alert("변수를 업데이트하는 중 오류가 발생했습니다.");
       }
     },
     downloadJson() {

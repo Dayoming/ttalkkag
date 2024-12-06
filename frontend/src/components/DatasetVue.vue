@@ -152,13 +152,13 @@
               />
             </div>
             <div class="col-md-4">
-              <input
-                type="text"
-                v-model="variable.description"
-                class="form-control"
-                placeholder="Description"
-              />
-            </div>
+                <input
+                  type="text"
+                  v-model="variable.description"
+                  class="form-control"
+                  placeholder="Description"
+                />
+              </div>
           </div>
         </div>
         <p v-if="variableError" class="text-danger">

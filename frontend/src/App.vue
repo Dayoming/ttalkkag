@@ -6,14 +6,20 @@
         <CommonSideBar
           :projects="projects"
           :tempApis="tempApis"
+          :selectedProject="selectedProject"
           @select-temp-api="loadTempApi"
+          @delete-projects="deleteProjects"
+          @update-projects="updateProjects"
           @select-project="handleSidebarProjectSelection"
         />
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents">
           <router-view
-            v-bind:projects="projects"
+            :projects="projects"
             :tempApi="selectedTempApi"
+            :selectedProject="selectedProject"
             @temp-save-api="saveTempApi"
+            @delete-projects="deleteProjects"
+            @update-projects="updateProjects"
             @select-project="handleSidebarProjectSelection"
           />
         </main>
@@ -39,34 +45,13 @@ export default {
     return {
       selectedTempApi: null, // 현재 선택된 임시 저장된 API
       tempApis: [], // 임시 저장된 API 데이터
-      selectedProject: "MyProject",
-      projects: [
-        {
-          id: 1,
-          name: "myProject",
-          items: [
-            { type: "folder", name: "SubFolder1" },
-            { type: "api", name: "API1", url: "/example/url1", method: "GET" },
-          ],
-        },
-        {
-          id: 2,
-          name: "newProject",
-          items: [
-            { type: "folder", name: "SubFolder2" },
-            { type: "api", name: "API2", url: "/example/url2", method: "POST" },
-          ],
-        },
-      ],
+      selectedProject: "",
+      projects: [],
     };
   },
   methods: {
     handleSidebarProjectSelection(projectName) {
-      // `ProjectsVue`의 `selectProject` 메서드를 호출
-      const projectsVue = this.$refs.projectsVue;
-      if (projectsVue) {
-        projectsVue.selectProject(projectName);
-      }
+      this.selectedProject = projectName; // 사이드바에서 선택한 프로젝트로 업데이트
     },
     // API를 임시 저장
     saveTempApi(apiData) {
@@ -88,6 +73,29 @@ export default {
         this.selectedTempApi = tempApi;
       }
     },
+    async fetchProjects() {
+      try {
+        const response = await this.$axios.get("/api/projects");
+        this.projects = response.data;
+        if (this.localProjects.length > 0) {
+          this.selectProject(this.projects[0].name);
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      }
+    },
+    updateProjects(newProject) {
+      this.projects.push(newProject);
+    },
+    deleteProjects(projectId) {
+      // projects 배열에서 삭제된 프로젝트 제거
+      this.projects = this.projects.filter(
+        (project) => project.id !== projectId
+      );
+    },
+  },
+  mounted() {
+    this.fetchProjects();
   },
   components: {
     NavHeader,

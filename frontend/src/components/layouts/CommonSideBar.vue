@@ -52,8 +52,9 @@
             <li class="nav-item" v-for="project in projects" :key="project.id">
               <a
                 class="nav-link d-flex align-items-center gap-2"
+                :class="{ active: project.name === selectedProject }"
                 href="#"
-                @click="selectProject(project.name)"
+                @click.prevent="selectProject(project.name)"
               >
                 <i class="bi bi-archive-fill"></i>
                 {{ project.name }}
@@ -76,7 +77,7 @@
 <script>
 export default {
   name: "CommonSideBar",
-  props: ["projects", "tempApis"],
+  props: ["projects", "tempApis", "selectedProject"],
   computed: {
     currentRoute() {
       return this.$route.path;

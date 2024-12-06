@@ -17,6 +17,7 @@ public class EnvironmentController {
 
     @GetMapping
     public List<Environment> getEnvironments(@AuthenticationPrincipal String userEmail) {
+        System.out.println(environmentService.findEnvironmentsByUserEmail(userEmail));
         return environmentService.findEnvironmentsByUserEmail(userEmail);
     }
 
@@ -41,7 +42,8 @@ public class EnvironmentController {
     }
 
     @PutMapping("/variables/{id}")
-    public void updateVariable(@RequestBody EnvironmentVariable variable) {
+    public void updateVariable(@PathVariable Long id, @RequestBody EnvironmentVariable variable) {
+        variable.setId(id);
         environmentService.updateVariable(variable);
     }
 

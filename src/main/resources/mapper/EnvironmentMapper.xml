@@ -3,7 +3,12 @@
 
 <mapper namespace="com.apitester.ttalkkag.mapper.EnvironmentMapper">
     <select id="findByUserId" resultType="Environment">
-        SELECT * FROM environment WHERE user_id = #{userId}
+        SELECT
+            id AS id,
+            user_id AS userId,
+            name AS name,
+            is_default AS isDefault
+        FROM environment WHERE user_id = #{userId}
     </select>
 
     <insert id="insertEnvironment">

@@ -7,11 +7,12 @@
         <select
           id="projectSelect"
           class="form-select d-inline-block w-auto"
-          v-model="selectedProject"
-          @change="selectProject(selectedProject)"
+          v-model="localSelectedProject"
+          :value="selectedProject"
+          @change="selectProject"
         >
           <option
-            v-for="project in projects"
+            v-for="project in localProjects"
             :key="project.id"
             :value="project.name"
           >
@@ -58,31 +59,18 @@
     <!-- 테이블 -->
     <div class="table-responsive mt-4">
       <table class="table table-borderless">
+        <th>API명/폴더명</th>
+        <th>URL</th>
+        <th>METHOD</th>
         <tbody>
-          <tr v-for="(item, index) in items" :key="index">
-            <!-- 체크박스 -->
-            <td>
-              <input type="checkbox" v-model="item.selected" />
-            </td>
-            <td>
-              <!-- 폴더나 API 조건을 래핑 -->
-              <span v-if="item.type === 'folder'">
-                <i class="bi bi-folder-fill me-2"></i>
-                {{ item.name }}
-              </span>
-              <span v-else-if="item.type === 'api'">
-                <i class="bi bi-file-earmark me-2"></i>
-                {{ item.name }}
-              </span>
-            </td>
-            <!-- API 전용 필드 -->
-            <template v-if="item.type === 'api'">
-              <td>{{ item.url }}</td>
-              <td>
-                <span class="badge bg-secondary">{{ item.method }}</span>
-              </td>
-            </template>
-          </tr>
+          <RecursiveFolderItem
+            v-for="item in items"
+            :key="item.id"
+            :item="item"
+            :depth="0"
+            @selection-change="handleSelectionChange"
+            @toggle-folder="toggleFolder"
+          />
         </tbody>
       </table>
     </div>
@@ -91,63 +79,257 @@
 
 <script>
 import CommonModal from "./layouts/CommonModal.vue";
+import RecursiveFolderItem from "./RecursiveFolderItem.vue";
 
 export default {
   name: "ProjectsVue",
   components: {
     CommonModal,
+    RecursiveFolderItem,
   },
-  props: ["projects"],
+  props: ["projects", "selectedProject"],
   data() {
     return {
-      localProjects: [...this.projects],
-      selectedProject: null, // 현재 선택된 프로젝트
+      localProjects: [],
       items: [],
       newProjectName: null,
       showNewProjectModal: false,
+      localSelectedProject: "",
     };
   },
   methods: {
-    selectProject(projectName) {
-      // 선택된 프로젝트 처리 로직
+    async fetchProjects() {
+      try {
+        const response = await this.$axios.get("/api/projects");
+        this.localProjects = response.data;
+        if (this.localProjects.length > 0) {
+          this.localSelectedProject = this.localProjects[0].name;
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      }
+    },
+    async fetchItems() {
       const selectedProject = this.localProjects.find(
-        (project) => project.name === projectName
+        (project) => project.name === this.localSelectedProject
       );
-      if (selectedProject) {
-        this.selectedProject = selectedProject.name; // 셀렉트 박스 갱신
-        this.items = selectedProject.items; // 프로젝트 하위 데이터 업데이트
+
+      if (!selectedProject) {
+        console.error("선택된 프로젝트를 찾을 수 없습니다.");
+        return;
       }
-    },
-    addNewProject() {
-      if (this.newProjectName) {
-        this.localProjects.push({
-          id: this.localProjects.length + 1,
-          name: this.newProjectName,
-          items: [],
-        });
-        this.selectProject(this.newProjectName); // 새로운 프로젝트 선택
-        this.showNewProjectModal = false;
-      }
-    },
-    deleteProject() {
-      if (
-        confirm(
-          `Are you sure you want to delete project "${this.selectedProject}"?`
-        )
-      ) {
-        this.localProjects = this.localProjects.filter(
-          (project) => project.name !== this.selectedProject
+
+      try {
+        const response = await this.$axios.get(
+          `/api/projects/${selectedProject.id}`
         );
-        this.selectedProject = this.localProjects[0]?.name || null; // 첫 번째 프로젝트 선택
-        this.items = this.localProjects[0]?.items || []; // 데이터 초기화
+        this.items = this.buildTreeStructure(response.data); // 최상위 항목만 로드
+      } catch (error) {
+        console.error("아이템을 불러오는 중 오류가 발생했습니다:", error);
       }
+    },
+    buildTreeStructure(items) {
+      const idToItemMap = {};
+      items.forEach((item) => {
+        idToItemMap[item.id] = { ...item, children: [], isOpen: false };
+      });
+
+      const tree = [];
+      items.forEach((item) => {
+        if (item.parentId === null) {
+          // 최상위 항목은 트리에 추가
+          tree.push(idToItemMap[item.id]);
+        } else if (idToItemMap[item.parentId]) {
+          // 부모가 있는 항목은 해당 부모의 children에 추가
+          idToItemMap[item.parentId].children.push(idToItemMap[item.id]);
+        }
+      });
+
+      return tree; // 최종 트리 반환
+    },
+    async toggleFolder(item) {
+      console.log("폴더 토글됨:", item);
+    },
+
+    findFolderById(folderId, items) {
+      for (const item of items) {
+        if (item.id === folderId) {
+          return item;
+        }
+        if (item.children && item.children.length > 0) {
+          const found = this.findFolderById(folderId, item.children);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return null;
+    },
+    async selectProject() {
+      this.$emit("select-project", this.localSelectedProject); // 선택된 프로젝트를 부모로 전달
+      await this.fetchItems();
+    },
+    async addNewProject() {
+      if (this.newProjectName) {
+        try {
+          const response = await this.$axios.post("/api/projects", {
+            name: this.newProjectName,
+          });
+          this.localProjects.push(response.data);
+          this.$emit("update-projects", response.data);
+          this.selectProject(response.data.name); // 새로운 프로젝트 선택
+          this.showNewProjectModal = false;
+        } catch (error) {
+          console.error("Failed to create project:", error);
+        }
+      }
+      this.selectProject();
+    },
+    async addFolder() {
+      const folderName = prompt("새 폴더 이름을 입력하세요: ");
+      if (!folderName) {
+        alert("폴더 이름을 입력해주세요.");
+        return;
+      }
+
+      try {
+        await this.$axios.post(`/api/projects/add-folder`, {
+          projectId: this.localProjects.find(
+            (project) => project.name === this.localSelectedProject
+          ).id,
+          parentId: null,
+          name: folderName,
+          depth: 1,
+        });
+        this.fetchItems();
+      } catch (error) {
+        console.error("폴더 추가 중 오류가 발생했습니다:", error);
+        alert("폴더 추가에 실패했습니다.");
+      }
+    },
+    async deleteProject() {
+      if (confirm(`${this.selectedProject}를 삭제하시겠습니까?`)) {
+        const selectedProject = this.localProjects.find(
+          (project) => project.name === this.selectedProject
+        );
+        if (selectedProject) {
+          try {
+            await this.$axios.delete(`/api/projects/${selectedProject.id}`);
+            this.localProjects = this.localProjects.filter(
+              (project) => project.id !== selectedProject.id
+            );
+
+            this.$emit("delete-projects", selectedProject.id);
+
+            if (this.localProjects.length > 0) {
+              this.selectProject(this.localProjects[0].name);
+            } else {
+              this.localSelectedProject = null;
+              this.items = [];
+            }
+          } catch (error) {
+            console.error("Failed to delete project:", error);
+          }
+        }
+      }
+      this.fetchProjects();
+    },
+    async deleteSelected() {
+      // 선택된 항목 ID 수집
+      const selectedIds = this.getSelectedIds(this.items);
+
+      if (selectedIds.length === 0) {
+        alert("삭제할 항목을 선택해주세요.");
+        return;
+      }
+
+      if (!confirm("선택된 항목과 모든 하위 항목을 삭제하시겠습니까?")) {
+        return;
+      }
+
+      try {
+        // 서버에 삭제 요청
+        await this.$axios.delete("/api/projects/items", {
+          data: selectedIds,
+        });
+
+        // UI에서 삭제
+        this.removeItemsFromUI(this.items, selectedIds);
+        alert("삭제되었습니다.");
+      } catch (error) {
+        console.error("삭제 중 오류가 발생했습니다:", error);
+        alert("삭제에 실패했습니다.");
+      }
+    },
+    getSelectedIds(items) {
+      const selectedIds = [];
+
+      for (const item of items) {
+        if (item.selected) {
+          selectedIds.push(item.id);
+        }
+        if (item.children && item.children.length > 0) {
+          selectedIds.push(...this.getSelectedIds(item.children));
+        }
+      }
+
+      return selectedIds;
+    },
+    removeItemsFromUI(items, selectedIds) {
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+
+        // 현재 항목 삭제
+        if (selectedIds.includes(item.id)) {
+          items.splice(i, 1);
+          continue;
+        }
+
+        // 하위 항목 삭제
+        if (item.children && item.children.length > 0) {
+          this.removeItemsFromUI(item.children, selectedIds);
+        }
+      }
+    },
+    handleSelectionChange(updatedItem) {
+      const findAndUpdateItem = (items) => {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].id === updatedItem.id) {
+            items[i] = updatedItem;
+            return;
+          }
+          if (items[i].children && items[i].children.length > 0) {
+            findAndUpdateItem(items[i].children);
+          }
+        }
+      };
+
+      findAndUpdateItem(this.items);
     },
   },
   mounted() {
-    // 초기 선택 프로젝트 설정
-    if (this.localProjects.length) {
-      this.selectProject(this.localProjects[0].name);
-    }
+    this.fetchProjects().then(() => {
+      if (this.localProjects.length > 0) {
+        this.localSelectedProject = this.localProjects[0].name;
+        this.fetchItems();
+      }
+    });
+  },
+  watch: {
+    // 부모에서 전달받은 projects가 변경되면 localProjects도 동기화
+    projects: {
+      handler(newProjects) {
+        this.localProjects = [...newProjects];
+      },
+      immediate: true, // 컴포넌트가 처음 로드될 때도 동기화
+    },
+    // 부모로부터 받은 selectedProject가 변경되면 로컬 데이터 업데이트
+    selectedProject: {
+      handler(newSelectedProject) {
+        this.localSelectedProject = newSelectedProject;
+      },
+      immediate: true,
+    },
   },
 };
 </script>
@@ -173,5 +355,18 @@ export default {
 
 .bi-file-earmark-text {
   color: #007bff;
+}
+
+.folder-toggle {
+  float: inline-end;
+  cursor: pointer;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.table .folder-children {
+  padding-left: 20px; /* 하위 항목의 들여쓰기 */
 }
 </style>
