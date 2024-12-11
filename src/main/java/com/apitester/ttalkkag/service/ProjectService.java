@@ -7,7 +7,6 @@ import com.apitester.ttalkkag.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -76,10 +75,34 @@ public class ProjectService {
         newFolder.setDepth(projectItems.getDepth());
         newFolder.setCreateAt(LocalDateTime.now().toString());
 
-        projectMapper.insertFolder(newFolder);
+        projectMapper.insertProjectItem(newFolder);
+    }
+
+    public void addProjectItemApi(ProjectItems projectItems) {
+        ProjectItems newApi = new ProjectItems();
+        newApi.setProjectId(projectItems.getProjectId());
+        newApi.setParentId(projectItems.getParentId());
+        newApi.setType("api");
+        newApi.setName(projectItems.getName());
+        newApi.setDepth(projectItems.getDepth());
+        newApi.setCreateAt(LocalDateTime.now().toString());
+        System.out.println(newApi);
+        projectMapper.insertProjectItem(newApi);
     }
 
     public List<ProjectItems> getProjectItemsByProjectId(Long projectId) {
         return projectMapper.findByProjectId(projectId);
+    }
+
+    public void saveApi(ProjectItems item) {
+        projectMapper.insertApi(item);
+    }
+
+    public List<ProjectItems> searchProjectItems(Long projectId, String query, String method) {
+        return projectMapper.searchProjectItems(projectId, query, method);
+    }
+
+    public Project getProjectByProjectId(Long projectId) {
+        return projectMapper.getProjectByProjectId(projectId);
     }
 }

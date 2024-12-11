@@ -4,7 +4,6 @@
     <!-- 선택 박스 -->
     <div class="d-flex align-items-center justify-content-between mb-4">
       <div class="d-flex align-items-center w-100">
-        <label class="me-2"><b>현재 선택된 통계:</b></label>
         <select v-model="selectedProject" class="form-select w-25">
           <option value="History">History</option>
           <option
@@ -36,6 +35,14 @@
     <!-- 에러 발생 시간대 -->
     <div class="mt-4">
       <h6 class="text-center">에러 발생 시간대</h6>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <label for="selectedTimeUnit"></label>
+        <select v-model="selectedTimeUnit" class="form-select w-25">
+          <option value="day">일</option>
+          <option value="month">월</option>
+          <option value="hour">시간</option>
+        </select>
+      </div>
       <canvas id="errorTimeChart"></canvas>
     </div>
 
@@ -43,7 +50,7 @@
     <div class="mt-4">
       <h6 class="text-center">에러 발생 빈도</h6>
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <label for="errorRange">HTTP 에러 범위 선택:</label>
+        <label for="errorRange"></label>
         <select
           id="errorRange"
           v-model="selectedErrorRange"
@@ -53,202 +60,353 @@
           <option value="5XX">5XX</option>
         </select>
       </div>
-      <canvas id="errorFrequencyChart"></canvas>
+      <canvas id="errorFrequencyChart" class="mb-5"></canvas>
     </div>
 
     <!-- 에러 이력 테이블 -->
     <div v-if="selectedErrorDetails.length" class="mt-4">
-      <h6 class="text-center">선택된 에러 이력</h6>
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>에러 코드</th>
-            <th>메시지</th>
-            <th>발생 시간</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(error, index) in selectedErrorDetails" :key="index">
-            <td>{{ error.code }}</td>
-            <td>{{ error.message }}</td>
-            <td>{{ error.timestamp }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrapper">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>METHOD</th>
+              <th>URL</th>
+              <th>응답 코드</th>
+              <th>시간(ms)</th>
+              <th>기록 시간</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(log, index) in selectedErrorDetails" :key="index">
+              <td>{{ log.method }}</td>
+              <td>{{ log.url }}</td>
+              <td>{{ log.responseCode }}</td>
+              <td>{{ log.responseTime }}ms</td>
+              <td>{{ log.loggedTime }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { onMounted, ref, watch } from "vue";
 import Chart from "chart.js/auto";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import moment from "moment";
 
 export default {
   name: "ReportsVue",
-  setup() {
-    const selectedProject = ref("History");
-    const projects = ref([
-      { id: 1, name: "Project A" },
-      { id: 2, name: "Project B" },
-      { id: 3, name: "Project C" },
-    ]);
-
-    const selectedErrorRange = ref("4XX"); // 선택된 에러 범위
-    const selectedErrorDetails = ref([]); // 클릭된 막대의 에러 이력
-    const errorData = ref([]); // 전체 에러 데이터
-
-    // 차트 인스턴스 저장용
-    let successFailureChart = null;
-    let responseTimeChart = null;
-    let errorFrequencyChart = null;
-    let errorTimeChart = null;
-
-    // 에러 데이터 초기화
-    const loadErrorData = () => {
-      errorData.value = [
-        {
-          code: 401,
-          message: "Unauthorized",
-          timestamp: "2024-05-01 12:00:00",
-        },
-        { code: 404, message: "Not Found", timestamp: "2024-05-01 13:00:00" },
-        {
-          code: 500,
-          message: "Internal Server Error",
-          timestamp: "2024-05-01 14:00:00",
-        },
-        { code: 403, message: "Forbidden", timestamp: "2024-05-02 15:00:00" },
-        {
-          code: 502,
-          message: "Bad Gateway",
-          timestamp: "2024-05-02 16:00:00",
-        },
-      ];
+  data() {
+    return {
+      historyData: [],
+      filteredHistoryData: [],
+      errorData: [],
+      projects: [],
+      selectedTimeUnit: "day",
+      selectedErrorRange: "4XX",
+      selectedProject: "History",
+      selectedErrorDetails: [],
+      successFailureChart: null,
+      errorTimeChart: null,
+      responseTimeChart: null,
+      errorFrequencyChart: null,
     };
-
-    // 에러 빈도 데이터를 필터링
-    const getFilteredErrorFrequency = () => {
-      const range =
-        selectedErrorRange.value === "4XX" ? [400, 499] : [500, 599];
-      const filtered = errorData.value.filter(
-        (error) => error.code >= range[0] && error.code <= range[1]
-      );
-
-      const frequency = {};
-      filtered.forEach((error) => {
-        frequency[error.code] = (frequency[error.code] || 0) + 1;
-      });
+  },
+  computed: {
+    successFailureData() {
+      const successCount = this.filteredHistoryData.filter(
+        (log) => log.responseCode >= 200 && log.responseCode < 300
+      ).length;
+      const failureCount = this.filteredHistoryData.length - successCount;
 
       return {
-        labels: Object.keys(frequency),
-        datasets: [
-          {
-            label: "에러 발생 빈도",
-            data: Object.values(frequency),
-            backgroundColor: "rgba(255, 99, 132, 0.5)",
-            borderColor: "rgba(255, 99, 132, 1)",
-          },
-        ],
-      };
-    };
-
-    // 차트 업데이트
-    const updateErrorFrequencyChart = () => {
-      const data = getFilteredErrorFrequency();
-      if (errorFrequencyChart) errorFrequencyChart.destroy();
-      errorFrequencyChart = new Chart(
-        document.getElementById("errorFrequencyChart"),
-        {
-          type: "bar",
-          data,
-          options: {
-            onClick(event, elements) {
-              if (elements.length > 0) {
-                const index = elements[0].index;
-                const errorCode = data.labels[index];
-                selectedErrorDetails.value = errorData.value.filter(
-                  (error) => error.code == errorCode
-                );
-              }
-            },
-            plugins: {
-              legend: { display: false },
-            },
-            scales: {
-              x: { beginAtZero: true },
-            },
-          },
-        }
-      );
-    };
-
-    // 차트 데이터 초기화
-    const updateCharts = () => {
-      // 원형 차트 데이터
-      const successFailureData = {
         labels: ["성공", "실패"],
         datasets: [
           {
-            data: [72, 28], // 임의 데이터
+            data: [successCount, failureCount],
           },
         ],
       };
+    },
+    errorFrequencyData() {
+      const range = this.selectedErrorRange === "4XX" ? [400, 499] : [500, 599];
+      const errorCounts = this.filteredHistoryData.reduce((acc, log) => {
+        if (log.responseCode >= range[0] && log.responseCode <= range[1]) {
+          acc[log.responseCode] = (acc[log.responseCode] || 0) + 1;
+        }
+        return acc;
+      }, {});
 
-      // 메소드 호출 횟수
-      const responseTimeData = {
-        labels: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+      return {
+        labels: Object.keys(errorCounts),
         datasets: [
           {
-            label: "호출 횟수",
-            data: [3, 12, 8, 6, 2], // 임의 데이터
-            fill: true,
+            label: "에러 발생 빈도",
+            data: Object.values(errorCounts),
+            backgroundColor: "rgba(75, 192, 192, 0.5)",
+            borderColor: "rgba(75, 192, 192, 1)",
+            borderWidth: 1,
           },
         ],
       };
+    },
+  },
+  methods: {
+    async fetchProjects() {
+      try {
+        const response = await this.$axios.get("/api/projects");
+        this.projects = response.data;
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      }
+    },
+    async fetchHistoryData() {
+      try {
+        const response = await this.$axios.get("/api/history");
+        this.historyData = response.data;
+        this.updateFilteredHistoryData(); // 필터링된 데이터를 기반으로 초기화
+      } catch (error) {
+        console.error("Error fetching history data:", error);
+      }
+    },
+    async updateFilteredHistoryData() {
+      if (this.selectedProject === "History") {
+        this.filteredHistoryData = this.historyData; // 전체 데이터 표시
+        this.renderCharts();
+      } else {
+        // 선택된 프로젝트의 ID 찾기
+        const selectedProject = this.projects.find(
+          (project) => project.name === this.selectedProject
+        );
 
-      // 에러 발생 시간대  차트 데이터
-      const errorTimeData = {
-        labels: [
-          "2024-05-01",
-          "2024-05-02",
-          "2024-05-03",
-          "2024-05-04",
-          "2024-05-05",
-        ],
-        datasets: [
-          {
-            label: "에러 발생 일별 데이터",
-            data: [4, 2, 6, 8, 5], // 임의 데이터
-            fill: true,
-            borderColor: "#ff9800",
-            backgroundColor: "rgba(255, 152, 0, 0.2)",
+        console.log(selectedProject);
+
+        if (selectedProject) {
+          const selectedProjectId = selectedProject.id;
+
+          try {
+            // 프로젝트 ID로 필터링된 데이터 가져오기
+            const response = await this.$axios.get(
+              `/api/history/projects/${selectedProjectId}`
+            );
+            this.filteredHistoryData = response.data || []; // 데이터 할당
+            this.renderCharts(); // 데이터 업데이트 후 차트 렌더링
+          } catch (error) {
+            console.error("Failed to fetch filtered history data:", error);
+            this.filteredHistoryData = []; // 에러 시 기본값 설정
+          }
+        } else {
+          console.error(
+            "Selected project not found in projects list:",
+            this.selectedProject
+          );
+          this.filteredHistoryData = []; // 프로젝트를 찾지 못한 경우 기본값
+          this.renderCharts();
+        }
+      }
+    },
+    renderErrorTimeChart() {
+      if (this.errorTimeChart) this.errorTimeChart.destroy();
+
+      const groupedData = this.getErrorDataByTimeUnit();
+      const labels = Object.keys(groupedData);
+      const data = labels.map((label) => groupedData[label].length);
+
+      this.errorTimeChart = new Chart(
+        document.getElementById("errorTimeChart"),
+        {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "에러 발생 횟수",
+                data,
+                fill: true,
+                borderColor: "#8884d8",
+                backgroundColor: "rgba(136, 132, 216, 0.2)",
+              },
+            ],
           },
-        ],
-      };
+          options: {
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  title: (context) => {
+                    const timeKey = context[0].label;
+                    const logs = groupedData[timeKey];
+                    return logs[0].loggedTime;
+                  },
+                  afterBody: (context) => {
+                    const timeKey = context[0].label;
+                    const logs = groupedData[timeKey];
+                    return logs
+                      .map(
+                        (log) =>
+                          `Method: ${log.method}\nURL: ${log.url}\nError: ${log.responseCode} ${log.responseMessage}`
+                      )
+                      .join("\n\n");
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text:
+                    this.selectedTimeUnit === "day"
+                      ? "날짜"
+                      : this.selectedTimeUnit === "month"
+                      ? "월"
+                      : "시간",
+                },
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "에러 발생 횟수",
+                },
+              },
+            },
+          },
+        }
+      );
+    },
+    renderErrorFrequencyChart() {
+      if (this.errorFrequencyChart) this.errorFrequencyChart.destroy();
 
-      // 원형 차트 생성
-      if (successFailureChart) successFailureChart.destroy();
-      successFailureChart = new Chart(
+      this.errorFrequencyChart = new Chart(
+        document.getElementById("errorFrequencyChart"),
+        {
+          type: "bar",
+          data: this.errorFrequencyData,
+          options: {
+            responsive: true,
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    return `발생 빈도: ${context.raw}`;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "에러 코드",
+                },
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "발생 빈도 수",
+                },
+              },
+            },
+            onClick: (event, elements) => {
+              if (elements.length > 0) {
+                const index = elements[0].index;
+                const errorCode = this.errorFrequencyData.labels[index];
+                this.selectedErrorDetails = this.filteredHistoryData.filter(
+                  (log) => log.responseCode == errorCode
+                );
+              }
+            },
+          },
+        }
+      );
+    },
+    getErrorDataByTimeUnit() {
+      const groupedData = {};
+      const timeFormat = {
+        day: "YYYY-MM-DD",
+        month: "YYYY-MM",
+        hour: "YYYY-MM-DD HH",
+      }[this.selectedTimeUnit];
+
+      this.filteredHistoryData.forEach((log) => {
+        if (log.responseCode >= 400) {
+          const timeKey = moment(log.loggedTime).format(timeFormat);
+          if (!groupedData[timeKey]) groupedData[timeKey] = [];
+          groupedData[timeKey].push(log);
+        }
+      });
+
+      return groupedData;
+    },
+    renderCharts() {
+      if (this.successFailureChart) this.successFailureChart.destroy();
+      if (this.responseTimeChart) this.responseTimeChart.destroy();
+      if (this.errorTimeChart) this.errorTimeChart.destroy();
+      if (this.errorFrequencyChart) this.errorFrequencyChart.destroy();
+
+      this.successFailureChart = new Chart(
         document.getElementById("successFailureChart"),
         {
           type: "doughnut",
-          data: successFailureData,
+          data: this.successFailureData,
         }
       );
 
-      // 막대 차트 생성
-      if (responseTimeChart) responseTimeChart.destroy();
-      responseTimeChart = new Chart(
+      const methodStats = {};
+      this.filteredHistoryData.forEach((log) => {
+        const method = log.method;
+        if (!methodStats[method]) {
+          methodStats[method] = { count: 0, totalTime: 0 };
+        }
+        methodStats[method].count += 1;
+        methodStats[method].totalTime += log.responseTime || 0;
+      });
+
+      const labels = Object.keys(methodStats);
+      const counts = labels.map((method) => methodStats[method].count);
+      const averageTimes = labels.map((method) =>
+        Math.round(methodStats[method].totalTime / methodStats[method].count)
+      );
+
+      this.responseTimeChart = new Chart(
         document.getElementById("responseTimeChart"),
         {
           type: "bar",
-          data: responseTimeData,
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "호출 횟수",
+                data: counts,
+                backgroundColor: "rgba(75, 192, 192, 0.5)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
           options: {
-            indexAxis: "y",
+            indexAxis: "y", // 가로 막대 차트
             responsive: true,
             plugins: {
-              legend: {
-                position: "top",
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const avgTime = averageTimes[context.dataIndex];
+                    return `평균 응답 시간: ${avgTime} ms`;
+                  },
+                },
+              },
+              datalabels: {
+                anchor: "end",
+                align: "end",
+                formatter: (value, context) => {
+                  const avgTime = averageTimes[context.dataIndex];
+                  return `${avgTime} ms`;
+                },
+                color: "black",
               },
             },
             scales: {
@@ -257,43 +415,46 @@ export default {
               },
             },
           },
+          plugins: [ChartDataLabels], // DataLabels 플러그인 활성화
         }
       );
 
-      // 라인 차트 생성
-      if (errorTimeChart) errorTimeChart.destroy();
-      errorTimeChart = new Chart(
-        document.getElementById("errorTimeChart"),
+      this.renderErrorTimeChart();
+
+      this.errorFrequencyChart = new Chart(
+        document.getElementById("errorFrequencyChart"),
         {
-          type: "line",
-          data: errorTimeData,
+          type: "bar",
+          data: this.errorFrequencyData,
+          options: {
+            onClick: (event, elements) => {
+              if (elements.length > 0) {
+                const index = elements[0].index;
+                const errorCode = this.errorFrequencyData.labels[index];
+                this.selectedErrorDetails = this.filteredHistoryData.filter(
+                  (log) => log.responseCode == errorCode
+                );
+              }
+            },
+          },
         }
       );
-    };
-
-    // 초기화
-    onMounted(() => {
-      loadErrorData();
-      updateErrorFrequencyChart();
-      updateCharts();
-    });
-
-    // 프로젝트 선택 시 업데이트
-    watch(selectedProject, () => {
-      console.log(`Selected Project: ${selectedProject.value}`);
-      updateCharts();
-    });
-
-    watch(selectedErrorRange, () => {
-      updateErrorFrequencyChart();
-    });
-
-    return {
-      selectedProject,
-      projects,
-      selectedErrorRange,
-      selectedErrorDetails,
-    };
+    },
+  },
+  mounted() {
+    this.fetchHistoryData();
+    this.fetchProjects();
+  },
+  watch: {
+    selectedTimeUnit() {
+      this.renderErrorTimeChart(); // 시간 단위 변경 시 에러 차트 업데이트
+    },
+    selectedErrorRange() {
+      this.renderErrorFrequencyChart();
+    },
+    selectedProject() {
+      this.updateFilteredHistoryData(); // 선택된 프로젝트가 변경될 때 필터링된 데이터로 차트 업데이트
+    },
   },
 };
 </script>
@@ -315,6 +476,11 @@ select {
 
 .table {
   text-align: center;
+}
+
+.table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .canvas-container {

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.apitester.ttalkkag.mapper.HistoryMapper">
+    <insert id="insertHistory" parameterType="ApiHistory">
+        INSERT INTO history (user_id, project_id, method, url, response_code, response_time, logged_time, header, parameter, form_parameter, response_body, response_header)
+        VALUES (#{userId}, #{projectId}, #{method}, #{url}, #{responseCode}, #{responseTime}, #{loggedTime}, #{header}, #{parameter}, #{formParameter}, #{responseBody}, #{responseHeader});
+    </insert>
+
+    <select id="getAllHistories" resultType="ApiHistory">
+        SELECT
+            id AS id,
+            user_id AS userId,
+            project_id AS projectId,
+            method AS method,
+            url AS url,
+            response_code AS responseCode,
+            response_time AS responseTime,
+            logged_time AS loggedTime,
+            header AS header,
+            parameter AS parameter,
+            response_body AS responseBody,
+            response_header AS responseHeader
+        FROM history
+        WHERE user_id = #{userId}
+        ORDER BY logged_time DESC
+    </select>
+
+    <select id="getHistoryById" resultType="ApiHistory">
+        SELECT
+        id AS id,
+        user_id AS userId,
+        project_id AS projectId,
+        method AS method,
+        url AS url,
+        response_code AS responseCode,
+        response_time AS responseTime,
+        logged_time AS loggedTime,
+        header AS header,
+        parameter AS parameter,
+        form_parameter AS formParameter,
+        response_body AS responseBody,
+        response_header AS responseHeader
+        FROM history
+        WHERE id = #{id}
+    </select>
+
+    <select id="getErrorHistory" resultType="ApiHistory">
+        SELECT
+            id AS id,
+            user_id AS userId,
+            project_id AS projectId,
+            method AS method,
+            url AS url,
+            response_code AS responseCode,
+            response_time AS responseTime,
+            logged_time AS loggedTime,
+            header AS header,
+            parameter AS parameter,
+            form_parameter AS formParameter,
+            response_body AS responseBody,
+            response_header AS responseHeader
+        FROM history
+        WHERE user_id = #{userId} AND
+            response_code >= 400 AND response_code <![CDATA[<]]> 600 AND logged_time BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="getHistoriesByProjectId" resultType="ApiHistory">
+        SELECT
+            id AS id,
+            user_id AS userId,
+            project_id AS projectId,
+            method AS method,
+            url AS url,
+            response_code AS responseCode,
+            response_time AS responseTime,
+            logged_time AS loggedTime,
+            header AS header,
+            parameter AS parameter,
+            form_parameter AS formParameter,
+            response_body AS responseBody,
+            response_header AS responseHeader
+        FROM history
+        WHERE project_id = #{projectId}
+    </select>
+</mapper>
+

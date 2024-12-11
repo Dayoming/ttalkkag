@@ -114,4 +114,7 @@ public class DatasetService {
         return response;
     }
 
+    public List<DatasetVariable> getDatasetVariablesByDatasetId(Long datasetId) {
+        return datasetMapper.findVariablesByDatasetId(datasetId);
+    }
 }

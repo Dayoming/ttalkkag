@@ -21,6 +21,8 @@
             @delete-projects="deleteProjects"
             @update-projects="updateProjects"
             @select-project="handleSidebarProjectSelection"
+            @edit-request="handleEditRequest"
+            @re-request="handleReRequest"
           />
         </main>
       </div>
@@ -52,6 +54,17 @@ export default {
   methods: {
     handleSidebarProjectSelection(projectName) {
       this.selectedProject = projectName; // 사이드바에서 선택한 프로젝트로 업데이트
+    },
+    handleEditRequest(log) {
+      // HistoryVue에서 전달된 로그 데이터를 ApiTestVue로 전달
+      this.selectedTempApi = { ...log, isEdit: true};
+
+      // ApiTestVue로 이동
+      this.$router.push({ name: "ApiTest" });
+    },
+    handleReRequest(log) {
+      this.selectedTempApi = { ...log, isRequest: true};
+      this.$router.push({ name: "ApiTest" });
     },
     // API를 임시 저장
     saveTempApi(apiData) {

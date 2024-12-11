@@ -4,10 +4,10 @@ import com.apitester.ttalkkag.dto.Project;
 import com.apitester.ttalkkag.dto.ProjectItems;
 import com.apitester.ttalkkag.service.ProjectService;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.annotations.Delete;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +22,20 @@ public class ProjectController {
     @GetMapping
     public List<Project> getUserProjects(@AuthenticationPrincipal String userEmail) {
         return projectService.getProjectsByUserId(userEmail);
+    }
+
+    @GetMapping("/find/{projectId}")
+    public Project getProjectByProjectId(@PathVariable Long projectId) {
+        return projectService.getProjectByProjectId(projectId);
+    }
+
+    @GetMapping("/search/{projectId}")
+    public List<ProjectItems> searchProjectItems(
+            @PathVariable Long projectId,
+            @RequestParam(value = "query", required = false) String query,
+            @RequestParam(value = "method", required = false) String method
+    ) {
+        return projectService.searchProjectItems(projectId, query, method);
     }
 
     // 프로젝트 생성
@@ -42,6 +56,11 @@ public class ProjectController {
         projectService.addFolder(projectItems);
     }
 
+    @PostMapping("/add-api")
+    public void addProjectItemApi(@RequestBody ProjectItems projectItems) {
+        projectService.addProjectItemApi(projectItems);
+    }
+
     @GetMapping("/{projectId}")
     public List<ProjectItems> getProjectItems(@PathVariable Long projectId) {
         return projectService.getProjectItemsByProjectId(projectId);
@@ -55,6 +74,15 @@ public class ProjectController {
     @DeleteMapping("/items")
     public void deleteItems(@RequestBody List<Long> itemIds) {
         projectService.deleteItems(itemIds);
+    }
+
+    // API 저장
+    @PostMapping("/items")
+    public Map<String, Object> saveApi(@RequestBody ProjectItems item) {
+        Map<String, Object> response = new HashMap<>();
+        projectService.saveApi(item);
+        response.put("message", "API가 정상적으로 저장되었습니다.");
+        return response;
     }
 
 }

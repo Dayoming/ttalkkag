@@ -13,6 +13,35 @@
         WHERE user_id = #{userId}
     </select>
 
+    <select id="getProjectByProjectId" resultType="com.apitester.ttalkkag.dto.Project">
+        SELECT
+        id AS id,
+        name AS name,
+        user_id AS userId,
+        create_at AS createAt
+        FROM project
+        WHERE id = #{projectId}
+    </select>
+
+    <select id="searchProjectItems" resultType="ProjectItems">
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            parent_id AS parentId,
+            type AS type,
+            name AS name,
+            depth AS depth,
+            create_at AS createAt
+        FROM project_items
+        WHERE project_id = #{projectId}
+        <if test="query != null and query != ''">
+            AND name LIKE CONCAT('%', #{query}, '%')
+        </if>
+        <if test="method != null and method != ''">
+            AND method = #{method}
+        </if>
+    </select>
+
     <!-- 프로젝트 생성 -->
     <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project (name, create_at, user_id)
@@ -25,10 +54,16 @@
         WHERE id = #{id}
     </delete>
 
-    <insert id="insertFolder" parameterType="ProjectItems">
+    <insert id="insertProjectItem" parameterType="ProjectItems">
         INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
         VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, #{createAt})
     </insert>
+
+    <insert id="insertApi" parameterType="ProjectItems">
+        INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
+        VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, NOW());
+    </insert>
+
 
     <select id="findByProjectId" parameterType="long" resultType="ProjectItems">
         SELECT
@@ -44,7 +79,8 @@
     </select>
 
     <select id="findByParentId" parameterType="long" resultType="ProjectItems">
-        SELECT * FROM project_items WHERE parent_id = #{parentId}
+        SELECT * FROM project_items
+        WHERE parent_id = #{parentId}
     </select>
 
     <!-- 항목 삭제 -->

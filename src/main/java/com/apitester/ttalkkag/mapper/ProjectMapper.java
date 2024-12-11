@@ -11,8 +11,12 @@ public interface ProjectMapper {
     List<Project> getProjectsByUserId(Long userId);
     List<ProjectItems> findByProjectId(Long projectId);
     List<ProjectItems> findByParentId(Long parentId);
+    List<ProjectItems> searchProjectItems(Long projectId, String query, String method);
+    Project getProjectByProjectId(Long projectId);
     void insertProject(Project project);
+    void insertApi(ProjectItems item);
     void deleteProject(Long id);
     void deleteByItemId(Long itemId);
-    void insertFolder(ProjectItems items);
+    void insertProjectItem(ProjectItems items);
+
 }

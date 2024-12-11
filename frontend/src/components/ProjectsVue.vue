@@ -51,6 +51,25 @@
 
     <!-- Request Actions -->
     <div class="mt-4">
+      <div class="d-flex align-items-center mb-4 w-75">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          class="form-control me-2 input-search"
+          v-model="searchQuery"
+        />
+        <select class="form-select me-2" v-model="selectedMethod" style="width: 230px">
+          <option value="">ALL</option>
+          <option value="GET">GET</option>
+          <option value="POST">POST</option>
+          <option value="PUT">PUT</option>
+          <option value="DELETE">DELETE</option>
+          <option value="PATCH">PATCH</option>
+        </select>
+        <button class="btn btn-dark" @click="fetchFilteredItems">
+          Search
+        </button>
+      </div>
       <button class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
       <button class="btn btn-dark me-2" @click="addAPI">새 요청 추가</button>
       <button class="btn btn-dark" @click="deleteSelected">선택 삭제</button>
@@ -95,6 +114,8 @@ export default {
       newProjectName: null,
       showNewProjectModal: false,
       localSelectedProject: "",
+      searchQuery: "",
+      selectedMethod: "",
     };
   },
   methods: {
@@ -126,6 +147,31 @@ export default {
         this.items = this.buildTreeStructure(response.data); // 최상위 항목만 로드
       } catch (error) {
         console.error("아이템을 불러오는 중 오류가 발생했습니다:", error);
+      }
+    },
+    async fetchFilteredItems() {
+      const selectedProject = this.localProjects.find(
+        (project) => project.name === this.localSelectedProject
+      );
+
+      if (!selectedProject) {
+        console.error("선택된 프로젝트를 찾을 수 없습니다.");
+        return;
+      }
+
+      try {
+        const response = await this.$axios.get(
+          `/api/projects/search/${selectedProject.id}`,
+          {
+            params: {
+              query: this.searchQuery,
+              method: this.selectedMethod,
+            },
+          }
+        );
+        this.items = this.buildTreeStructure(response.data);
+      } catch (error) {
+        console.error("검색 중 오류가 발생했습니다:", error);
       }
     },
     buildTreeStructure(items) {
@@ -368,5 +414,10 @@ export default {
 
 .table .folder-children {
   padding-left: 20px; /* 하위 항목의 들여쓰기 */
+}
+
+.input-search {
+  border-width: 0 0 1px;
+  border-radius: 0;
 }
 </style>

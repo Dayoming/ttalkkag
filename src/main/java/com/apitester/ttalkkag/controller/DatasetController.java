@@ -1,6 +1,7 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.Dataset;
+import com.apitester.ttalkkag.dto.DatasetVariable;
 import com.apitester.ttalkkag.service.DatasetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +25,11 @@ public class DatasetController {
     @GetMapping("/getAllDatasetsWithVariables")
     public List<Dataset> getAllDatasetsWithVariables(@AuthenticationPrincipal String userEmail) {
         return datasetService.getAllDatasetsWithVariables(userEmail);
+    }
+
+    @GetMapping("/variables/{datasetId}")
+    public List<DatasetVariable> getDatasetVariablesByDatasetId(@PathVariable Long datasetId) {
+        return datasetService.getDatasetVariablesByDatasetId(datasetId);
     }
 
     @PostMapping("/addDataset")

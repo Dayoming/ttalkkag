@@ -25,6 +25,7 @@ const routes = [
         path: '/test-api',
         name: 'ApiTest',
         component: ApiTest,
+        props: true,
     },
     {
         path: '/projects',

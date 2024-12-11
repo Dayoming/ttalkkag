@@ -5,6 +5,7 @@
     <form class="d-flex w-100">
       <!-- Input Box -->
       <div class="me-3 flex-grow-1">
+        <span v-if="savedProject">{{ savedProject }}</span>
         <input
           v-model="apiName"
           type="text"
@@ -24,7 +25,13 @@
             {{ env.name }}
           </option>
         </select>
-        <button type="button" class="btn btn-dark me-2">Save</button>
+        <button
+          type="button"
+          class="btn btn-dark me-2"
+          @click.prevent="openSaveModal"
+        >
+          Save
+        </button>
         <button type="button" class="btn btn-dark">Load</button>
         <a href="#" class="request-add" @click.prevent="saveTempApi">
           <i class="bi bi-plus-lg"></i>
@@ -78,6 +85,7 @@
           role="tab"
           aria-controls="query-parameters"
           aria-selected="false"
+          @click="updateCurrentTab('queryParameters')"
         >
           Query Parameter
         </button>
@@ -93,6 +101,7 @@
           role="tab"
           aria-controls="body-content"
           aria-selected="false"
+          @click="updateCurrentTab('formParameters')"
         >
           Body
         </button>
@@ -189,8 +198,7 @@
           <button
             type="button"
             class="btn btn-dark mt-4"
-            data-bs-toggle="modal"
-            data-bs-target="#datasetModal"
+            @click="openDatasetModal"
           >
             ✓ Select Object variable
           </button>
@@ -269,11 +277,7 @@
           <button class="btn btn-dark me-2 mt-4" @click="addFormParameter">
             + Add Form parameter
           </button>
-          <button
-            class="btn btn-dark mt-4"
-            data-bs-toggle="modal"
-            data-bs-target="#datasetModal"
-          >
+          <button class="btn btn-dark mt-4" @click="openDatasetModal">
             ✓ Select Object variable
           </button>
         </div>
@@ -317,100 +321,47 @@
       </div>
     </div>
   </div>
-  <!-- Bootstrap Modal -->
-  <div
-    class="modal fade"
-    id="datasetModal"
-    tabindex="-1"
-    aria-labelledby="datasetModalLabel"
-    aria-hidden="true"
-  >
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="datasetModalLabel">Dataset</h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
-        </div>
-        <div class="modal-body">
-          <!-- Dataset Selection -->
-          <div>
-            <label for="datasetSelect">Dataset</label>
-            <select
-              id="datasetSelect"
-              class="form-select"
-              v-model="selectedDataset"
-              @change="fetchDatasetVariables"
-            >
-              <option
-                v-for="dataset in datasets"
-                :key="dataset.id"
-                :value="dataset"
-              >
-                {{ dataset.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Variables List -->
-          <div v-if="datasetVariables.length > 0" class="mt-3">
-            <div
-              v-for="variable in datasetVariables"
-              :key="variable.key"
-              class="form-check"
-            >
-              <input
-                type="checkbox"
-                class="form-check-input"
-                :id="variable.key"
-                v-model="selectedVariables"
-                :value="variable"
-              />
-              <label :for="variable.key" class="form-check-label">
-                {{ variable.type }} {{ variable.key }}
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="btn btn-dark"
-            @click="applyVariables"
-            data-bs-dismiss="modal"
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- SaveModal 추가 -->
+  <SaveModal
+    v-if="showSaveModal"
+    :projects="projects"
+    :apiData="apiData"
+    @close="showSaveModal = false"
+    @project-saved="updateSavedProject"
+    @save-api="saveApiToProject"
+  />
+  <DatasetModal
+    v-if="showDatasetModal"
+    :current-tab="currentTab"
+    @add-variables="handleAddVariables"
+    @close="showDatasetModal = false"
+  />
 </template>
 
 <script>
 import hljs from "highlight.js";
 import "highlight.js/styles/default.css";
+import SaveModal from "./SaveModal.vue";
+import DatasetModal from "./DatasetModal.vue";
 
 export default {
   name: "ApiTest",
+  components: { SaveModal, DatasetModal },
   props: ["tempApi"],
   data() {
     return {
       apiName: "",
       method: "GET",
       url: "",
+      savedProject: null,
+      headers: [{ key: "", value: "" }],
+      queryParameters: [{ key: "", value: "" }],
+      formParameters: [{ key: "", type: "text", value: "" }],
       showModal: false,
+      showSaveModal: false,
+      showDatasetModal: false,
+      projects: [],
+      selectedFolder: null,
       datasets: [], // 데이터셋
       selectedDataset: null, // 선택된 데이터셋
       datasetVariables: [], // 데이터셋 변수들
@@ -419,9 +370,6 @@ export default {
       environments: [], // 사용 가능한 환경 목록
       selectedEnvironment: null, // 선택된 환경
       environmentVariables: {}, // 선택된 환경의 변수들
-      formParameters: [{ key: "", type: "text", value: "" }],
-      queryParameters: [{ key: "", value: "" }],
-      headers: [{ key: "", value: "" }],
       file: null,
       selectedBodyType: "text",
       response: {
@@ -433,6 +381,12 @@ export default {
     };
   },
   methods: {
+    openSaveModal() {
+      this.showSaveModal = true;
+    },
+    openDatasetModal() {
+      this.showDatasetModal = true;
+    },
     addFormParameter() {
       this.formParameters.push({ key: "", type: "text", value: "" });
     },
@@ -454,48 +408,34 @@ export default {
     handleFileUpload(event) {
       this.file = event.target.files[0];
     },
-    openModal() {
-      this.showModal = true;
-      this.fetchDatasets();
+    handleAddVariables({ variables, currentTab }) {
+      if (!variables || variables.length === 0) {
+        alert("No variables selected.");
+        return;
+      }
+
+      if (currentTab === "queryParameters") {
+        // queryParameters에 추가
+        variables.forEach((variable) => {
+          this.queryParameters.push({
+            key: variable.name,
+          });
+        });
+      } else if (currentTab === "formParameters") {
+        // formParameters에 추가
+        variables.forEach((variable) => {
+          this.formParameters.push({
+            key: variable.name,
+            type: "text", // 기본값: text
+          });
+        });
+      }
     },
     closeModal() {
       this.showModal = false;
       this.selectedDataset = null;
       this.datasetVariables = [];
       this.selectedVariables = [];
-    },
-    async fetchDatasets() {
-      try {
-        const response = await this.$axios.get(
-          "/api/datasets/getAllDatasetsWithVariables"
-        );
-        this.datasets = response.data;
-      } catch (error) {
-        console.error("Failed to fetch datasets:", error);
-      }
-    },
-    applyVariables() {
-      if (this.selectedVariables.length === 0) {
-        alert("Please select at least one variable.");
-        return;
-      }
-
-      // Apply variables to the current tab (Query Parameters or Form Data)
-      this.selectedVariables.forEach((variable) => {
-        const newEntry = {
-          key: variable.key,
-          value: `{{${variable.key}}}`, // Use template syntax for variable substitution
-        };
-
-        if (this.currentTab === "queryParameters") {
-          this.queryParameters.push(newEntry);
-        } else if (this.currentTab === "formParameters") {
-          this.formParameters.push(newEntry);
-        }
-      });
-
-      // Close modal
-      this.closeModal();
     },
     async fetchEnvironments() {
       try {
@@ -528,6 +468,28 @@ export default {
         console.error("Failed to load environment variables:", error);
         this.environmentVariables = {};
       }
+    },
+    applyVariables() {
+      if (this.selectedVariables.length === 0) {
+        alert("Please select at least one variable.");
+        return;
+      }
+      // Apply variables to the current tab (Query Parameters or Form Data)
+      this.selectedVariables.forEach((variable) => {
+        const newEntry = {
+          key: variable.key,
+          value: `{{${variable.key}}}`, // Use template syntax for variable substitution
+        };
+
+        if (this.currentTab === "queryParameters") {
+          this.queryParameters.push(newEntry);
+        } else if (this.currentTab === "formParameters") {
+          this.formParameters.push(newEntry);
+        }
+      });
+
+      // Close modal
+      this.closeModal();
     },
     saveEnvironment() {
       // 현재 선택된 환경을 저장하는 로직
@@ -568,6 +530,39 @@ export default {
       };
       this.selectedEnvironment = null;
     },
+    saveApiToProject(selectedFolder) {
+      const apiData = {
+        name: this.apiName,
+        method: this.method,
+        url: this.url,
+        headers: this.headers,
+        queryParameters: this.queryParameters,
+        formParameters: this.formParameters,
+        file: this.file,
+        selectedBodyType: this.selectedBodyType,
+        selectedEnvironment: this.selectedEnvironment,
+      };
+
+      this.$axios
+        .post("/api/projects/items", {
+          projectId: selectedFolder.projectId,
+          parentId: selectedFolder.id,
+          type: "api",
+          name: apiData.name,
+          depth: selectedFolder.depth + 1,
+          apiData,
+        })
+        .then(() => {
+          alert("API가 성공적으로 저장되었습니다.");
+          this.showModal = false;
+        })
+        .catch((error) => {
+          console.error("Failed to save API:", error);
+          alert("Failed to save API.");
+        });
+
+      this.showSaveModal = false;
+    },
     loadEnvironment() {
       if (this.selectedEnvironment) {
         // 선택한 환경을 기반으로 다른 값을 설정
@@ -588,6 +583,12 @@ export default {
         )
         .join("&");
       this.url = queryString ? `${baseUrl}?${queryString}` : baseUrl; // Query Parameters 추가
+    },
+    updateCurrentTab(tab) {
+      this.currentTab = tab;
+    },
+    updateSavedProject(projectId) {
+      this.savedProject = this.$axios.get(`/api/projects/find/${projectId}`).data.name;
     },
     resolveTemplateVariables(template) {
       if (!template || typeof template !== "string") return template;
@@ -650,6 +651,8 @@ export default {
       return formattedXML.replace(/>\s*</g, ">\n<");
     },
     async sendRequest() {
+      console.log("Sending Req: ", this.method, this.url);
+      const startTime = performance.now(); // 요청 시작 시간
       try {
         // 요청 데이터 전처리
         const { processedUrl, processedFormParameters } =
@@ -700,14 +703,46 @@ export default {
           body: response.data,
           headers: response.headers,
         };
+
+        const endTime = performance.now(); // 요청 완료 시간
+        const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
+
+        this.addHistory(response, elapsedTime);
       } catch (error) {
+        console.log(error);
         // 에러 처리
-        this.response = {
-          statusCode: error.response?.status || "Error",
+        const failedResponse = {
+          status: error.response?.status || "Error",
           statusMessage: error.response?.statusText || "Request failed",
           body: error.response?.data || "Request failed.",
+          headers: error.response?.headers || {},
         };
+
+        this.response = failedResponse;
+
+        const endTime = performance.now(); // 요청 완료 시간
+        const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
+
+        this.addHistory(this.response, elapsedTime);
       }
+    },
+    addHistory(response, elapsedTime) {
+      const newLog = {
+        method: this.method,
+        url: this.url,
+        responseCode: response.status,
+        responseMessage: response.statusText,
+        responseTime: elapsedTime,
+        loggedTime: new Date().toISOString().replace("T", " ").split(".")[0],
+        header: JSON.stringify(this.headers),
+        parameter: JSON.stringify(this.queryParameters),
+        formParamter: JSON.stringify(this.formParameters),
+        responseBody: JSON.stringify(response.data, null, 2),
+        responseHeader: JSON.stringify(response.headers, null, 2),
+      };
+
+      // 서버에 기록 저장 API 호출
+      this.$axios.post("/api/history", newLog);
     },
   },
   mounted() {
@@ -752,6 +787,19 @@ export default {
       // 기본 포맷 (텍스트)
       return hljs.highlight(body, { language: "plaintext" }).value;
     },
+    apiData() {
+      return {
+        name: this.apiName,
+        method: this.method,
+        url: this.url,
+        headers: JSON.stringify(this.headers),
+        queryParameters: JSON.stringify(this.queryParameters),
+        formParameters: JSON.stringify(this.formParameters),
+        file: this.file,
+        selectedBodyType: this.selectedBodyType,
+        selectedEnvironment: this.selectedEnvironment.id,
+      };
+    },
   },
   watch: {
     // URL이 직접 변경될 경우 Query Parameters 업데이트
@@ -780,25 +828,55 @@ export default {
     tempApi: {
       handler(newTempApi) {
         if (newTempApi) {
-          this.apiName = newTempApi.name || "";
-          this.method = newTempApi.method || "GET";
-          this.url = newTempApi.url || "";
-          this.headers = newTempApi.headers || [{ key: "", value: "" }];
-          this.queryParameters = newTempApi.queryParameters || [
-            { key: "", value: "" },
-          ];
-          this.formParameters = newTempApi.formParameters || [
-            { key: "", type: "text", value: ""}
-          ];
-          this.file = newTempApi.file || null;
-          this.selectedBodyType = newTempApi.selectedBodyType || "text";
-          this.response = newTempApi.response || {
-            statusCode: null,
-            statusMessage: "",
-            headers: {},
-            body: "",
-          };
-          this.selectedEnvironment = newTempApi.selectedEnvironment || null;
+          if (newTempApi.isEdit) {
+            this.method = newTempApi.method;
+            this.url = newTempApi.url;
+            this.headers = JSON.parse(newTempApi.header) || [
+              { key: "", value: "" },
+            ];
+            this.queryParameters = JSON.parse(newTempApi.parameter) || [
+              { key: "", value: "" },
+            ];
+            this.formParameters = JSON.parse(newTempApi.formParameter) || [
+              { key: "", type: "text", value: "" },
+            ];
+            this.file = newTempApi.file || null;
+          } else if (newTempApi.isRequest) {
+            console.log(newTempApi);
+            this.method = newTempApi.method;
+            this.url = newTempApi.url;
+            this.headers = JSON.parse(newTempApi.header) || [
+              { key: "", value: "" },
+            ];
+            this.queryParameters = JSON.parse(newTempApi.parameter) || [
+              { key: "", value: "" },
+            ];
+            this.formParameters = JSON.parse(newTempApi.formParameter) || [
+              { key: "", type: "text", value: "" },
+            ];
+            this.file = newTempApi.file || null;
+            this.sendRequest();
+          } else {
+            this.apiName = newTempApi.name || "";
+            this.method = newTempApi.method || "GET";
+            this.url = newTempApi.url || "";
+            this.headers = newTempApi.headers || [{ key: "", value: "" }];
+            this.queryParameters = newTempApi.queryParameters || [
+              { key: "", value: "" },
+            ];
+            this.formParameters = newTempApi.formParameters || [
+              { key: "", type: "text", value: "" },
+            ];
+            this.file = newTempApi.file || null;
+            this.selectedBodyType = newTempApi.selectedBodyType || "text";
+            this.response = newTempApi.response || {
+              statusCode: null,
+              statusMessage: "",
+              headers: {},
+              body: "",
+            };
+            this.selectedEnvironment = newTempApi.selectedEnvironment || null;
+          }
         }
       },
       immediate: true, // 처음 로드 시에도 실행

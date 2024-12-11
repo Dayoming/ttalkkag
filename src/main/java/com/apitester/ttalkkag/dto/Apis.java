@@ -2,6 +2,9 @@ package com.apitester.ttalkkag.dto;
 
 import lombok.Data;
 
+import java.util.List;
+import java.util.Map;
+
 @Data
 public class Apis {
     private Long id;
@@ -9,10 +12,11 @@ public class Apis {
     private String name;
     private String method;
     private String url;
-    private Object headers;
-    private Object queryParameters;
-    private Object formParameters;
-    private Object file;
+    private String headers;
+    private String queryParameters;
+    private String formParameters;
+    private String file;
     private String selectedBodyType;
-    private String selectedEnvironment;
+    private Long selectedEnvironment;
+    private String createAt;
 }
