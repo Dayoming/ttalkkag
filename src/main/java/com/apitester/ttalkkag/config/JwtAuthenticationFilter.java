@@ -1,6 +1,7 @@
 package com.apitester.ttalkkag.config;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -39,16 +40,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
 
-            if (validateToken(token)) {
-                UsernamePasswordAuthenticationToken auth = getAuthentication(token);
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                System.out.println("Authentication set in SecurityContextHolder");
-            } else {
-                System.out.println("Token validation failed");
+            try {
+                if (validateToken(token)) {
+                    UsernamePasswordAuthenticationToken auth = getAuthentication(token);
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (ExpiredJwtException e) { // JWT 토큰 만료 시 401 Unauthorized 반환
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("JWT token has expired");
+                return;
+            } catch (Exception e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid JWT token");
+                return;
             }
-        } else {
-            System.out.println("No Authorization header or incorrect format");
         }
         filterChain.doFilter(request, response);
     }
@@ -56,37 +62,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     // JWT 검증 메서드
     private boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            System.out.println("Invalid JWT token: " + e.getMessage());
-            return false;
-        }
+        Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
+        return true;
     }
 
-    // 인증 객체 생성
-    private UsernamePasswordAuthenticationToken getAuthentication(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        String username = claims.getSubject();
+// 인증 객체 생성
+private UsernamePasswordAuthenticationToken getAuthentication(String token) {
+    Claims claims = Jwts.parserBuilder()
+            .setSigningKey(secretKey)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+    String username = claims.getSubject();
 
-        // 기본 권한 추가
-        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-        return new UsernamePasswordAuthenticationToken(username, null, authorities);
-    }
+    // 기본 권한 추가
+    List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+    return new UsernamePasswordAuthenticationToken(username, null, authorities);
+}
 
-    @Bean
-    public SecretKey secretKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret); // JWT 비밀 키 (Base64로 인코딩된 값)
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
+@Bean
+public SecretKey secretKey() {
+    byte[] keyBytes = Decoders.BASE64.decode(secret); // JWT 비밀 키 (Base64로 인코딩된 값)
+    return Keys.hmacShaKeyFor(keyBytes);
+}
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(SecretKey secretKey) {
-        return new JwtAuthenticationFilter(secretKey);
-    }
+@Bean
+public JwtAuthenticationFilter jwtAuthenticationFilter(SecretKey secretKey) {
+    return new JwtAuthenticationFilter(secretKey);
+}
 }

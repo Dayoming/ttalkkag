@@ -15,7 +15,7 @@ app.config.globalProperties.$axios = axios;
 axios.interceptors.response.use(
     (response) => response,
     async (error) => {
-      if (error.response.status === 403) {
+      if (error.response.status === 401) {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
           try {

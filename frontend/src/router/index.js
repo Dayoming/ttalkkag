@@ -62,9 +62,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("accessToken");
   
-    if (to.name !== "LoginVue" && !token) {
+    if (to.path === '/login' && token) {
       // 로그인 페이지로 리다이렉트
-      return next({ name: "LoginVue" });
+      next('/test-api');
     }
     
     next(); // 다른 경우는 정상적으로 이동
