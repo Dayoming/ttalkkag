@@ -4,13 +4,12 @@ import com.apitester.ttalkkag.config.JwtTokenUtil;
 import com.apitester.ttalkkag.dto.User;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import com.apitester.ttalkkag.service.EmailService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +34,14 @@ public class AuthController {
     @PostMapping("/send-code")
     public Map<String, Object> sendVerificationCode(@RequestBody Map<String, String> request) {
         Map<String, Object> response = new HashMap<>();
+
         String email = request.get("email");
+
+        if (userMapper.findByEmail(email) != null) {
+            response.put("errorMessage", "이미 존재하는 회원입니다.");
+            return response;
+        }
+
         String code = String.valueOf(new Random().nextInt(999999));
         response.put("message", "코드가 " + email + "로 전송되었습니다.");
         verificationCodes.put(email, code);
@@ -53,11 +59,6 @@ public class AuthController {
 
         if (!verificationCodes.containsKey(email) || !verificationCodes.get(email).equals(code)) {
             response.put("errorMessage", "입력하신 이메일로 전송된 코드와 일치하지 않습니다.");
-            return response;
-        }
-
-        if (userMapper.findByEmail(email) != null) {
-            response.put("errorMessage", "해당 이메일로 가입된 계정이 존재합니다.");
             return response;
         }
 
@@ -106,6 +107,30 @@ public class AuthController {
         return response;
     }
 
+    @GetMapping("/user-info")
+    public Map<String, Object> userInfo(HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<>();
+        String header = request.getHeader("Authorization");
+
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
+                String email = jwtTokenUtil.getEmailFromToken(token); // JWT에서 이메일 추출
+                if (email == null) {
+                    response.put("errorMessage", "이메일을 불러오지 못했습니다.");
+                    return response;
+                }
+                response.put("email", email);
+                return response;
+            } catch (Exception e) {
+                response.put("errorMessage", "토큰 처리 중 오류가 발생했습니다.");
+                return response;
+            }
+        }
+        response.put("errorMessage", "Authorization 헤더가 존재하지 않습니다.");
+        return response;
+    }
+
     @PostMapping("/refresh-token")
     public Map<String, Object> refreshAccessToken(@RequestBody Map<String, String> request) {
         Map<String, Object> response = new HashMap<>();
@@ -115,13 +140,13 @@ public class AuthController {
             // 리프레시 토큰 검증
             String email = jwtTokenUtil.getEmailFromToken(refreshToken);
 
-            // 토큰이 유효한지 확인 (추가 검증 로직 필요하면 작성)
+            // 토큰이 유효한지 확인
             if (email == null || !jwtTokenUtil.validateToken(refreshToken)) {
                 response.put("errorMessage", "유효하지 않은 리프레시 토큰입니다.");
                 return response;
             }
 
-            // 사용자 이메일로 사용자 정보 확인 (DB에서 사용자를 조회)
+            // 사용자 이메일로 사용자 정보 확인
             User user = userMapper.findByEmail(email);
             if (user == null) {
                 response.put("errorMessage", "해당 사용자가 존재하지 않습니다.");

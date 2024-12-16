@@ -40,9 +40,8 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping
-    public Project createProject(@RequestBody Map<String, String> payload, @AuthenticationPrincipal String userEmail) {
-        String name = payload.get("name");
-        return projectService.createProject(name, userEmail);
+    public Project createProject(@RequestBody Project project, @AuthenticationPrincipal String userEmail) {
+        return projectService.createProject(project.getName(), userEmail);
     }
 
     // 프로젝트 삭제

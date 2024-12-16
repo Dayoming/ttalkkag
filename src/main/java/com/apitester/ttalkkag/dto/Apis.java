@@ -9,6 +9,7 @@ import java.util.Map;
 public class Apis {
     private Long id;
     private Long itemId;
+    private Long environmentId;
     private String name;
     private String method;
     private String url;
@@ -17,6 +18,5 @@ public class Apis {
     private String formParameters;
     private String file;
     private String selectedBodyType;
-    private Long selectedEnvironment;
     private String createAt;
 }

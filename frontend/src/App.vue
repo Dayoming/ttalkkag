@@ -24,6 +24,15 @@
             @edit-request="handleEditRequest"
             @re-request="handleReRequest"
           />
+          <div
+            id="global-spinner"
+            class="spinner-backdrop"
+            style="display: none"
+          >
+            <div class="spinner-border text-dark" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
         </main>
       </div>
     </div>
@@ -57,13 +66,13 @@ export default {
     },
     handleEditRequest(log) {
       // HistoryVue에서 전달된 로그 데이터를 ApiTestVue로 전달
-      this.selectedTempApi = { ...log, isEdit: true};
+      this.selectedTempApi = { ...log, isEdit: true };
 
       // ApiTestVue로 이동
       this.$router.push({ name: "ApiTest" });
     },
     handleReRequest(log) {
-      this.selectedTempApi = { ...log, isRequest: true};
+      this.selectedTempApi = { ...log, isRequest: true };
       this.$router.push({ name: "ApiTest" });
     },
     // API를 임시 저장
@@ -124,5 +133,27 @@ main {
 
 .main-contents {
   height: 100vh;
+}
+
+.spinner-backdrop {
+  position: fixed; /* 화면 전체를 덮기 위해 fixed 사용 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+  display: flex;
+  align-items: center; /* 수직 정렬 */
+  justify-content: center; /* 수평 정렬 */
+  z-index: 9999; /* 최상위 레이어 */
+}
+
+.spinner-border {
+  display: block;
+  position: fixed;
+  top: calc(50% - (58px / 2));
+  right: calc(50% - (58px / 2));
+  width: 5rem;
+  height: 5rem;
 }
 </style>

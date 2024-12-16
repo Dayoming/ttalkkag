@@ -45,6 +45,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken auth = getAuthentication(token);
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
+                } else {
+                    throw new RuntimeException("Invalid JWT token");
                 }
             } catch (ExpiredJwtException e) { // JWT 토큰 만료 시 401 Unauthorized 반환
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -61,33 +63,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     // JWT 검증 메서드
-    private boolean validateToken(String token) {
-        Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
-        return true;
+    public boolean validateToken(String token) {
+        Jwts.parserBuilder()
+                .setSigningKey(secretKey) // 서명 검증
+                .build()
+                .parseClaimsJws(token); // 파싱 및 유효성 검사
+        return true; // 토큰이 유효하면 true
     }
 
-// 인증 객체 생성
-private UsernamePasswordAuthenticationToken getAuthentication(String token) {
-    Claims claims = Jwts.parserBuilder()
-            .setSigningKey(secretKey)
-            .build()
-            .parseClaimsJws(token)
-            .getBody();
-    String username = claims.getSubject();
+    // 인증 객체 생성
+    private UsernamePasswordAuthenticationToken getAuthentication(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        String username = claims.getSubject();
 
-    // 기본 권한 추가
-    List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-    return new UsernamePasswordAuthenticationToken(username, null, authorities);
-}
+        // 기본 권한 추가
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        return new UsernamePasswordAuthenticationToken(username, null, authorities);
+    }
 
-@Bean
-public SecretKey secretKey() {
-    byte[] keyBytes = Decoders.BASE64.decode(secret); // JWT 비밀 키 (Base64로 인코딩된 값)
-    return Keys.hmacShaKeyFor(keyBytes);
-}
+    @Bean
+    public SecretKey secretKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(secret); // JWT 비밀 키 (Base64로 인코딩된 값)
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
 
-@Bean
-public JwtAuthenticationFilter jwtAuthenticationFilter(SecretKey secretKey) {
-    return new JwtAuthenticationFilter(secretKey);
-}
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter(SecretKey secretKey) {
+        return new JwtAuthenticationFilter(secretKey);
+    }
 }

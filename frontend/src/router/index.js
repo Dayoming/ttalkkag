@@ -61,12 +61,19 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("accessToken");
+    const publicPages = ['/login', '/sign-up'];
+    const isPublicPage = publicPages.includes(to.path);
   
+    // 이미 로그인 된 상태에서 로그인 페이지로 이동하려고 하는 경우
     if (to.path === '/login' && token) {
-      // 로그인 페이지로 리다이렉트
       next('/test-api');
     }
-    
+
+    if (!isPublicPage && !token) {
+        // 인증되지 않은 사용자가 보호된 경로로 접근 시 /login으로 리다이렉트
+        return next('/login');
+    }
+
     next(); // 다른 경우는 정상적으로 이동
 });
 

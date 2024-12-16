@@ -21,14 +21,8 @@ public class EnvironmentService {
     private final EnvironmentVariableMapper variableMapper;
     private final UserMapper userMapper;
 
-    public List<Environment> findEnvironmentsByUserEmail(String userEmail) {
-        Long id = userMapper.findByEmail(userEmail).getId();
-        return environmentMapper.findByUserId(id);
-    }
-
     public void createEnvironment(String userEmail, Environment environment) {
         User user = userMapper.findByEmail(userEmail);
-        environment.setUserId(user.getId());
         environmentMapper.insertEnvironment(environment);
     }
 

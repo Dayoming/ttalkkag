@@ -3,7 +3,7 @@
     class="sidebar border border-right col-md-3 col-lg-2 p-0 bg-body-tertiary"
   >
     <div
-      class="offcanvas-md offcanvas-end bg-body-tertiary"
+      class="offcanvas-md offcanvas-end bg-body-tertiary d-flex flex-column vh-100"
       tabindex="-1"
       id="sidebarMenu"
       aria-labelledby="sidebarMenuLabel"
@@ -18,56 +18,142 @@
           aria-label="Close"
         ></button>
       </div>
-      <div class="offcanvas-body d-md-flex flex-column p-0 overflow-y-auto">
+      <!-- 하단 고정된 메뉴 -->
+      <div class="border-top mt-auto">
         <ul class="nav flex-column">
-          <!-- Reports/History 메뉴 -->
-          <li
-            class="nav-item"
-            v-if="currentRoute === '/history' || currentRoute === '/reports'"
-          >
+          <li class="nav-item">
+            <router-link
+              to="/test-api"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-arrow-through-heart-fill"></i>
+              API Test
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/environment"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-globe-asia-australia"></i>
+              Environment
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/dataset"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-egg"></i>
+              Dataset
+            </router-link>
+          </li>
+          <li class="nav-item">
             <router-link
               to="/history"
               class="nav-link d-flex align-items-center gap-2"
-              :class="currentRoute === '/history' ? 'active' : ''"
+              active-class="active"
             >
-              <i class="bi bi-clock-history"></i>
+              <i class="bi bi-activity"></i>
               History
             </router-link>
           </li>
-          <li
-            class="nav-item"
-            v-if="currentRoute === '/history' || currentRoute === '/reports'"
-          >
+          <li class="nav-item">
             <router-link
               to="/reports"
               class="nav-link d-flex align-items-center gap-2"
-              :class="currentRoute === '/reports' ? 'active' : ''"
+              active-class="active"
             >
-              <i class="bi bi-activity"></i>
+              <i class="bi bi-bar-chart-line"></i>
               Reports
             </router-link>
           </li>
-          <!-- Projects 메뉴 -->
-          <template v-if="currentRoute === '/projects'">
-            <li class="nav-item" v-for="project in projects" :key="project.id">
-              <a
-                class="nav-link d-flex align-items-center gap-2"
-                :class="{ active: project.name === selectedProject }"
-                href="#"
-                @click.prevent="selectProject(project.name)"
-              >
-                <i class="bi bi-archive-fill"></i>
-                {{ project.name }}
-              </a>
-            </li>
-          </template>
-          <template v-if="currentRoute === '/test-api'">
-            <li v-for="api in tempApis" :key="api.name" class="nav-item">
-              <a href="#" class="nav-link" @click.prevent="$emit('select-temp-api', api.name)">
-                {{ api.name }}
-              </a>
-            </li>
-          </template>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <!-- Offcanvas 메뉴 (모바일에서만 표시) -->
+  <div
+    class="offcanvas offcanvas-start bg-body-tertiary"
+    tabindex="-1"
+    id="offcanvasSidebar"
+    aria-labelledby="offcanvasSidebarLabel"
+  >
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="offcanvasSidebarLabel"></h5>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="offcanvas"
+        aria-label="Close"
+      ></button>
+    </div>
+    <div class="offcanvas-body mobile-body d-flex flex-column vh-100">
+      <div class="mt-auto border-top pt-3">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <router-link
+              to="/test-api"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-arrow-through-heart-fill"></i>
+              API Test
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/environment"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-globe-asia-australia"></i>
+              Environment
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/dataset"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-egg"></i>
+              Dataset
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/history"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-activity"></i>
+              History
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/reports"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-bar-chart-line"></i>
+              Reports
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link
+              to="/projects"
+              class="nav-link d-flex align-items-center gap-2"
+              active-class="active"
+            >
+              <i class="bi bi-archive-fill"></i>
+              Projects
+            </router-link>
+          </li>
         </ul>
       </div>
     </div>
@@ -94,11 +180,28 @@ export default {
 <style scoped>
 .nav-item a {
   color: black;
-  padding: 15px;
+  padding: 10px;
+  padding-left: 15px;
+  font-size: small;
+}
+
+.nav-item a:hover {
+  background-color: #f2f2f2;
+  font-size: small;
 }
 
 .nav-item .active {
-  background-color: #e4e4e4;
+  background-color: #f2f2f2;
   font-weight: bold;
+}
+
+.border-top {
+  margin-top: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.mobile-body {
+  padding: 0;
 }
 </style>

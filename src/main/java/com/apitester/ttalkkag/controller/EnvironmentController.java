@@ -15,12 +15,6 @@ import java.util.List;
 public class EnvironmentController {
     private final EnvironmentService environmentService;
 
-    @GetMapping
-    public List<Environment> getEnvironments(@AuthenticationPrincipal String userEmail) {
-        System.out.println(environmentService.findEnvironmentsByUserEmail(userEmail));
-        return environmentService.findEnvironmentsByUserEmail(userEmail);
-    }
-
     @PostMapping
     public void createEnvironment(@AuthenticationPrincipal String userEmail, @RequestBody Environment environment) {
         environmentService.createEnvironment(userEmail, environment);

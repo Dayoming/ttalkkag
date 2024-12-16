@@ -55,7 +55,6 @@ public class DatasetService {
             Long userId = userMapper.findByEmail(userEmail).getId();
             // RequestBody에서 Dataset 정보와 변수 리스트를 추출
             Dataset dataset = new Dataset();
-            dataset.setUserId(userId);
             dataset.setName((String) requestData.get("name"));
             dataset.setDescription((String) requestData.get("description"));
 

@@ -6,6 +6,11 @@
       <form @submit.prevent="login">
         <h1 class="h3 mb-3 fw-normal">Sign in</h1>
 
+        <!-- 에러 메시지 -->
+        <div v-if="errorMessage" class="alert alert-danger" role="alert">
+          {{ errorMessage }}
+        </div>
+
         <div class="form-floating">
           <input
             type="email"
@@ -18,13 +23,22 @@
         </div>
         <div class="form-floating">
           <input
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             class="form-control"
             id="floatingPassword"
             placeholder="Password"
             v-model="password"
           />
           <label for="floatingPassword">비밀번호를 입력해 주세요.</label>
+          <button
+            type="button"
+            class="btn btn-sm position-absolute end-0 top-50 translate-middle-y me-2"
+            @click="togglePasswordVisibility"
+          >
+            <i
+              :class="showPassword ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'"
+            ></i>
+          </button>
         </div>
         <div class="mt-2 mb-2 sign-up-link">
           <router-link to="/sign-up">Sign up</router-link>
@@ -42,23 +56,32 @@ export default {
     return {
       email: "",
       password: "",
+      errorMessage: "",
+      showPassword: false,
     };
   },
   methods: {
     async login() {
-      const response = await this.$axios.post("/api/auth/login", {
-        email: this.email,
-        password: this.password,
-      });
+      try {
+        const response = await this.$axios.post("/api/auth/login", {
+          email: this.email,
+          password: this.password,
+        });
 
-      if (response.data.errorMessage) {
-        alert(response.data.errorMessage);
-        return;
+        if (response.data.errorMessage) {
+          this.errorMessage = response.data.errorMessage;
+          return;
+        }
+
+        localStorage.setItem("accessToken", response.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+        this.$router.push("/test-api");
+      } catch (error) {
+        this.errorMessage = "서버에 문제가 발생했습니다. 다시 시도해 주세요.";
       }
-
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-      this.$router.push("/test-api");
+    },
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword;
     },
   },
 };
