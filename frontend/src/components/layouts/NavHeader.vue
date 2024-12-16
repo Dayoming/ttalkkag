@@ -53,7 +53,7 @@
               >
             </li>
             <li>
-              <a class="dropdown-item" href="#"
+              <a class="dropdown-item" href="#" @click="showSettingsModal = true"
                 ><i class="bi bi-gear"></i> Setting</a
               >
             </li>
@@ -79,20 +79,23 @@
       />
     </template>
   </CommonModal>
+  <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
 </template>
 
 <script>
 import CommonModal from "./CommonModal.vue";
+import SettingModal from "../SettingModal.vue";
 
 export default {
   name: "NavHeader",
-  components: { CommonModal },
+  components: { CommonModal, SettingModal },
   data() {
     return {
       email: "", // 유저 이메일
       projects: [], // 유저 프로젝트 목록
       selectedProject: "", // 선택 프로젝트
-      showNewProjectModal: false, // 모달 표시 상태
+      showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
+      showSettingsModal: false, // 설정 모달 표시 상태
       newProjectName: "", // 새 프로젝트명 입력값
     };
   },

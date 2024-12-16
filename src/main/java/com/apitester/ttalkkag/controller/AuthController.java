@@ -66,6 +66,10 @@ public class AuthController {
         user.setEmail(email);
         user.setPassword(new BCryptPasswordEncoder().encode(password));
         user.setVerified(true);
+        user.setAutoSaveUse(false);
+        user.setAutoSaveTime(60);
+        user.setAutoSaveTerm(5);
+        user.setShowResponse(false);
         userMapper.insertUser(user);
         verificationCodes.remove(email);
         response.put("message", "회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
@@ -80,7 +84,6 @@ public class AuthController {
         String password = request.get("password");
 
         User user = userMapper.findByEmail(email);
-        System.out.println(user);
         if (user == null || !new BCryptPasswordEncoder().matches(password, user.getPassword())) {
             response.put("errorMessage", "이메일이나 비밀번호가 일치하지 않습니다. 다시 확인해 주세요.");
             return response;
@@ -96,6 +99,11 @@ public class AuthController {
 
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
+
+        // 최초 로그인 시
+        if (user.isVerified()) {
+            response.put("verified", true);
+        }
 
         return response;
     }

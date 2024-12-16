@@ -56,6 +56,7 @@
       </button>
     </form>
   </div>
+  <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
   <div class="container mt-4">
     <!-- Tab Navigation -->
     <ul class="nav nav-tabs" id="tabMenu" role="tablist">
@@ -336,6 +337,7 @@
     @add-variables="handleAddVariables"
     @close="showDatasetModal = false"
   />
+  <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
 </template>
 
 <script>
@@ -343,10 +345,11 @@ import hljs from "highlight.js";
 import "highlight.js/styles/default.css";
 import SaveModal from "./SaveModal.vue";
 import DatasetModal from "./DatasetModal.vue";
+import SettingModal from "./SettingModal.vue";
 
 export default {
   name: "ApiTest",
-  components: { SaveModal, DatasetModal },
+  components: { SaveModal, DatasetModal, SettingModal },
   props: ["tempApi"],
   data() {
     return {
@@ -360,6 +363,7 @@ export default {
       showModal: false,
       showSaveModal: false,
       showDatasetModal: false,
+      showSettingsModal: false,
       projects: [],
       selectedFolder: null,
       datasets: [], // 데이터셋
@@ -378,6 +382,8 @@ export default {
         headers: {}, // 응답 헤더
         body: "", // 응답 바디
       },
+      errorMessage: "",
+      loginVerified: false, // 최초 로그인 여부
     };
   },
   methods: {
@@ -467,6 +473,18 @@ export default {
       } catch (error) {
         console.error("Failed to load environment variables:", error);
         this.environmentVariables = {};
+      }
+    },
+    async fetchLoginVerified() {
+      try {
+        const response = await this.$axios.get("/api/user/findUserByEmail");
+        console.log(response);
+        if (response.data.user.verified) {
+          this.showSettingsModal = true;
+          await this.$axios.post("/api/user/renewVerified", { verified: false });
+        }
+      } catch (error) {
+        console.log("Failed Login Verified: " + error);
       }
     },
     applyVariables() {
@@ -651,9 +669,13 @@ export default {
       return formattedXML.replace(/>\s*</g, ">\n<");
     },
     async sendRequest() {
-      console.log("Sending Req: ", this.method, this.url);
+      this.errorMessage = "";
       const startTime = performance.now(); // 요청 시작 시간
       try {
+        if (!this.url) {
+          this.errorMessage = "요청을 보낼 URL을 입력해 주세요.";
+          return;
+        }
         // 요청 데이터 전처리
         const { processedUrl, processedFormParameters } =
           this.preprocessParameters();
@@ -746,6 +768,7 @@ export default {
     },
   },
   mounted() {
+    this.fetchLoginVerified();
     this.fetchEnvironments();
   },
   computed: {
@@ -925,4 +948,8 @@ textarea {
 }
 
 /* Response CSS End */
+
+.errorMessage {
+  margin-left: 10px;
+}
 </style>

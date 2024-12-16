@@ -3,11 +3,43 @@
 
 <mapper namespace="com.apitester.ttalkkag.mapper.UserMapper">
     <select id="findByEmail" resultType="User">
-        SELECT * FROM users WHERE email = #{email}
+        SELECT
+            id AS id,
+            email AS email,
+            password AS password,
+            auto_save_use as autoSaveUse,
+            auto_save_time as autoSaveTime,
+            auto_save_term as autoSaveTerm,
+            auto_save_path as autoSavePath,
+            show_response as showResponse,
+            verified as verified
+        FROM users WHERE email = #{email}
     </select>
 
     <insert id="insertUser">
-        INSERT INTO users (email, password, verified)
-        VALUES (#{email}, #{password}, #{verified})
+        INSERT INTO users (
+            email, password, verified, auto_save_use,
+            auto_save_time, auto_save_term, auto_save_path,
+            show_response)
+        VALUES (#{email}, #{password}, #{verified}, #{autoSaveUse},
+                #{autoSaveTime}, #{autoSaveTerm}, #{autoSavePath},
+                #{showResponse})
     </insert>
+
+    <update id="renewVerified" parameterType="User">
+        UPDATE users SET
+            verified = #{verified}
+        WHERE id = #{id}
+    </update>
+
+    <update id="settingUser" parameterType="User">
+        UPDATE users SET
+            auto_save_use = #{autoSaveUse},
+            auto_save_time = #{autoSaveTime},
+            auto_save_term = #{autoSaveTerm},
+            auto_save_path = #{autoSavePath},
+            show_response = #{showResponse}
+        WHERE id = #{id}
+    </update>
+
 </mapper>
