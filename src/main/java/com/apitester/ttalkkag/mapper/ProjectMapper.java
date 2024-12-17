@@ -18,5 +18,6 @@ public interface ProjectMapper {
     void deleteProject(Long id);
     void deleteByItemId(Long itemId);
     void insertProjectItem(ProjectItems items);
-
+    void updateProjectItemName(ProjectItems projectItems);
+    void updateParentId(ProjectItems projectItems);
 }

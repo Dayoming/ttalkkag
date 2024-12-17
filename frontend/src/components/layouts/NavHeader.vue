@@ -109,15 +109,6 @@ export default {
     }
     this.fetchProjects();
   },
-  watch: {
-    selectedProject() {
-      if (this.selectedProject === "new-project") {
-        this.showNewProjectModal = true;
-        this.selectedProject = this.projects[0];
-      }
-      this.selectOtherProject();
-    },
-  },
   methods: {
     async fetchUserEmail() {
       try {
@@ -146,13 +137,20 @@ export default {
         if (this.projects.length > 0) {
           this.selectedProject = this.projects[0];
         }
+
+        // SideBar 선택 프로젝트 초기값
+        this.$emit("project-selected", this.selectedProject);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
     },
     selectOtherProject() {
-      // API Test 입력란을 비우는 이벤트 발생
-      this.$emit("select-other-project");
+      if (this.selectedProject === "new-project") {
+        this.showNewProjectModal = true;
+        this.selectedProject = this.projects[0];
+      } else {
+        this.$emit("project-selected", this.selectedProject);
+      }
     },
     addNewProject() {
       if (!this.newProjectName.trim()) {

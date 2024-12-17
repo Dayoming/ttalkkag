@@ -1,323 +1,369 @@
 <template>
-  <div
-    class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
-  >
-    <form class="d-flex w-100">
-      <!-- Input Box -->
-      <div class="me-3 flex-grow-1">
-        <span v-if="savedProject">{{ savedProject }}</span>
-        <input
-          v-model="apiName"
-          type="text"
-          class="form-control input-api-name"
-          placeholder="API Name"
-        />
-      </div>
-
-      <!-- Select Box and Buttons -->
-      <div class="d-flex align-items-center justify-content-end">
-        <select
-          class="form-select me-2"
-          style="width: auto"
-          v-model="selectedEnvironment"
-        >
-          <option v-for="env in environments" :key="env.id" :value="env">
-            {{ env.name }}
-          </option>
-        </select>
-        <button
-          type="button"
-          class="btn btn-dark me-2"
-          @click.prevent="openSaveModal"
-        >
-          Save
-        </button>
-        <button type="button" class="btn btn-dark">Load</button>
-        <a href="#" class="request-add" @click.prevent="saveTempApi">
-          <i class="bi bi-plus-lg"></i>
-        </a>
-      </div>
-    </form>
-  </div>
-  <div
-    class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
-  >
-    <form class="d-flex w-100">
-      <select v-model="method" class="form-select me-2" style="width: auto">
-        <option value="GET" selected>GET</option>
-        <option value="POST">POST</option>
-        <option value="PUT">PUT</option>
-        <option value="DELETE">DELETE</option>
-        <option value="PATCH">PATCH</option>
-      </select>
-      <input v-model="url" type="text" class="form-control" placeholder="URL" />
-      <button class="btn btn-dark ms-3" @click.prevent="sendRequest">
-        Send
-      </button>
-    </form>
-  </div>
-  <div v-if="errorMessage" class="alert alert-danger" role="alert">{{ errorMessage }}</div>
-  <div class="container mt-4">
-    <!-- Tab Navigation -->
-    <ul class="nav nav-tabs" id="tabMenu" role="tablist">
-      <!-- Headers Tab -->
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link active"
-          id="headers-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#headers"
-          type="button"
-          role="tab"
-          aria-controls="headers"
-          aria-selected="true"
-        >
-          HEADERS
-        </button>
-      </li>
-      <!-- Query Parameters Tab -->
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="query-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#query-parameters"
-          type="button"
-          role="tab"
-          aria-controls="query-parameters"
-          aria-selected="false"
-          @click="updateCurrentTab('queryParameters')"
-        >
-          Query Parameter
-        </button>
-      </li>
-      <!-- Body Tab -->
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="body-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#body-content"
-          type="button"
-          role="tab"
-          aria-controls="body-content"
-          aria-selected="false"
-          @click="updateCurrentTab('formParameters')"
-        >
-          Body
-        </button>
-      </li>
-    </ul>
-
-    <!-- Tab Contents -->
-    <div class="tab-content mt-3" id="tabContent">
-      <!-- Headers Content -->
+  <div class="api-tester d-flex flex-column">
+    <div class="request-section flex-glow-1">
       <div
-        class="tab-pane fade show active"
-        id="headers"
-        role="tabpanel"
-        aria-labelledby="headers-tab"
+        class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
       >
-        <h5>Headers</h5>
-        <hr />
-        <form>
-          <div
-            v-for="(header, index) in headers"
-            :key="index"
-            class="row g-3 align-items-center mb-2"
-          >
-            <div class="col">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Key"
-                v-model="header.key"
-              />
-            </div>
-            <div class="col-auto">=</div>
-            <div class="col">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Value"
-                v-model="header.value"
-              />
-            </div>
+        <form class="d-flex w-100">
+          <!-- Input Box -->
+          <div class="me-3 flex-grow-1">
+            <span v-if="savedProject">{{ savedProject }}</span>
+            <input
+              v-model="apiName"
+              type="text"
+              class="form-control input-api-name"
+              placeholder="API Name"
+            />
           </div>
-          <button
-            type="button"
-            class="btn btn-dark me-2 mt-4"
-            @click="addHeader"
-          >
-            + Add header
-          </button>
+
+          <!-- Select Box and Buttons -->
+          <div class="d-flex align-items-center justify-content-end">
+            <button
+              type="button"
+              class="btn btn-dark me-2"
+              @click.prevent="showSiteEnvironmentModal = true"
+            >
+              환경 선택
+            </button>
+            <button
+              type="button"
+              class="btn btn-dark me-2"
+              @click.prevent="openSaveModal"
+            >
+              Save
+            </button>
+            <button type="button" class="btn btn-dark">Load</button>
+            <a href="#" class="request-add" @click.prevent="saveTempApi">
+              <i class="bi bi-plus-lg"></i>
+            </a>
+          </div>
         </form>
       </div>
-
-      <!-- Query Parameters Content -->
       <div
-        class="tab-pane fade"
-        id="query-parameters"
-        role="tabpanel"
-        aria-labelledby="query-tab"
+        class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
       >
-        <h5>Query Parameters</h5>
-        <hr />
-        <form>
-          <div
-            v-for="(queryParam, index) in queryParameters"
-            :key="index"
-            class="row g-3 align-items-center mb-2"
-          >
-            <div class="col">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Key"
-                v-model="queryParam.key"
-                @input="updateUrl"
-              />
-            </div>
-            <div class="col-auto">=</div>
-            <div class="col">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Value"
-                v-model="queryParam.value"
-                @input="updateUrl"
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            class="btn btn-dark me-2 mt-4"
-            @click="addQueryParameter"
-          >
-            + Add query parameter
-          </button>
-          <button
-            type="button"
-            class="btn btn-dark mt-4"
-            @click="openDatasetModal"
-          >
-            ✓ Select Object variable
-          </button>
-        </form>
-      </div>
-
-      <!-- Body Parameters Content -->
-      <div
-        class="tab-pane fade"
-        id="body-content"
-        role="tabpanel"
-        aria-labelledby="body-tab"
-      >
-        <div class="mb-3">
-          <label for="bodyType" class="form-label">Body</label>
-          <select class="form-select" v-model="selectedBodyType" id="bodyType">
-            <option value="text">Text</option>
-            <option value="file">File</option>
-            <option value="form">Form</option>
+        <form class="d-flex w-100">
+          <select v-model="method" class="form-select me-2" style="width: auto">
+            <option value="GET" selected>GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+            <option value="PATCH">PATCH</option>
           </select>
-        </div>
-
-        <!-- Text Body -->
-        <div v-if="selectedBodyType === 'text'">
-          <label for="textBody" class="form-label">Body</label>
-          <textarea
-            id="textBody"
+          <input
+            v-model="url"
+            type="text"
             class="form-control"
-            rows="10"
-            placeholder="Enter your body text here..."
-          ></textarea>
-        </div>
+            placeholder="URL"
+          />
+          <button class="btn btn-dark ms-3" @click.prevent="sendRequest">
+            Send
+          </button>
+        </form>
+      </div>
+      <div v-if="errorMessage" class="alert alert-danger" role="alert">
+        {{ errorMessage }}
+      </div>
+      <div class="container mt-4 pb-4">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs" id="tabMenu" role="tablist">
+          <!-- Headers Tab -->
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="headers-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#headers"
+              type="button"
+              role="tab"
+              aria-controls="headers"
+              aria-selected="true"
+            >
+              HEADERS
+            </button>
+          </li>
+          <!-- Query Parameters Tab -->
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="query-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#query-parameters"
+              type="button"
+              role="tab"
+              aria-controls="query-parameters"
+              aria-selected="false"
+              @click="updateCurrentTab('queryParameters')"
+            >
+              Query Parameter
+            </button>
+          </li>
+          <!-- Body Tab -->
+          <li class="nav-item" role="presentation">
+            <button
+              v-if="method === 'POST' || method === 'PUT' || method === 'PATCH'"
+              class="nav-link"
+              id="body-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#body-content"
+              type="button"
+              role="tab"
+              aria-controls="body-content"
+              aria-selected="false"
+              @click="updateCurrentTab('formParameters')"
+            >
+              Body
+            </button>
+          </li>
+        </ul>
 
-        <!-- File Upload Body -->
-        <div v-if="selectedBodyType === 'file'" class="border p-4 text-center">
-          <p>파일을 여기에 올려주세요.</p>
-          <input type="file" class="form-control" />
-        </div>
-
-        <!-- Form Parameters -->
-        <div v-if="selectedBodyType === 'form'">
+        <!-- Tab Contents -->
+        <div class="tab-content mt-3" id="tabContent">
+          <!-- Headers Content -->
           <div
-            v-for="(formParam, index) in formParameters"
-            :key="index"
-            class="row g-3 align-items-center mb-2"
+            class="tab-pane fade show active"
+            id="headers"
+            role="tabpanel"
+            aria-labelledby="headers-tab"
           >
-            <div class="col">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Key"
-                v-model="formParam.key"
-              />
-            </div>
-            <div class="col">
-              <select class="form-select" v-model="formParam.type">
+            <h5>Headers</h5>
+            <hr />
+            <form>
+              <div
+                v-for="(header, index) in headers"
+                :key="index"
+                class="row g-3 align-items-center mb-2"
+              >
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Key"
+                    v-model="header.key"
+                  />
+                </div>
+                <div class="col-auto">=</div>
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Value"
+                    v-model="header.value"
+                  />
+                </div>
+                <div class="col-auto">
+                  <i
+                    class="bi bi-x-lg remove-icon"
+                    @click="removeHeader(index)"
+                  ></i>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-dark me-2 mt-4"
+                @click="addHeader"
+              >
+                + Add header
+              </button>
+            </form>
+          </div>
+
+          <!-- Query Parameters Content -->
+          <div
+            class="tab-pane fade"
+            id="query-parameters"
+            role="tabpanel"
+            aria-labelledby="query-tab"
+          >
+            <h5>Query Parameters</h5>
+            <hr />
+            <form>
+              <div
+                v-for="(queryParam, index) in queryParameters"
+                :key="index"
+                class="row g-3 align-items-center mb-2"
+              >
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Key"
+                    v-model="queryParam.key"
+                    @input="updateUrl"
+                  />
+                </div>
+                <div class="col-auto">=</div>
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Value"
+                    v-model="queryParam.value"
+                    @input="updateUrl"
+                  />
+                </div>
+                <div class="col-auto">
+                  <i
+                    class="bi bi-x-lg remove-icon"
+                    @click="removeQueryParam(index)"
+                  ></i>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-dark me-2 mt-4"
+                @click="addQueryParameter"
+              >
+                + Add query parameter
+              </button>
+              <button
+                type="button"
+                class="btn btn-dark mt-4"
+                @click="openDatasetModal"
+              >
+                ✓ Select Object variable
+              </button>
+            </form>
+          </div>
+
+          <!-- Body Parameters Content -->
+          <div
+            class="tab-pane fade"
+            id="body-content"
+            role="tabpanel"
+            aria-labelledby="body-tab"
+          >
+            <div class="mb-3">
+              <label for="bodyType" class="form-label">Body</label>
+              <select
+                class="form-select"
+                v-model="selectedBodyType"
+                id="bodyType"
+              >
                 <option value="text">Text</option>
                 <option value="file">File</option>
+                <option value="form">Form</option>
               </select>
             </div>
-            <div class="col">
-              <input
-                v-if="formParam.type === 'text'"
-                type="text"
+
+            <!-- Text Body -->
+            <div v-if="selectedBodyType === 'text'">
+              <label for="textBody" class="form-label">Body</label>
+              <textarea
+                id="textBody"
                 class="form-control"
-                placeholder="Value"
-                v-model="formParam.value"
-              />
-              <input
-                v-if="formParam.type === 'file'"
-                type="file"
-                class="form-control"
-              />
+                rows="10"
+                placeholder="Enter your body text here..."
+              ></textarea>
+            </div>
+
+            <!-- File Upload Body -->
+            <div
+              v-if="selectedBodyType === 'file'"
+              class="border p-4 text-center"
+            >
+              <p>파일을 여기에 올려주세요.</p>
+              <input type="file" class="form-control" />
+            </div>
+
+            <!-- Form Parameters -->
+            <div v-if="selectedBodyType === 'form'">
+              <div
+                v-for="(formParam, index) in formParameters"
+                :key="index"
+                class="row g-3 align-items-center mb-2"
+              >
+                <div class="col">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Key"
+                    v-model="formParam.key"
+                  />
+                </div>
+                <div class="col">
+                  <select class="form-select" v-model="formParam.type">
+                    <option value="text">Text</option>
+                    <option value="file">File</option>
+                  </select>
+                </div>
+                <div class="col">
+                  <input
+                    v-if="formParam.type === 'text'"
+                    type="text"
+                    class="form-control"
+                    placeholder="Value"
+                    v-model="formParam.value"
+                  />
+                  <input
+                    v-if="formParam.type === 'file'"
+                    type="file"
+                    class="form-control"
+                  />
+                </div>
+                <div class="col-auto">
+                  <i
+                    class="bi bi-x-lg remove-icon"
+                    @click="removeFormParameter(index)"
+                  ></i>
+                </div>
+              </div>
+              <button class="btn btn-dark me-2 mt-4" @click="addFormParameter">
+                + Add Form parameter
+              </button>
+              <button class="btn btn-dark mt-4" @click="openDatasetModal">
+                ✓ Select Object variable
+              </button>
             </div>
           </div>
-          <button class="btn btn-dark me-2 mt-4" @click="addFormParameter">
-            + Add Form parameter
-          </button>
-          <button class="btn btn-dark mt-4" @click="openDatasetModal">
-            ✓ Select Object variable
-          </button>
         </div>
       </div>
+    </div>
 
-      <!-- Response Section -->
-      <div class="response-section mt-4">
-        <h5>Response</h5>
+    <!-- Resizer -->
+    <div class="resizer" @mousedown="startResize">
+      <i class="bi bi-grip-horizontal"></i>
+    </div>
 
-        <!-- HTTP Status Code -->
-        <div class="status-code bg-secondary text-white p-2 mb-3">
-          <span v-if="response.statusCode === null">HTTP Status Code</span>
-          <span v-else
-            >{{ response.statusCode }} {{ response.statusMessage }}</span
-          >
+    <!-- Response Section -->
+    <div
+      class="response-section mt-4"
+      :style="{ height: responseHeight + 'px' }"
+    >
+      <h5>Response</h5>
+
+      <!-- HTTP Status Code -->
+      <div
+        class="status-code text-white p-2 mb-3"
+        :style="{ backgroundColor: statusColor || '#6c757d' }"
+      >
+        <span v-if="response.statusCode === null">HTTP Status Code</span>
+        <span v-else
+          >{{ response.statusCode }} {{ response.statusMessage }}</span
+        >
+      </div>
+
+      <!-- Response Details -->
+      <div v-if="response.statusCode === null" class="text-muted">
+        아직 요청이 보내지지 않았습니다.
+      </div>
+
+      <div v-else class="d-flex">
+        <!-- Response Headers -->
+        <div class="response-headers border p-3 me-3">
+          <h6>Headers</h6>
+          <ul class="list-unstyled">
+            <li v-for="(value, key) in response.headers" :key="key">
+              <strong>{{ key }}:</strong> {{ value }}
+            </li>
+          </ul>
         </div>
-
-        <!-- Response Details -->
-        <div v-if="response.statusCode === null" class="text-muted">
-          아직 요청이 보내지지 않았습니다.
-        </div>
-
-        <div v-else class="d-flex">
-          <!-- Response Headers -->
-          <div class="response-headers border p-3 me-3">
-            <h6>Headers</h6>
-            <ul class="list-unstyled">
-              <li v-for="(value, key) in response.headers" :key="key">
-                <strong>{{ key }}:</strong> {{ value }}
-              </li>
-            </ul>
-          </div>
-          <!-- Response Body -->
-          <div class="response-body border p-3">
-            <h6>Body</h6>
-            <pre class="formatted-body">
+        <!-- Response Body -->
+        <div class="response-body border p-3">
+          <h6>Body</h6>
+          <pre class="formatted-body">
               <code v-html="formattedBody"></code>
             </pre>
-          </div>
         </div>
       </div>
     </div>
@@ -337,7 +383,13 @@
     @add-variables="handleAddVariables"
     @close="showDatasetModal = false"
   />
+  <SiteEnvironmentModal
+    :isVisible="showSiteEnvironmentModal"
+    @confirm="handleConfirm"
+    @close="showSiteEnvironmentModal = false"
+  />
   <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
+  <!-- 모달 컴포넌트 -->
 </template>
 
 <script>
@@ -346,10 +398,11 @@ import "highlight.js/styles/default.css";
 import SaveModal from "./SaveModal.vue";
 import DatasetModal from "./DatasetModal.vue";
 import SettingModal from "./SettingModal.vue";
+import SiteEnvironmentModal from "./SiteEnvironmentModal.vue";
 
 export default {
   name: "ApiTest",
-  components: { SaveModal, DatasetModal, SettingModal },
+  components: { SaveModal, DatasetModal, SettingModal, SiteEnvironmentModal },
   props: ["tempApi"],
   data() {
     return {
@@ -364,6 +417,7 @@ export default {
       showSaveModal: false,
       showDatasetModal: false,
       showSettingsModal: false,
+      showSiteEnvironmentModal: false,
       projects: [],
       selectedFolder: null,
       datasets: [], // 데이터셋
@@ -382,8 +436,14 @@ export default {
         headers: {}, // 응답 헤더
         body: "", // 응답 바디
       },
+      responseHeight: 100, // 초기 Response 영역 높이
+      isResizing: false,
+      startY: 0, // 마우스 시작 Y 좌표
+      startHeight: 0, // 초기 높이
+      statusColor: "#6c757d",
       errorMessage: "",
       loginVerified: false, // 최초 로그인 여부
+      resizing: false,
     };
   },
   methods: {
@@ -410,6 +470,27 @@ export default {
     },
     removeHeader(index) {
       this.headers.splice(index, 1);
+    },
+    startResize(event) {
+      this.isResizing = true;
+      this.startY = event.clientY; // 마우스 시작 Y 좌표
+      this.startHeight = this.responseHeight; // 초기 높이 저장
+
+      // 이벤트 리스너 추가
+      document.addEventListener("mousemove", this.resize);
+      document.addEventListener("mouseup", this.stopResize);
+    },
+    resize(event) {
+      if (!this.isResizing) return;
+      const deltaY = this.startY - event.clientY; // 반대로 계산
+      this.responseHeight = Math.max(this.startHeight + deltaY, 150); // 최소 높이 150px 제한
+    },
+    stopResize() {
+      this.isResizing = false;
+
+      // 이벤트 리스너 제거
+      document.removeEventListener("mousemove", this.resize);
+      document.removeEventListener("mouseup", this.stopResize);
     },
     handleFileUpload(event) {
       this.file = event.target.files[0];
@@ -478,10 +559,11 @@ export default {
     async fetchLoginVerified() {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
-        console.log(response);
         if (response.data.user.verified) {
           this.showSettingsModal = true;
-          await this.$axios.post("/api/user/renewVerified", { verified: false });
+          await this.$axios.post("/api/user/renewVerified", {
+            verified: false,
+          });
         }
       } catch (error) {
         console.log("Failed Login Verified: " + error);
@@ -606,7 +688,9 @@ export default {
       this.currentTab = tab;
     },
     updateSavedProject(projectId) {
-      this.savedProject = this.$axios.get(`/api/projects/find/${projectId}`).data.name;
+      this.savedProject = this.$axios.get(
+        `/api/projects/find/${projectId}`
+      ).data.name;
     },
     resolveTemplateVariables(template) {
       if (!template || typeof template !== "string") return template;
@@ -904,11 +988,62 @@ export default {
       },
       immediate: true, // 처음 로드 시에도 실행
     },
+    "response.statusCode": {
+      handler(statusCode) {
+        if (statusCode === null || statusCode === undefined) {
+          this.statusColor = "#6c757d"; // 기본 색상 (회색)
+        } else if (statusCode >= 100 && statusCode < 200)
+          this.statusColor = "#F2F1F0"; // 1xx
+        else if (statusCode >= 200 && statusCode < 300)
+          this.statusColor = "#80BFB4"; // 2xx
+        else if (statusCode >= 300 && statusCode < 400)
+          this.statusColor = "#260124"; // 3xx
+        else if (statusCode >= 400 && statusCode < 500)
+          this.statusColor = "#D9A3D0"; // 4xx
+        else if (statusCode >= 500 && statusCode < 600)
+          this.statusColor = "#F2B366"; // 5xx
+        else this.statusColor = "#6c757d"; // 그 외
+      },
+      immediate: true, // 컴포넌트가 마운트될 때 즉시 실행
+    },
   },
 };
 </script>
 
 <style scoped>
+.api-tester {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.request-section,
+.response-section {
+  overflow-y: auto;
+}
+
+.request-section {
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* ( 크롬, 사파리, 오페라, 엣지 ) 동작 */
+.request-section:-webkit-scrollbar,
+.response-section::-webkit-scrollbar {
+  display: none;
+}
+
+.request-section,
+.response-section {
+  -ms-overflow-style: none; /* 인터넷 익스플로러 */
+  scrollbar-width: none; /* 파이어폭스 */
+}
+
+.resizer {
+  text-align: center;
+  height: 6px;
+  cursor: pointer; /* 상하 리사이즈 커서 */
+}
+
 .input-api-name {
   border-width: 0 0 1px;
   border-radius: 0;
@@ -917,6 +1052,10 @@ export default {
 .request-add {
   margin-left: 10px;
   color: black;
+}
+
+.remove-icon:hover {
+  cursor: pointer;
 }
 
 textarea {
@@ -945,6 +1084,14 @@ textarea {
   background-color: #f8f9fa;
   padding: 15px;
   border-radius: 4px;
+}
+
+.response-body {
+  height: calc(100% - 50px); /* 상태 코드 아래 스크롤 영역 */
+  overflow-y: auto;
+  background-color: #f1f1f1;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* Response CSS End */

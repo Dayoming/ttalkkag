@@ -60,6 +60,29 @@ public class ProjectController {
         projectService.addProjectItemApi(projectItems);
     }
 
+    @PatchMapping("/update/projectItemName")
+    public Map<String, Object> updateProjectItemName(@RequestBody ProjectItems projectItems) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            projectService.updateProjectItemName(projectItems);
+        } catch (Exception e) {
+            response.put("errorMessage", "이름 변경에 실패했습니다.");
+        }
+        return response;
+    }
+
+    @PatchMapping("/update/parentId")
+    public Map<String, Object> updateParentId(@RequestBody ProjectItems projectItems) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            projectService.updateParentId(projectItems);
+            System.out.println(projectItems);
+        } catch (Exception e) {
+            response.put("errorMessage", "경로 변경에 실패했습니다.");
+        }
+        return response;
+    }
+
     @GetMapping("/{projectId}")
     public List<ProjectItems> getProjectItems(@PathVariable Long projectId) {
         return projectService.getProjectItemsByProjectId(projectId);

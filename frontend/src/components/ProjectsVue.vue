@@ -58,7 +58,11 @@
           class="form-control me-2 input-search"
           v-model="searchQuery"
         />
-        <select class="form-select me-2" v-model="selectedMethod" style="width: 230px">
+        <select
+          class="form-select me-2"
+          v-model="selectedMethod"
+          style="width: 230px"
+        >
           <option value="">ALL</option>
           <option value="GET">GET</option>
           <option value="POST">POST</option>
@@ -66,9 +70,7 @@
           <option value="DELETE">DELETE</option>
           <option value="PATCH">PATCH</option>
         </select>
-        <button class="btn btn-dark" @click="fetchFilteredItems">
-          Search
-        </button>
+        <button class="btn btn-dark" @click="fetchFilteredItems">Search</button>
       </div>
       <button class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
       <button class="btn btn-dark me-2" @click="addAPI">새 요청 추가</button>
@@ -83,12 +85,13 @@
         <th>METHOD</th>
         <tbody>
           <RecursiveFolderItem
-            v-for="item in items"
-            :key="item.id"
+            v-for="item in localItems"
+            :key="item.id + '_' + updateKey"
             :item="item"
             :depth="0"
             @selection-change="handleSelectionChange"
             @toggle-folder="toggleFolder"
+            @update-items="$emit('update-items')"
           />
         </tbody>
       </table>
@@ -106,11 +109,12 @@ export default {
     CommonModal,
     RecursiveFolderItem,
   },
-  props: ["projects", "selectedProject"],
+  props: ["projects", "selectedProject", "items"],
   data() {
     return {
       localProjects: [],
-      items: [],
+      localItems: [],
+      updateKey: 0,
       newProjectName: null,
       showNewProjectModal: false,
       localSelectedProject: "",
@@ -144,7 +148,7 @@ export default {
         const response = await this.$axios.get(
           `/api/projects/${selectedProject.id}`
         );
-        this.items = this.buildTreeStructure(response.data); // 최상위 항목만 로드
+        this.localItems = this.buildTreeStructure(response.data); // 최상위 항목만 로드
       } catch (error) {
         console.error("아이템을 불러오는 중 오류가 발생했습니다:", error);
       }
@@ -169,7 +173,7 @@ export default {
             },
           }
         );
-        this.items = this.buildTreeStructure(response.data);
+        this.localItems = this.buildTreeStructure(response.data);
       } catch (error) {
         console.error("검색 중 오류가 발생했습니다:", error);
       }
@@ -271,7 +275,7 @@ export default {
               this.selectProject(this.localProjects[0].name);
             } else {
               this.localSelectedProject = null;
-              this.items = [];
+              this.localItems = [];
             }
           } catch (error) {
             console.error("Failed to delete project:", error);
@@ -282,7 +286,7 @@ export default {
     },
     async deleteSelected() {
       // 선택된 항목 ID 수집
-      const selectedIds = this.getSelectedIds(this.items);
+      const selectedIds = this.getSelectedIds(this.localItems);
 
       if (selectedIds.length === 0) {
         alert("삭제할 항목을 선택해주세요.");
@@ -300,7 +304,7 @@ export default {
         });
 
         // UI에서 삭제
-        this.removeItemsFromUI(this.items, selectedIds);
+        this.removeItemsFromUI(this.localItems, selectedIds);
         alert("삭제되었습니다.");
       } catch (error) {
         console.error("삭제 중 오류가 발생했습니다:", error);
@@ -350,7 +354,7 @@ export default {
         }
       };
 
-      findAndUpdateItem(this.items);
+      findAndUpdateItem(this.localItems);
     },
   },
   mounted() {
@@ -375,6 +379,18 @@ export default {
         this.localSelectedProject = newSelectedProject;
       },
       immediate: true,
+    },
+    localItems: {
+      handler() {
+        this.updateKey++;
+      },
+      deep: true, // items 내부의 객체 변경 감지
+    },
+    items: {
+      handler(newItems) {
+        console.log(newItems);
+        this.localItems = newItems;
+      },
     },
   },
 };

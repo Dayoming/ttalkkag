@@ -105,4 +105,12 @@ public class ProjectService {
     public Project getProjectByProjectId(Long projectId) {
         return projectMapper.getProjectByProjectId(projectId);
     }
+
+    public void updateProjectItemName(ProjectItems projectItems) {
+        projectMapper.updateProjectItemName(projectItems);
+    }
+
+    public void updateParentId(ProjectItems projectItems) {
+        projectMapper.updateParentId(projectItems);
+    }
 }

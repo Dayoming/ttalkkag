@@ -87,4 +87,16 @@
     <delete id="deleteByItemId">
         DELETE FROM project_items WHERE id = #{id}
     </delete>
+
+    <update id="updateProjectItemName" parameterType="ProjectItems">
+        UPDATE project_items SET
+            name = #{name}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateParentId" parameterType="projectItems">
+        UPDATE project_items SET
+            parent_id = #{parentId}
+        WHERE id = #{id}
+    </update>
 </mapper>
