@@ -2,9 +2,6 @@ package com.apitester.ttalkkag.dto;
 
 import lombok.Data;
 
-import java.util.List;
-import java.util.Map;
-
 @Data
 public class Apis {
     private Long id;

@@ -33,6 +33,7 @@
                 @selection-change="handleSelectionChange"
                 @toggle-folder="toggleFolder"
                 @update-items="$emit('update-items')"
+                @api-selected="handleApiSelected"
               />
             </tbody>
           </table>
@@ -97,7 +98,7 @@
   </div>
   <!-- Offcanvas 메뉴 (모바일에서만 표시) -->
   <div
-    class="offcanvas offcanvas-start bg-body-tertiary"
+    class="offcanvas offcanvas-start"
     tabindex="-1"
     id="offcanvasSidebar"
     aria-labelledby="offcanvasSidebarLabel"
@@ -122,6 +123,7 @@
               :depth="0"
               @update-items="$emit('update-items')"
               @toggle-folder="toggleFolder"
+              @api-selected="handleApiSelected"
             />
           </tbody>
         </table>
@@ -271,6 +273,9 @@ export default {
 
       return tree; // 최종 트리 반환
     },
+    handleApiSelected(selectedTempApi) {
+      this.$emit("api-selected", selectedTempApi);
+    }
   },
   mounted() {
     this.fetchItems();

@@ -16,4 +16,8 @@ public class ApiService {
     public void saveApi(Apis apis) {
         apiMapper.saveApi(apis);
     }
+
+    public Apis loadApi(Long itemId) {
+        return apiMapper.loadApi(itemId);
+    }
 }

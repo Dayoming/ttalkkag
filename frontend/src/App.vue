@@ -6,12 +6,13 @@
         <CommonSideBar
           :projects="projects"
           :items="items"
-          :tempApis="tempApis"
+          :tempApi="selectedTempApi"
           :selectedProject="selectedProject"
           @select-temp-api="loadTempApi"
           @delete-projects="deleteProjects"
           @update-projects="updateProjects"
           @update-items="fetchItems"
+          @api-selected="handleApiSelected"
         />
         <main
           class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents"
@@ -29,6 +30,7 @@
             @update-items="fetchItems"
             @edit-request="handleEditRequest"
             @re-request="handleReRequest"
+            @api-selected="handleApiSelected"
           />
           <div
             id="global-spinner"
@@ -60,9 +62,8 @@ export default {
   name: "App",
   data() {
     return {
-      selectedTempApi: null, // 현재 선택된 임시 저장된 API
+      selectedTempApi: null, // 현재 선택된 API
       selectedProject: null, // 현재 선택된 프로젝트
-      tempApis: [], // 임시 저장된 API 데이터
       projects: [],
       items: [],
     };
@@ -97,6 +98,13 @@ export default {
         alert("이동 중 오류가 발생했습니다.");
       }
     },
+    handleApiSelected(loadApi) {
+      this.selectedTempApi = loadApi;
+      this.$router.push({
+        name: "ApiTest",
+        params: { tempApi: this.selectedTempApi }, // 라우터에 데이터 전달
+      });
+    },
     // API를 임시 저장
     saveTempApi(apiData) {
       const existingApiIndex = this.tempApis.findIndex(
@@ -111,11 +119,8 @@ export default {
       }
     },
     // 사이드바에서 임시 저장된 API 선택
-    loadTempApi(apiName) {
-      const tempApi = this.tempApis.find((api) => api.name === apiName);
-      if (tempApi) {
-        this.selectedTempApi = tempApi;
-      }
+    loadTempApi(loadTempApi) {
+      this.selectedTempApi = loadTempApi;
     },
     async fetchProjects() {
       try {

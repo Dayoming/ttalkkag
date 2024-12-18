@@ -9,5 +9,22 @@
         VALUES (#{itemId}, #{name}, #{method}, #{url}, #{headers}, #{queryParameters},
         #{formParameters}, #{file}, #{selectedBodyType}, #{selectedEnvironment}, NOW())
     </insert>
+    <select id="loadApi" resultType="Apis">
+        SELECT
+            id AS id,
+            item_id AS itemId,
+            environment_id AS environmentId,
+            name AS name,
+            method AS method,
+            url AS url,
+            headers AS headers,
+            query_parameters AS queryParameters,
+            form_parameters AS formParameters,
+            file AS file,
+            selected_body_type AS selectedBodyType,
+            create_at AS createAt
+        FROM apis
+        WHERE item_id = #{itemId}
+    </select>
 </mapper>
 
