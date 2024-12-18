@@ -7,6 +7,8 @@ public class ApiHistory {
     private Long id;
     private Long userId;
     private Long projectId;
+    private Long environmentId;
+    private Long siteId;
     private String method;
     private String url;
     private Integer responseCode;

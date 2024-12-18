@@ -435,6 +435,7 @@ export default {
       datasets: [], // 데이터셋
       selectedDataset: null, // 선택된 데이터셋
       datasetVariables: [], // 데이터셋 변수들
+      selectedSite: null, // 선택된 사이트
       selectedEnvironment: null, // 선택된 환경
       selectedVariables: [], // 선택된 데이터셋 변수들
       currentTab: "queryParameters", // 선택된 탭 이름
@@ -508,7 +509,8 @@ export default {
       this.file = event.target.files[0];
     },
     handleModalSelectedEnvironment(modalSelectedEnvironment) {
-      this.selectedEnvironment = modalSelectedEnvironment;
+      this.selectedEnvironment = modalSelectedEnvironment.environmentId;
+      this.selectedSite = modalSelectedEnvironment.site;
       this.fetchEnvironmentVariables();
     },
     handleAddVariables({ variables, currentTab }) {
@@ -546,7 +548,7 @@ export default {
         return;
       }
 
-      const environmentId = this.selectedEnvironment.environment;
+      const environmentId = this.selectedEnvironment;
 
       try {
         const response = await this.$axios.get(
@@ -833,10 +835,9 @@ export default {
 
         this.addHistory(response, elapsedTime);
       } catch (error) {
-        console.log(error);
         // 에러 처리
         const failedResponse = {
-          status: error.response?.status || "Error",
+          statusCode: error.response?.status || "Error",
           statusMessage: error.response?.statusText || "Request failed",
           body: error.response?.data || "Request failed.",
           headers: error.response?.headers || {},
@@ -851,9 +852,24 @@ export default {
       }
     },
     addHistory(response, elapsedTime) {
+      // 정규 표현식을 사용하여 {{key}} 찾기
+      const matches = this.url.match(/{{\s*(\w+)\s*}}/);
+      let matchUrl = '';
+
+      if (matches) {
+        const key = matches[1]; // 환경 변수 키 추출
+        // 환경 변수 객체에서 해당 키의 값을 찾아 반환
+        matchUrl = this.environmentVariables[key];
+      } else {
+        matchUrl = this.url;
+      }
+
       const newLog = {
+        projectId: this.selectedProject.id,
+        environmentId: this.selectedEnvironment,
+        siteId: this.selectedSite,
         method: this.method,
-        url: this.url,
+        url: matchUrl,
         responseCode: response.status,
         responseMessage: response.statusText,
         responseTime: elapsedTime,
@@ -864,8 +880,6 @@ export default {
         responseBody: JSON.stringify(response.data, null, 2),
         responseHeader: JSON.stringify(response.headers, null, 2),
       };
-
-      console.log(newLog);
 
       // 서버에 기록 저장 API 호출
       this.$axios.post("/api/history", newLog);
