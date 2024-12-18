@@ -56,8 +56,8 @@ public class ProjectController {
     }
 
     @PostMapping("/add-api")
-    public void addProjectItemApi(@RequestBody ProjectItems projectItems) {
-        projectService.addProjectItemApi(projectItems);
+    public ProjectItems addProjectItemApi(@RequestBody ProjectItems projectItems) {
+        return projectService.addProjectItemApi(projectItems);
     }
 
     @PatchMapping("/update/projectItemName")

@@ -57,9 +57,19 @@
             placeholder="URL"
             :title="resolveTooltip(url)"
           />
-          <button class="btn btn-dark ms-3" @click.prevent="sendRequest">
+          <button v-if="!isRequest" class="btn btn-dark ms-3" @click.prevent="sendRequest">
             Send
           </button>
+          <button v-else class="btn btn-dark ms-3" style="width: 150px;" disabled>
+            <i class="bi bi-stop-fill"></i>Wait...
+          </button>
+          <div
+            v-if="isSaving"
+            class="spinner-border spinner-border-sm ms-2"
+            role="status"
+          >
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </form>
       </div>
       <div v-if="errorMessage" class="alert alert-danger" role="alert">
@@ -396,7 +406,11 @@
     @modal-selected-environment="handleModalSelectedEnvironment"
     @close="showSiteEnvironmentModal = false"
   />
-  <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
+  <SettingModal
+    v-if="showSettingsModal"
+    @modal-setting-confirm="handleModalSettingConfirm"
+    @close="closeSettingsModal"
+  />
   <!-- 모달 컴포넌트 -->
 </template>
 
@@ -430,6 +444,7 @@ export default {
       showDatasetModal: false,
       showSettingsModal: false,
       showSiteEnvironmentModal: false,
+      showResponse: false, // 결과 코드만 볼지, 결과를 모두 볼지 여부
       projects: [],
       selectedFolder: null,
       datasets: [], // 데이터셋
@@ -457,6 +472,15 @@ export default {
       errorMessage: "",
       loginVerified: false, // 최초 로그인 여부
       resizing: false,
+      autoSaveUse: false, // 자동 저장 사용 여부
+      autoSaveTimer: null, // 입력 중 자동 저장 타이머
+      autoSaveDelayTimer: null, // 입력 후 자동 저장 타이머
+      autoSaveTime: 0, // 입력 중 자동 저장 시간
+      autoSaveTerm: 0, // 입력 후 자동 저장 시간
+      autoSavePath: null, // 자동 저장 경로
+      hasChanges: false, // 데이터 변경 상태
+      isSaving: false,
+      isRequest: false,
     };
   },
   methods: {
@@ -482,6 +506,15 @@ export default {
     },
     openDatasetModal() {
       this.showDatasetModal = true;
+    },
+    closeModal() {
+      this.showModal = false;
+      this.selectedDataset = null;
+      this.datasetVariables = [];
+      this.selectedVariables = [];
+    },
+    closeSettingsModal() {
+      this.showSettingsModal = false; // 모달 닫기 처리
     },
     addFormParameter() {
       this.formParameters.push({ key: "", type: "text", value: "" });
@@ -553,11 +586,8 @@ export default {
         });
       }
     },
-    closeModal() {
-      this.showModal = false;
-      this.selectedDataset = null;
-      this.datasetVariables = [];
-      this.selectedVariables = [];
+    handleModalSettingConfirm() {
+      console.log("dd");
     },
     async fetchEnvironmentVariables() {
       if (!this.selectedEnvironment) {
@@ -581,7 +611,7 @@ export default {
         this.environmentVariables = {};
       }
     },
-    async fetchLoginVerified() {
+    async fetchLoginUserInfo() {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
         if (response.data.user.verified) {
@@ -590,6 +620,14 @@ export default {
             verified: false,
           });
         }
+
+        this.autoSaveUse = response.data.user.autoSaveUse;
+        this.autoSaveTime = response.data.user.autoSaveTime;
+        this.autoSaveTerm = response.data.user.autoSaveTerm;
+        this.autoSavePath = response.data.user.autoSavePath;
+        this.showResponse = response.data.user.showResponse;
+
+        console.log(this.autoSaveUse);
       } catch (error) {
         console.log("Failed Login Verified: " + error);
       }
@@ -687,6 +725,75 @@ export default {
         });
 
       this.showSaveModal = false;
+    },
+    triggerAutoSave() {
+      if (!this.autoSaveUse) return; // 자동 저장 사용 안 할 경우
+
+      const autoSaveTimeMs = this.autoSaveTime * 1000; // 초 → 밀리초 변환
+      const autoSaveTermMs = this.autoSaveTerm * 1000;
+
+      // 입력 중 자동 저장 (autoSaveTime)
+      if (this.autoSaveTimer) {
+        clearInterval(this.autoSaveTimer); // 기존 타이머 제거
+      }
+      this.autoSaveTimer = setInterval(async () => {
+        if (this.hasChanges) {
+          this.isSaving = true;
+          await this.saveApiData(); // 자동 저장 실행
+          this.isSaving = false;
+        }
+      }, autoSaveTimeMs);
+
+      // 입력 후 자동 저장 (autoSaveTerm)
+      if (this.autoSaveDelayTimer) {
+        clearTimeout(this.autoSaveDelayTimer); // 기존 딜레이 타이머 제거
+      }
+      this.autoSaveDelayTimer = setTimeout(async () => {
+        if (this.hasChanges) {
+          this.isSaving = true;
+          await this.saveApiData(); // 자동 저장 실행
+          this.isSaving = false;
+          this.hasChanges = false; // 변경 상태 초기화
+        }
+      }, autoSaveTermMs);
+    },
+    async saveApiData() {
+      try {
+        const project = await this.$axios.post("/api/projects/add-api", {
+          projectId: Number(this.selectedProject.id),
+          parentId: this.autoSavePath,
+          type: "api",
+          name: this.apiName || "TempAPI",
+          depth: 1,
+        });
+
+        const apiData = {
+          name: this.apiName || "TempAPI",
+          itemId: Number(project.data.id),
+          method: this.method,
+          url: this.url,
+          headers: JSON.stringify(this.headers),
+          queryParameters: JSON.stringify(this.queryParameters),
+          formParameters: JSON.stringify(this.formParameters),
+          file: this.file,
+          selectedBodyType: this.selectedBodyType,
+          selectedEnvironment: this.selectedEnvironment,
+        };
+
+        await this.$axios.post("/api/apis", apiData);
+        this.hasChanges = false; // 저장 완료 후 상태 초기화
+        this.$emit("refresh-sidebar");
+        console.log("자동 저장 완료");
+      } catch (error) {
+        console.log("Failed save projectItem: " + error);
+        alert("API 자동 저장에 실패했습니다.");
+      } finally {
+        this.isSaving = false;
+      }
+    },
+    markChanges() {
+      this.hasChanges = true;
+      this.triggerAutoSave();
     },
     loadEnvironment() {
       if (this.selectedEnvironment) {
@@ -793,6 +900,7 @@ export default {
       this.errorMessage = "";
       const startTime = performance.now(); // 요청 시작 시간
       try {
+        this.isRequest = true;
         if (!this.url) {
           this.errorMessage = "요청을 보낼 URL을 입력해 주세요.";
           return;
@@ -866,6 +974,8 @@ export default {
         const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
 
         this.addHistory(this.response, elapsedTime);
+      } finally {
+        this.isRequest = false;
       }
     },
     addHistory(response, elapsedTime) {
@@ -903,7 +1013,7 @@ export default {
     },
   },
   mounted() {
-    this.fetchLoginVerified();
+    this.fetchLoginUserInfo();
   },
   computed: {
     formattedBody() {
@@ -954,27 +1064,53 @@ export default {
         formParameters: JSON.stringify(this.formParameters),
         file: this.file,
         selectedBodyType: this.selectedBodyType,
-        selectedEnvironment: this.selectedEnvironment.id,
+        selectedEnvironment: this.selectedEnvironment,
       };
     },
   },
   watch: {
+    apiName: "markChanges",
+    method: "markChanges",
+    selectedBodyType: "markChanges",
+    selectedEnvironment: "markChanges",
+    headers: {
+      deep: true, // 배열/객체 내부 변경 감지
+      handler: "markChanges",
+    },
+    queryParameters: {
+      deep: true,
+      handler: "markChanges",
+    },
+    formParameters: {
+      deep: true,
+      handler: "markChanges",
+    },
+    file: {
+      deep: true,
+      handler: "markChanges",
+    },
     // URL이 직접 변경될 경우 Query Parameters 업데이트
-    url(newUrl) {
-      const queryIndex = newUrl.indexOf("?");
-      if (queryIndex !== -1) {
-        const queryString = newUrl.substring(queryIndex + 1);
-        const queryArray = queryString.split("&").map((param) => {
-          const [key, value] = param.split("=");
-          return {
-            key: decodeURIComponent(key),
-            value: decodeURIComponent(value || ""),
-          };
-        });
-        this.queryParameters = queryArray;
-      } else {
-        this.queryParameters = [{ key: "", value: "" }];
-      }
+    url: {
+      handler(newUrl) {
+        // triggerAutoSave 호출
+        this.markChanges();
+
+        // Query Parameters 업데이트
+        const queryIndex = newUrl.indexOf("?");
+        if (queryIndex !== -1) {
+          const queryString = newUrl.substring(queryIndex + 1);
+          const queryArray = queryString.split("&").map((param) => {
+            const [key, value] = param.split("=");
+            return {
+              key: decodeURIComponent(key),
+              value: decodeURIComponent(value || ""),
+            };
+          });
+          this.queryParameters = queryArray;
+        } else {
+          this.queryParameters = [{ key: "", value: "" }];
+        }
+      },
     },
     selectedProject: {
       handler(newProject, oldProject) {
@@ -990,11 +1126,13 @@ export default {
           this.apiName = newTempApi.name || "";
           this.method = newTempApi.method || "GET";
           this.url = newTempApi.url || "";
-          this.headers = newTempApi.headers || [{ key: "", value: "" }];
-          this.queryParameters = newTempApi.queryParameters || [
+          this.headers = JSON.parse(newTempApi.headers) || [
             { key: "", value: "" },
           ];
-          this.formParameters = newTempApi.formParameters || [
+          this.queryParameters = JSON.parse(newTempApi.queryParameters) || [
+            { key: "", value: "" },
+          ];
+          this.formParameters = JSON.parse(newTempApi.formParameters) || [
             { key: "", type: "text", value: "" },
           ];
           this.selectedBodyType = newTempApi.selectedBodyType || "text";
@@ -1026,6 +1164,14 @@ export default {
       },
       immediate: true, // 컴포넌트가 마운트될 때 즉시 실행
     },
+  },
+  beforeUnmount() {
+    if (this.autoSaveTimer) {
+      clearInterval(this.autoSaveTimer);
+    }
+    if (this.autoSaveDelayTimer) {
+      clearTimeout(this.autoSaveDelayTimer);
+    }
   },
 };
 </script>
@@ -1118,5 +1264,9 @@ textarea {
 
 .errorMessage {
   margin-left: 10px;
+}
+
+.auto-save-spinner {
+  margin-left: 8px; /* 버튼과의 여백 */
 }
 </style>

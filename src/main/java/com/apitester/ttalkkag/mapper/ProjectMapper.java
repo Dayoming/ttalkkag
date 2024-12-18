@@ -13,6 +13,7 @@ public interface ProjectMapper {
     List<ProjectItems> findByParentId(Long parentId);
     List<ProjectItems> searchProjectItems(Long projectId, String query, String method);
     Project getProjectByProjectId(Long projectId);
+    ProjectItems getProjectItemsById(Long id);
     void insertProject(Project project);
     void insertApi(ProjectItems item);
     void deleteProject(Long id);

@@ -54,7 +54,7 @@
         WHERE id = #{id}
     </delete>
 
-    <insert id="insertProjectItem" parameterType="ProjectItems">
+    <insert id="insertProjectItem" parameterType="ProjectItems" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
         VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, #{createAt})
     </insert>
@@ -76,6 +76,19 @@
             create_at AS createAt
         FROM project_items
         WHERE project_id = #{projectId}
+    </select>
+
+    <select id="getProjectItemsById" parameterType="long" resultType="ProjectItems">
+        SELECT
+        id AS id,
+        project_id AS projectId,
+        parent_id AS parentId,
+        type AS type,
+        name AS name,
+        depth AS depth,
+        create_at AS createAt
+        FROM project_items
+        WHERE id = #{id}
     </select>
 
     <select id="findByParentId" parameterType="long" resultType="ProjectItems">

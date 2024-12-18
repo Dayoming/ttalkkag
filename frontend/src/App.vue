@@ -31,6 +31,7 @@
             @edit-request="handleEditRequest"
             @re-request="handleReRequest"
             @api-selected="handleApiSelected"
+            @refresh-sidebar="handleRefreshSidebar"
           />
           <div
             id="global-spinner"
@@ -104,6 +105,9 @@ export default {
         name: "ApiTest",
         params: { tempApi: this.selectedTempApi }, // 라우터에 데이터 전달
       });
+    },
+    handleRefreshSidebar() {
+      this.fetchItems();
     },
     // API를 임시 저장
     saveTempApi(apiData) {

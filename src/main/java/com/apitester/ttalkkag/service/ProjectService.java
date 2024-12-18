@@ -78,7 +78,7 @@ public class ProjectService {
         projectMapper.insertProjectItem(newFolder);
     }
 
-    public void addProjectItemApi(ProjectItems projectItems) {
+    public ProjectItems addProjectItemApi(ProjectItems projectItems) {
         ProjectItems newApi = new ProjectItems();
         newApi.setProjectId(projectItems.getProjectId());
         newApi.setParentId(projectItems.getParentId());
@@ -88,6 +88,7 @@ public class ProjectService {
         newApi.setCreateAt(LocalDateTime.now().toString());
         System.out.println(newApi);
         projectMapper.insertProjectItem(newApi);
+        return projectMapper.getProjectItemsById(newApi.getId());
     }
 
     public List<ProjectItems> getProjectItemsByProjectId(Long projectId) {

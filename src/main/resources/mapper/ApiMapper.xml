@@ -4,10 +4,30 @@
 <mapper namespace="com.apitester.ttalkkag.mapper.ApiMapper">
     <insert id="saveApi">
         INSERT INTO apis (
-            item_id, name, method, url, headers, query_parameters, form_parameters,
-            file, selected_body_type, selected_environment, create_at)
-        VALUES (#{itemId}, #{name}, #{method}, #{url}, #{headers}, #{queryParameters},
-        #{formParameters}, #{file}, #{selectedBodyType}, #{selectedEnvironment}, NOW())
+            item_id,
+            environment_id,
+            name,
+            method,
+            url,
+            headers,
+            query_parameters,
+            form_parameters,
+            file,
+            selected_body_type,
+            create_at
+        )
+        VALUES (
+            #{itemId},
+            #{environmentId},
+            #{name},
+            #{method},
+            #{url},
+            #{headers},
+            #{queryParameters},
+            #{formParameters},
+            #{file},
+            #{selectedBodyType},
+            NOW())
     </insert>
     <select id="loadApi" resultType="Apis">
         SELECT
