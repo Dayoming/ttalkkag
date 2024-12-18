@@ -2,21 +2,44 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.apitester.ttalkkag.mapper.EnvironmentMapper">
-    <select id="findByUserId" resultType="Environment">
+    <select id="getEnvironments" parameterType="Long" resultType="Environment">
         SELECT
             id AS id,
-            user_id AS userId,
-            name AS name,
-            is_default AS isDefault
-        FROM environment WHERE user_id = #{userId}
+            site_id AS siteId,
+            name AS name
+        FROM environment WHERE site_id = #{siteId}
     </select>
 
-    <insert id="insertEnvironment">
-        INSERT INTO environment (user_id, name, is_default)
-        VALUES (#{userId}, #{name}, #{isDefault})
+    <select id="getSitesByProjectId" parameterType="Long" resultType="Site">
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            name AS name
+        FROM site
+        WHERE project_id = #{projectId}
+    </select>
+
+    <insert id="createSite">
+        INSERT INTO site (project_id, name, create_at)
+        VALUES (#{projectId}, #{name}, NOW())
     </insert>
+
+    <insert id="insertEnvironment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO environment (site_id, name)
+        VALUES (#{siteId}, #{name})
+    </insert>
+
+    <select id="getEnvironmentById" resultType="Environment">
+        SELECT id, site_id AS siteId, name
+        FROM environment
+        WHERE id = #{id}
+    </select>
 
     <delete id="deleteEnvironment">
         DELETE FROM environment WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteSite">
+        DELETE FROM site WHERE id = #{id}
     </delete>
 </mapper>

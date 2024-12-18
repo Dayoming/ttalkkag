@@ -55,6 +55,7 @@
             type="text"
             class="form-control"
             placeholder="URL"
+            :title="resolveTooltip(url)"
           />
           <button class="btn btn-dark ms-3" @click.prevent="sendRequest">
             Send
@@ -140,6 +141,7 @@
                     class="form-control"
                     placeholder="Key"
                     v-model="header.key"
+                    :title="resolveTooltip(header.key)"
                   />
                 </div>
                 <div class="col-auto">=</div>
@@ -149,6 +151,7 @@
                     class="form-control"
                     placeholder="Value"
                     v-model="header.value"
+                    :title="resolveTooltip(header.value)"
                   />
                 </div>
                 <div class="col-auto">
@@ -189,6 +192,7 @@
                     class="form-control"
                     placeholder="Key"
                     v-model="queryParam.key"
+                    :title="resolveTooltip(queryParam.key)"
                     @input="updateUrl"
                   />
                 </div>
@@ -199,6 +203,7 @@
                     class="form-control"
                     placeholder="Value"
                     v-model="queryParam.value"
+                    :title="resolveTooltip(queryParam.value)"
                     @input="updateUrl"
                   />
                 </div>
@@ -279,6 +284,7 @@
                     class="form-control"
                     placeholder="Key"
                     v-model="formParam.key"
+                    :title="resolveTooltip(formParam.key)"
                   />
                 </div>
                 <div class="col">
@@ -294,6 +300,7 @@
                     class="form-control"
                     placeholder="Value"
                     v-model="formParam.value"
+                    :title="resolveTooltip(formParam.value)"
                   />
                   <input
                     v-if="formParam.type === 'file'"
@@ -385,7 +392,8 @@
   />
   <SiteEnvironmentModal
     :isVisible="showSiteEnvironmentModal"
-    @confirm="handleConfirm"
+    :selectedProject="selectedProject"
+    @modal-selected-environment="handleModalSelectedEnvironment"
     @close="showSiteEnvironmentModal = false"
   />
   <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
@@ -403,7 +411,11 @@ import SiteEnvironmentModal from "./SiteEnvironmentModal.vue";
 export default {
   name: "ApiTest",
   components: { SaveModal, DatasetModal, SettingModal, SiteEnvironmentModal },
-  props: ["tempApi"],
+  props: {
+    selectedProject: Object,
+    tempApi: Array,
+    modalSelectedEnvironment: Object,
+  },
   data() {
     return {
       apiName: "",
@@ -423,10 +435,10 @@ export default {
       datasets: [], // 데이터셋
       selectedDataset: null, // 선택된 데이터셋
       datasetVariables: [], // 데이터셋 변수들
+      selectedEnvironment: null, // 선택된 환경
       selectedVariables: [], // 선택된 데이터셋 변수들
       currentTab: "queryParameters", // 선택된 탭 이름
       environments: [], // 사용 가능한 환경 목록
-      selectedEnvironment: null, // 선택된 환경
       environmentVariables: {}, // 선택된 환경의 변수들
       file: null,
       selectedBodyType: "text",
@@ -495,6 +507,10 @@ export default {
     handleFileUpload(event) {
       this.file = event.target.files[0];
     },
+    handleModalSelectedEnvironment(modalSelectedEnvironment) {
+      this.selectedEnvironment = modalSelectedEnvironment;
+      this.fetchEnvironmentVariables();
+    },
     handleAddVariables({ variables, currentTab }) {
       if (!variables || variables.length === 0) {
         alert("No variables selected.");
@@ -524,24 +540,14 @@ export default {
       this.datasetVariables = [];
       this.selectedVariables = [];
     },
-    async fetchEnvironments() {
-      try {
-        const response = await this.$axios.get("/api/environments");
-        this.environments = response.data; // 환경 목록 저장
-        if (this.environments.length > 0) {
-          this.selectedEnvironment = this.environments[0]; // 첫 번째 요소 자동 선택
-        }
-      } catch (error) {
-        console.error("Failed to fetch environments:", error);
-      }
-    },
     async fetchEnvironmentVariables() {
       if (!this.selectedEnvironment) {
         this.environmentVariables = {};
         return;
       }
 
-      const environmentId = this.selectedEnvironment.id;
+      const environmentId = this.selectedEnvironment.environment;
+
       try {
         const response = await this.$axios.get(
           `/api/environments/variables/${environmentId}`
@@ -707,7 +713,19 @@ export default {
         return match;
       });
     },
+    resolveTooltip(value) {
+      if (!value) return "";
 
+      // 정규 표현식을 사용하여 {{key}} 찾기
+      const matches = value.match(/{{\s*(\w+)\s*}}/);
+
+      if (matches) {
+        const key = matches[1]; // 환경 변수 키 추출
+        // 환경 변수 객체에서 해당 키의 값을 찾아 반환
+        return this.environmentVariables[key] || "해당 변수의 값이 없습니다.";
+      }
+      return "";
+    },
     preprocessParameters() {
       // URL 템플릿 변수 대체
       const processedUrl = this.resolveTemplateVariables(this.url);
@@ -847,13 +865,14 @@ export default {
         responseHeader: JSON.stringify(response.headers, null, 2),
       };
 
+      console.log(newLog);
+
       // 서버에 기록 저장 API 호출
       this.$axios.post("/api/history", newLog);
     },
   },
   mounted() {
     this.fetchLoginVerified();
-    this.fetchEnvironments();
   },
   computed: {
     formattedBody() {
@@ -925,12 +944,6 @@ export default {
       } else {
         this.queryParameters = [{ key: "", value: "" }];
       }
-    },
-    selectedEnvironment: {
-      handler() {
-        this.fetchEnvironmentVariables(); // 환경 변수 로드
-      },
-      immediate: true, // 초기 로드 시에도 호출
     },
     tempApi: {
       handler(newTempApi) {

@@ -7,5 +7,4 @@ public class Environment {
     private Long id;
     private Long siteId;
     private String name;
-    private Boolean isDefault;
 }
