@@ -92,6 +92,7 @@
             @selection-change="handleSelectionChange"
             @toggle-folder="toggleFolder"
             @update-items="$emit('update-items')"
+            @api-selected="handleApiSelected"
           />
         </tbody>
       </table>
@@ -258,7 +259,12 @@ export default {
       }
     },
     async deleteProject() {
-      if (confirm(`${this.selectedProject}를 삭제하시겠습니까?`)) {
+      if (this.selectedProject === this.localSelectedProject) {
+        alert("현재 네비게이션 바에서 선택되어 있는 프로젝트는 삭제할 수 없습니다.");
+        return;
+      }
+
+      if (confirm(`${this.selectedProject.name}을(를) 삭제하시겠습니까?`)) {
         const selectedProject = this.localProjects.find(
           (project) => project.name === this.selectedProject
         );
@@ -356,6 +362,9 @@ export default {
 
       findAndUpdateItem(this.localItems);
     },
+    handleApiSelected(selectedTempApi) {
+      this.$emit("api-selected", selectedTempApi);
+    }
   },
   mounted() {
     this.fetchProjects().then(() => {

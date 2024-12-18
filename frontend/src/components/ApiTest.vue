@@ -460,6 +460,23 @@ export default {
     };
   },
   methods: {
+    resetInputs() {
+      // 모든 입력 필드를 초기화
+      this.apiName = "";
+      this.method = "GET";
+      this.url = "";
+      this.headers = [{ key: "", value: "" }];
+      this.queryParameters = [{ key: "", value: "" }];
+      this.formParameters = [{ key: "", type: "text", value: "" }];
+      this.selectedBodyType = "text";
+      this.response = {
+        statusCode: null,
+        statusMessage: "",
+        headers: {},
+        body: "",
+      };
+      this.errorMessage = "";
+    },
     openSaveModal() {
       this.showSaveModal = true;
     },
@@ -854,7 +871,7 @@ export default {
     addHistory(response, elapsedTime) {
       // 정규 표현식을 사용하여 {{key}} 찾기
       const matches = this.url.match(/{{\s*(\w+)\s*}}/);
-      let matchUrl = '';
+      let matchUrl = "";
 
       if (matches) {
         const key = matches[1]; // 환경 변수 키 추출
@@ -959,61 +976,37 @@ export default {
         this.queryParameters = [{ key: "", value: "" }];
       }
     },
+    selectedProject: {
+      handler(newProject, oldProject) {
+        if (newProject && newProject !== oldProject) {
+          this.resetInputs();
+        }
+      },
+      immediate: false,
+    },
     tempApi: {
       handler(newTempApi) {
         if (newTempApi) {
-          if (newTempApi.isEdit) {
-            this.method = newTempApi.method;
-            this.url = newTempApi.url;
-            this.headers = JSON.parse(newTempApi.header) || [
-              { key: "", value: "" },
-            ];
-            this.queryParameters = JSON.parse(newTempApi.parameter) || [
-              { key: "", value: "" },
-            ];
-            this.formParameters = JSON.parse(newTempApi.formParameter) || [
-              { key: "", type: "text", value: "" },
-            ];
-            this.file = newTempApi.file || null;
-          } else if (newTempApi.isRequest) {
-            console.log(newTempApi);
-            this.method = newTempApi.method;
-            this.url = newTempApi.url;
-            this.headers = JSON.parse(newTempApi.header) || [
-              { key: "", value: "" },
-            ];
-            this.queryParameters = JSON.parse(newTempApi.parameter) || [
-              { key: "", value: "" },
-            ];
-            this.formParameters = JSON.parse(newTempApi.formParameter) || [
-              { key: "", type: "text", value: "" },
-            ];
-            this.file = newTempApi.file || null;
-            this.sendRequest();
-          } else {
-            this.apiName = newTempApi.name || "";
-            this.method = newTempApi.method || "GET";
-            this.url = newTempApi.url || "";
-            this.headers = newTempApi.headers || [{ key: "", value: "" }];
-            this.queryParameters = newTempApi.queryParameters || [
-              { key: "", value: "" },
-            ];
-            this.formParameters = newTempApi.formParameters || [
-              { key: "", type: "text", value: "" },
-            ];
-            this.file = newTempApi.file || null;
-            this.selectedBodyType = newTempApi.selectedBodyType || "text";
-            this.response = newTempApi.response || {
-              statusCode: null,
-              statusMessage: "",
-              headers: {},
-              body: "",
-            };
-            this.selectedEnvironment = newTempApi.selectedEnvironment || null;
-          }
+          this.apiName = newTempApi.name || "";
+          this.method = newTempApi.method || "GET";
+          this.url = newTempApi.url || "";
+          this.headers = newTempApi.headers || [{ key: "", value: "" }];
+          this.queryParameters = newTempApi.queryParameters || [
+            { key: "", value: "" },
+          ];
+          this.formParameters = newTempApi.formParameters || [
+            { key: "", type: "text", value: "" },
+          ];
+          this.selectedBodyType = newTempApi.selectedBodyType || "text";
+          this.response = newTempApi.response || {
+            statusCode: null,
+            statusMessage: "",
+            headers: {},
+            body: "",
+          };
         }
       },
-      immediate: true, // 처음 로드 시에도 실행
+      immediate: true, // 초기에도 실행
     },
     "response.statusCode": {
       handler(statusCode) {

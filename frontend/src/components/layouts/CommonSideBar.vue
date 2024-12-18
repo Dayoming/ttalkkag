@@ -30,6 +30,7 @@
                 :key="item.id + '_' + updateKey"
                 :item="item"
                 :depth="0"
+                :selected-file-id="selectedFileId"
                 @selection-change="handleSelectionChange"
                 @toggle-folder="toggleFolder"
                 @update-items="$emit('update-items')"
@@ -121,6 +122,8 @@
               :key="item.id + '_' + updateKey"
               :item="item"
               :depth="0"
+              :selected-file-id="selectedFileId"
+              @selection-change="handleSelectionChange"
               @update-items="$emit('update-items')"
               @toggle-folder="toggleFolder"
               @api-selected="handleApiSelected"
@@ -214,6 +217,7 @@ export default {
       localSelectedProject: "",
       localItems: [],
       updateKey: 0, // 화면 강제 갱신을 위한 키
+      selectedFileId: null, // 선택된 파일 ID
     };
   },
   computed: {
@@ -257,7 +261,12 @@ export default {
     buildTreeStructure(items) {
       const idToItemMap = {};
       items.forEach((item) => {
-        idToItemMap[item.id] = { ...item, children: [], isOpen: false };
+        idToItemMap[item.id] = {
+          ...item,
+          children: [],
+          isOpen: false,
+          isSelected: false,
+        };
       });
 
       const tree = [];
@@ -275,7 +284,13 @@ export default {
     },
     handleApiSelected(selectedTempApi) {
       this.$emit("api-selected", selectedTempApi);
-    }
+    },
+    handleSelectionChange(selectedItem) {
+      // 선택된 파일 ID 업데이트
+      if (selectedItem.type === "api") {
+        this.selectedFileId = selectedItem.id;
+      }
+    },
   },
   mounted() {
     this.fetchItems();
