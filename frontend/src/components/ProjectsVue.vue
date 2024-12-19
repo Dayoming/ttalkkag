@@ -62,9 +62,9 @@
           v-model="selectedType"
           style="width: 230px"
         >
-        <option value="">ALL</option>
-        <option value="folder">Folder</option>
-        <option value="api">API</option>
+          <option value="">ALL</option>
+          <option value="folder">Folder</option>
+          <option value="api">API</option>
         </select>
         <select
           v-show="this.selectedType === 'api'"
@@ -194,22 +194,53 @@ export default {
           {
             params: {
               query: this.searchQuery,
-              method: this.selectedMethod,
+              type: this.selectedType,
+              method:
+                this.selectedMethod === "api" ? this.selectedMethod : null,
             },
           }
         );
-        this.localItems = this.buildTreeStructure(response.data);
+
+        console.log(response.data);
+        this.localItems = this.buildTreeWithParents(response.data);
+        this.expandAll(this.localItems);
       } catch (error) {
         console.error("검색 중 오류가 발생했습니다:", error);
       }
     },
+    buildTreeWithParents(items) {
+      const itemMap = {};
+
+      // 모든 항목을 맵에 저장
+      items.forEach((item) => {
+        item.children = []; // 자식 초기화
+        itemMap[item.id] = item;
+      });
+
+      const tree = [];
+
+      items.forEach((item) => {
+        if (item.parentId === null) {
+          // 루트 노드
+          tree.push(item);
+        } else if (itemMap[item.parentId]) {
+          // 부모가 존재하면 연결
+          const parent = itemMap[item.parentId];
+          if (!parent.children.some((child) => child.id === item.id)) {
+            parent.children.push(item);
+          }
+        }
+      });
+
+      return tree; // 트리 반환
+    },
+
     buildTreeStructure(items) {
       const idToItemMap = {};
       items.forEach((item) => {
         try {
           if (item.type === "api") {
             this.fetchApi(item.id);
-            console.log(this.localApi);
             idToItemMap[item.id] = {
               ...item,
               children: [],
@@ -242,6 +273,15 @@ export default {
         }
       });
       return tree; // 최종 트리 반환
+    },
+
+    expandAll(items) {
+      items.forEach((item) => {
+        item.isOpen = true;
+        if (item.children.length > 0) {
+          this.expandAll(item.children);
+        }
+      });
     },
 
     findFolderById(folderId, items) {

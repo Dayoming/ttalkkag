@@ -32,10 +32,11 @@ public class ProjectController {
     @GetMapping("/search/{projectId}")
     public List<ProjectItems> searchProjectItems(
             @PathVariable Long projectId,
-            @RequestParam(value = "query", required = false) String query,
-            @RequestParam(value = "method", required = false) String method
+            @RequestParam String query,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String method
     ) {
-        return projectService.searchProjectItems(projectId, query, method);
+        return projectService.searchProjectItems(projectId, query, type, method);
     }
 
     // 프로젝트 생성

@@ -99,8 +99,8 @@ public class ProjectService {
         projectMapper.insertApi(item);
     }
 
-    public List<ProjectItems> searchProjectItems(Long projectId, String query, String method) {
-        return projectMapper.searchProjectItems(projectId, query, method);
+    public List<ProjectItems> searchProjectItems(Long projectId, String query, String type, String method) {
+        return projectMapper.searchProjectItems(projectId, query, type, method);
     }
 
     public Project getProjectByProjectId(Long projectId) {

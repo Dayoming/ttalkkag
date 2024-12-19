@@ -24,22 +24,43 @@
     </select>
 
     <select id="searchProjectItems" resultType="ProjectItems">
-        SELECT
-            id AS id,
-            project_id AS projectId,
+        WITH RECURSIVE project_hierarchy AS (
+            -- 검색 조건에 맞는 항목들 가져오기
+            SELECT
+            id,
             parent_id AS parentId,
-            type AS type,
-            name AS name,
-            depth AS depth,
+            project_id AS projectId,
+            type,
+            name,
+            depth,
             create_at AS createAt
         FROM project_items
         WHERE project_id = #{projectId}
         <if test="query != null and query != ''">
             AND name LIKE CONCAT('%', #{query}, '%')
         </if>
-        <if test="method != null and method != ''">
+        <if test="type != null and type != ''">
+            AND type = #{type}
+        </if>
+        <if test="type == 'api' and method != null and method != ''">
             AND method = #{method}
         </if>
+
+        UNION ALL
+
+        -- 부모 항목 재귀적으로 가져오기
+        SELECT
+            pi.id,
+            pi.parent_id AS parentId,
+            pi.project_id AS projectId,
+            pi.type,
+            pi.name,
+            pi.depth,
+            pi.create_at AS createAt
+        FROM project_items pi
+        INNER JOIN project_hierarchy ph ON pi.id = ph.parentId
+        )
+        SELECT DISTINCT * FROM project_hierarchy;
     </select>
 
     <!-- 프로젝트 생성 -->
