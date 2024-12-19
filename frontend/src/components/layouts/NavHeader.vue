@@ -89,6 +89,9 @@ import SettingModal from "../SettingModal.vue";
 export default {
   name: "NavHeader",
   components: { CommonModal, SettingModal },
+  props: {
+    propProjects: Array,
+  },
   data() {
     return {
       email: "", // 유저 이메일
@@ -98,6 +101,13 @@ export default {
       showSettingsModal: false, // 설정 모달 표시 상태
       newProjectName: "", // 새 프로젝트명 입력값
     };
+  },
+  watch: {
+    propProjects: {
+      handler() {
+        this.fetchProjects();
+      }
+    }
   },
   mounted() {
     // 이미 저장해둔 이메일이 있다면 해당 이메일 사용

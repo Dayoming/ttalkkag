@@ -80,19 +80,27 @@
 
     <select id="getProjectItemsById" parameterType="long" resultType="ProjectItems">
         SELECT
-        id AS id,
-        project_id AS projectId,
-        parent_id AS parentId,
-        type AS type,
-        name AS name,
-        depth AS depth,
-        create_at AS createAt
+            id AS id,
+            project_id AS projectId,
+            parent_id AS parentId,
+            type AS type,
+            name AS name,
+            depth AS depth,
+            create_at AS createAt
         FROM project_items
         WHERE id = #{id}
     </select>
 
     <select id="findByParentId" parameterType="long" resultType="ProjectItems">
-        SELECT * FROM project_items
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            parent_id AS parentId,
+            type AS type,
+            name AS name,
+            depth AS depth,
+            create_at AS createAt
+        FROM project_items
         WHERE parent_id = #{parentId}
     </select>
 

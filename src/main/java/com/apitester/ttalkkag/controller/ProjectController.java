@@ -98,6 +98,11 @@ public class ProjectController {
         projectService.deleteItems(itemIds);
     }
 
+    @DeleteMapping("/items/{itemId}")
+    public void deleteItemById(@PathVariable Long itemId) {
+        projectService.deleteItemById(itemId);
+    }
+
     // API 저장
     @PostMapping("/items")
     public Map<String, Object> saveApi(@RequestBody ProjectItems item) {

@@ -32,8 +32,14 @@
             >
               Save
             </button>
-            <button type="button" class="btn btn-dark">Load</button>
-            <a href="#" class="request-add" @click.prevent="saveTempApi">
+            <button
+              type="button"
+              class="btn btn-dark"
+              @click.prevent="openSaveModal"
+            >
+              Load
+            </button>
+            <a href="#" class="request-add" @click.prevent="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
             </a>
           </div>
@@ -57,10 +63,19 @@
             placeholder="URL"
             :title="resolveTooltip(url)"
           />
-          <button v-if="!isRequest" class="btn btn-dark ms-3" @click.prevent="sendRequest">
+          <button
+            v-if="!isRequest"
+            class="btn btn-dark ms-3"
+            @click.prevent="sendRequest"
+          >
             Send
           </button>
-          <button v-else class="btn btn-dark ms-3" style="width: 150px;" disabled>
+          <button
+            v-else
+            class="btn btn-dark ms-3"
+            style="width: 150px"
+            disabled
+          >
             <i class="bi bi-stop-fill"></i>Wait...
           </button>
           <div
@@ -791,6 +806,47 @@ export default {
         this.isSaving = false;
       }
     },
+    async saveApiDataPlus() {
+      if (this.apiName === "") {
+        alert("API 이름을 입력해 주세요.");
+        return;
+      }
+
+      try {
+        const project = await this.$axios.post("/api/projects/add-api", {
+          projectId: Number(this.selectedProject.id),
+          parentId: this.autoSavePath,
+          type: "api",
+          name: this.apiName || "TempAPI",
+          depth: 1,
+        });
+
+        const apiData = {
+          name: this.apiName || "TempAPI",
+          itemId: Number(project.data.id),
+          method: this.method,
+          url: this.url,
+          headers: JSON.stringify(this.headers),
+          queryParameters: JSON.stringify(this.queryParameters),
+          formParameters: JSON.stringify(this.formParameters),
+          file: this.file,
+          selectedBodyType: this.selectedBodyType,
+          selectedEnvironment: this.selectedEnvironment,
+        };
+
+        this.resetInputs();
+
+        await this.$axios.post("/api/apis", apiData);
+        this.hasChanges = false; // 저장 완료 후 상태 초기화
+        this.$emit("refresh-sidebar");
+        console.log("저장 완료");
+      } catch (error) {
+        console.log("Failed save projectItem: " + error);
+        alert("API 저장에 실패했습니다.");
+      } finally {
+        this.isSaving = false;
+      }
+    },
     markChanges() {
       this.hasChanges = true;
       this.triggerAutoSave();
@@ -819,10 +875,9 @@ export default {
     updateCurrentTab(tab) {
       this.currentTab = tab;
     },
-    updateSavedProject(projectId) {
-      this.savedProject = this.$axios.get(
-        `/api/projects/find/${projectId}`
-      ).data.name;
+    updateSavedProject() {
+      this.showSaveModal = false;
+      this.$emit("update-items");
     },
     resolveTemplateVariables(template) {
       if (!template || typeof template !== "string") return template;

@@ -114,4 +114,8 @@ public class ProjectService {
     public void updateParentId(ProjectItems projectItems) {
         projectMapper.updateParentId(projectItems);
     }
+
+    public void deleteItemById(Long itemId) {
+        projectMapper.deleteByItemId(itemId);
+    }
 }

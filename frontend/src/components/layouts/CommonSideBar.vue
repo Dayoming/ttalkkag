@@ -2,13 +2,13 @@
   <div
     class="sidebar border border-right col-md-3 col-lg-2 p-0"
     @dragover.prevent
-    @drop="handleDropOutside"
   >
     <div
       class="offcanvas-md offcanvas-end d-flex flex-column vh-100"
       tabindex="-1"
       id="sidebarMenu"
       aria-labelledby="sidebarMenuLabel"
+      @drop="handleDropOutside"
     >
       <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="sidebarMenuLabel">Company name</h5>
@@ -242,7 +242,6 @@ export default {
     },
     items: {
       handler(newItems) {
-        console.log(newItems);
         this.localItems = newItems;
       },
     },
@@ -289,6 +288,22 @@ export default {
       // 선택된 파일 ID 업데이트
       if (selectedItem.type === "api") {
         this.selectedFileId = selectedItem.id;
+      }
+    },
+    async handleDropOutside(event) {
+      const draggedItemId = event.dataTransfer.getData("draggedItemId");
+      if (!draggedItemId) return;
+
+      try {
+        await this.$axios.patch(`/api/projects/update/parentId`, {
+          id: Number(draggedItemId),
+          parentId: null,
+        });
+        this.$emit('update-items');
+        this.fetchItems(); // 갱신 요청
+      } catch (error) {
+        console.error("바깥 영역 드롭 중 오류 발생:", error);
+        alert("이동 중 오류가 발생했습니다.");
       }
     },
   },

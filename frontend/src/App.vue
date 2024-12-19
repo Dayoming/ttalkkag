@@ -1,6 +1,6 @@
 <template>
   <template v-if="!$route.meta.noHeaderSidebar">
-    <NavHeader @project-selected="handleProjectSelected" />
+    <NavHeader :propProjects="projects" @project-selected="handleProjectSelected" />
     <div class="container-fluid">
       <div class="row">
         <CommonSideBar
@@ -137,9 +137,6 @@ export default {
         console.error("Failed to fetch projects:", error);
       }
     },
-    updateProjects(newProject) {
-      this.projects.push(newProject);
-    },
     async fetchItems() {
       try {
         const response = await this.$axios.get(
@@ -168,11 +165,17 @@ export default {
       });
       return tree; // 최종 트리 반환
     },
-    deleteProjects(projectId) {
+    async updateProjects() {
+      try {
+        const response = await this.$axios.get("/api/projects");
+        this.projects = response.data;
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+      }
+    },
+    deleteProjects() {
       // projects 배열에서 삭제된 프로젝트 제거
-      this.projects = this.projects.filter(
-        (project) => project.id !== projectId
-      );
+      this.fetchProjects();
     },
   },
   mounted() {
