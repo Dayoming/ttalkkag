@@ -34,12 +34,10 @@ public class DatasetService {
         return response;
     }
 
-    public List<Dataset> getAllDatasetsWithVariables(String userEmail) {
-        Long userId = userMapper.findByEmail(userEmail).getId();
-        List<Dataset> datasets = datasetMapper.findAllDatasets(userId);
+    public List<Dataset> getAllDatasetsWithVariables(Long projectId) {
+        List<Dataset> datasets = datasetMapper.findAllDatasets(projectId);
         for (Dataset dataset : datasets) {
             List<DatasetVariable> variables = datasetMapper.findVariablesByDatasetId(dataset.getId());
-            System.out.println(variables);
             dataset.setVariables(variables);
         }
         return datasets;
@@ -49,22 +47,22 @@ public class DatasetService {
         return datasetMapper.searchDatasets(query);
     }
 
-    public Map<String, Object> addDataset(String userEmail, Map<String, Object> requestData) {
+    public Map<String, Object> addDataset(Dataset dataset) {
         Map<String, Object> response = new HashMap<>();
         try {
-            Long userId = userMapper.findByEmail(userEmail).getId();
+            Long projectId = dataset.getProjectId();
             // RequestBody에서 Dataset 정보와 변수 리스트를 추출
-            Dataset dataset = new Dataset();
-            dataset.setName((String) requestData.get("name"));
-            dataset.setDescription((String) requestData.get("description"));
+            Dataset newDataset = new Dataset();
+            dataset.setName(dataset.getName());
+            dataset.setDescription(dataset.getDescription());
 
-            List<DatasetVariable> variables = ((List<Map<String, String>>) requestData.get("variables"))
+            List<DatasetVariable> variables = (dataset.getVariables())
                     .stream()
                     .map(variableData -> {
                         DatasetVariable variable = new DatasetVariable();
-                        variable.setType(variableData.get("type"));
-                        variable.setName(variableData.get("name"));
-                        variable.setDescription(variableData.get("description"));
+                        variable.setType(variableData.getType());
+                        variable.setName(variableData.getName());
+                        variable.setDescription(variableData.getDescription());
                         return variable;
                     })
                     .collect(Collectors.toList());

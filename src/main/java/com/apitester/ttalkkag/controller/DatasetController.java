@@ -22,9 +22,9 @@ public class DatasetController {
         return datasetService.getAllDatasets(userEmail);
     }
 
-    @GetMapping("/getAllDatasetsWithVariables")
-    public List<Dataset> getAllDatasetsWithVariables(@AuthenticationPrincipal String userEmail) {
-        return datasetService.getAllDatasetsWithVariables(userEmail);
+    @GetMapping("/getAllDatasetsWithVariables/{projectId}")
+    public List<Dataset> getAllDatasetsWithVariables(@PathVariable Long projectId) {
+        return datasetService.getAllDatasetsWithVariables(projectId);
     }
 
     @GetMapping("/variables/{datasetId}")
@@ -33,9 +33,8 @@ public class DatasetController {
     }
 
     @PostMapping("/addDataset")
-    public Map<String, Object> addDataset(@AuthenticationPrincipal String userEmail, @RequestBody Map<String, Object> requestData) {
-        System.out.println("Controller Req: " + requestData);
-        return datasetService.addDataset(userEmail, requestData);
+    public Map<String, Object> addDataset(@RequestBody Dataset dataset) {
+        return datasetService.addDataset(dataset);
     }
 
     @DeleteMapping("/delete/{id}")

@@ -299,18 +299,33 @@ export default {
       return null;
     },
     async addNewProject() {
-      if (this.newProjectName) {
-        try {
-          const response = await this.$axios.post("/api/projects", {
-            name: this.newProjectName,
-          });
-          this.$emit("update-projects", response.data);
-          this.localSelectedProject = this.localProjects[0].name;
-          this.showNewProjectModal = false;
-          this.fetchProjects();
-        } catch (error) {
-          console.error("Failed to create project:", error);
-        }
+      if (!this.newProjectName || !this.newProjectName.trim()) {
+        alert("프로젝트명을 입력하세요."); // 입력값이 비어있을 때 경고
+        return;
+      }
+
+      // 중복 이름 확인
+      const isDuplicate = this.localProjects.some(
+        (project) =>
+          project.name.trim().toLowerCase() ===
+          this.newProjectName.trim().toLowerCase()
+      );
+
+      if (isDuplicate) {
+        alert("이미 존재하는 프로젝트명입니다. 다른 이름을 입력하세요."); // 중복 경고
+        return;
+      }
+      
+      try {
+        const response = await this.$axios.post("/api/projects", {
+          name: this.newProjectName,
+        });
+        this.$emit("update-projects", response.data);
+        this.localSelectedProject = this.localProjects[0].name;
+        this.showNewProjectModal = false;
+        this.fetchProjects();
+      } catch (error) {
+        console.error("Failed to create project:", error);
       }
     },
     async addFolder() {

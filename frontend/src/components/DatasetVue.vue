@@ -15,6 +15,12 @@
       </form>
       <!-- New, 선택 삭제 버튼 -->
       <div>
+        <button
+          class="btn btn-dark me-2"
+          @click="showDatasetImportModal = true"
+        >
+          Import
+        </button>
         <button class="btn btn-dark me-2" @click="openModal">NEW</button>
         <button
           class="btn btn-dark"
@@ -90,9 +96,11 @@
                       v-for="variable in dataset.variables"
                       :key="variable.id"
                     >
-                      {{ variable.type }} 
+                      {{ variable.type }}
                       <b>{{ variable.name }}</b>
-                      <p v-if="variable.description"># {{ variable.description }}</p>
+                      <p v-if="variable.description">
+                        # {{ variable.description }}
+                      </p>
                     </li>
                   </ul>
                 </div>
@@ -130,16 +138,16 @@
                 :class="{ 'is-invalid': variableError && !variable.type }"
               >
                 <option value="" disabled>Type</option>
-                <option value="String">string</option>
-                <option value="Integer">int</option>
-                <option value="Float">long</option>
-                <option value="Boolean">datetime</option>
-                <option value="Boolean">boolean</option>
-                <option value="Boolean">float</option>
-                <option value="Boolean">double</option>
-                <option value="Boolean">byte</option>
-                <option value="Boolean">char</option>
-                <option value="Boolean">short</option>
+                <option value="String">String</option>
+                <option value="Integer">Int</option>
+                <option value="Long">Long</option>
+                <option value="DateTime">Datetime</option>
+                <option value="Boolean">Boolean</option>
+                <option value="Float">Float</option>
+                <option value="Double">Double</option>
+                <option value="Byte">Byte</option>
+                <option value="Char">Char</option>
+                <option value="Short">Short</option>
               </select>
             </div>
             <div class="col-md-4">
@@ -152,13 +160,13 @@
               />
             </div>
             <div class="col-md-4">
-                <input
-                  type="text"
-                  v-model="variable.description"
-                  class="form-control"
-                  placeholder="Description"
-                />
-              </div>
+              <input
+                type="text"
+                v-model="variable.description"
+                class="form-control"
+                placeholder="Description"
+              />
+            </div>
           </div>
         </div>
         <p v-if="variableError" class="text-danger">
@@ -169,16 +177,26 @@
         </button>
       </template>
     </CommonModal>
+    <DatasetImportModal
+      v-if="showDatasetImportModal"
+      @close="showDatasetImportModal = false"
+      @save-dataset="processAndSend"
+    />
   </div>
 </template>
 
 <script>
 import CommonModal from "./layouts/CommonModal.vue";
+import DatasetImportModal from "./DatasetImportModal.vue";
 
 export default {
   name: "DatasetVue",
   components: {
     CommonModal,
+    DatasetImportModal,
+  },
+  props: {
+    selectedProject: Object,
   },
   data() {
     return {
@@ -189,9 +207,11 @@ export default {
         variables: [{ type: "", name: "", description: "" }],
       },
       searchQuery: "", // 검색어
+      localSelectedProject: "",
       selectedDatasets: [], // 체크 버튼으로 선택된 데이터셋 ID
       expandedDatasets: [], // 상세 보기가 켜져있는 데이터셋 ID
       showModal: false,
+      showDatasetImportModal: false,
       variableError: false,
       editingDatasetId: null,
     };
@@ -204,11 +224,20 @@ export default {
       );
     },
   },
+  watch: {
+    selectedProject: {
+      handler(newSelectedProject) {
+        this.localSelectedProject = newSelectedProject;
+        this.fetchDatasets();
+      },
+      immediate: true,
+    },
+  },
   methods: {
     async fetchDatasets() {
       try {
         const response = await this.$axios.get(
-          "/api/dataset/getAllDatasetsWithVariables"
+          `/api/dataset/getAllDatasetsWithVariables/${this.selectedProject.id}`
         );
         this.datasets = response.data;
       } catch (error) {
@@ -260,8 +289,9 @@ export default {
         } else {
           // 새 데이터셋 추가
           await this.$axios.post("/api/dataset/addDataset", {
+            projectId: this.selectedProject.id,
             name: this.newDataset.name,
-            // description을 추가할 자리
+            description: this.newDataset.description,
             variables: this.newDataset.variables,
           });
           alert("Dataset 추가 완료!");
@@ -320,6 +350,7 @@ export default {
     },
     deleteDataset(id) {
       this.$axios.get(`/api/dataset/${id}`).then((response) => {
+        console.log(response);
         if (
           confirm(
             `Dataset ${response.data.dataset.name}을(를) 삭제하시겠습니까?`
@@ -347,6 +378,46 @@ export default {
       this.selectedDatasets = event.target.checked
         ? this.datasets.map((d) => d.id)
         : [];
+    },
+    async processAndSend(payload) {
+      try {
+        // Java 문자열을 줄 단위로 나눕니다.
+        const lines = payload.codeInput
+          .split("\n")
+          .filter((line) => line.trim() !== ""); // 빈 줄 제거
+
+        // 각 줄을 자료형, 변수명, 주석으로 분리
+        const parsedData = lines.map((line) => {
+          // 주석이 있는 경우와 없는 경우를 처리하는 정규식
+          const regex = /private\s+(\w+)\s+(\w+);\s*(\/\/\s*(.+))?/;
+          const match = line.trim().match(regex);
+
+          if (match) {
+            return {
+              type: match[1], // 자료형
+              name: match[2], // 변수명
+              description: match[4] || "", // 주석이 없으면 빈 문자열
+            };
+          } else {
+            throw new Error(`파싱 실패: ${line}`);
+          }
+        });
+
+        // 서버로 데이터 전송
+        await this.$axios.post("/api/dataset/addDataset", {
+          projectId: this.selectedProject.id,
+          name: payload.datasetName,
+          description: payload.description,
+          variables: parsedData,
+        });
+
+        alert("데이터가 성공적으로 저장되었습니다.");
+        this.codeInput = ""; // 입력 필드 초기화
+        this.fetchDatasets();
+      } catch (error) {
+        console.error("데이터 처리 중 오류 발생:", error);
+        alert(`오류 발생: ${error.message}`);
+      }
     },
   },
   mounted() {

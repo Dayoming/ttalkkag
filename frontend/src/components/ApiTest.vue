@@ -412,6 +412,7 @@
   <DatasetModal
     v-if="showDatasetModal"
     :current-tab="currentTab"
+    :selectedProject="selectedProject"
     @add-variables="handleAddVariables"
     @close="showDatasetModal = false"
   />
