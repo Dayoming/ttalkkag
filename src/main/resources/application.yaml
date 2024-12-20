@@ -4,7 +4,7 @@ spring:
   application:
     name: ttalkkag
   datasource:
-    url: jdbc:mariadb://localhost:3308/ttalkkag
+    url: jdbc:mariadb://192.168.50.63:3308/ttalkkag
     driver-class-name: org.mariadb.jdbc.Driver
     username: root
     password: 1234
@@ -35,4 +35,4 @@ jwt:
 
 cors:
   allowed:
-    origin: http://localhost:8080
+    origin: http://192.168.50.63:8080

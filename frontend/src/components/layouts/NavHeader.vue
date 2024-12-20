@@ -30,7 +30,11 @@
           class="form-select me-2 project-select"
           @change="selectOtherProject"
         >
-          <option v-for="project in projects" :key="project.id" :value="project">
+          <option
+            v-for="project in projects"
+            :key="project.id"
+            :value="project"
+          >
             {{ project.name }}
           </option>
           <option value="new-project">New Project...</option>
@@ -44,17 +48,21 @@
             data-bs-toggle="dropdown"
           >
             <img src="../../assets/icon/profile-default-icon.png" />
-            <span class="d-none d-lg-inline">{{ email }}</span> <!-- 이메일 숨김 조건 -->
+            <span class="d-none d-lg-inline">{{ email }}</span>
+            <!-- 이메일 숨김 조건 -->
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <a class="dropdown-item" href="#" @click="logout"
-                ><i class="bi bi-door-closed"></i>Logout</a
+              <a
+              class="dropdown-item"
+              href="#"
+              @click="showSettingsModal = true"
+              ><i class="bi bi-gear"></i> Setting</a
               >
             </li>
             <li>
-              <a class="dropdown-item" href="#" @click="showSettingsModal = true"
-                ><i class="bi bi-gear"></i> Setting</a
+              <a class="dropdown-item" href="#" @click="logout"
+                ><i class="bi bi-door-closed"></i>Logout</a
               >
             </li>
           </ul>
@@ -79,7 +87,11 @@
       />
     </template>
   </CommonModal>
-  <SettingModal v-if="showSettingsModal" @close="showSettingsModal = false" />
+  <SettingModal
+    v-if="showSettingsModal"
+    @modal-setting-confirm="this.$emit('modal-setting-confirm')"
+    @close="closeSettingsModal"
+  />
 </template>
 
 <script>
@@ -95,6 +107,7 @@ export default {
   data() {
     return {
       email: "", // 유저 이메일
+      loginVerified: false, // 최초 로그인 여부
       projects: [], // 유저 프로젝트 목록
       selectedProject: "", // 선택 프로젝트
       showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
@@ -106,8 +119,8 @@ export default {
     propProjects: {
       handler() {
         this.fetchProjects();
-      }
-    }
+      },
+    },
   },
   mounted() {
     // 이미 저장해둔 이메일이 있다면 해당 이메일 사용
@@ -117,9 +130,13 @@ export default {
     } else {
       this.fetchUserEmail();
     }
+    this.fetchLoginUserInfo();
     this.fetchProjects();
   },
   methods: {
+    closeSettingsModal() {
+      this.showSettingsModal = false; // 모달 닫기 처리
+    },
     async fetchUserEmail() {
       try {
         const token = localStorage.getItem("accessToken");
@@ -138,6 +155,19 @@ export default {
         console.error("Failed to fetch user email:", error);
       }
     },
+    async fetchLoginUserInfo() {
+      try {
+        const response = await this.$axios.get("/api/user/findUserByEmail");
+        if (!response.data.user.verified) {
+          this.showSettingsModal = true;
+          await this.$axios.post("/api/user/renewVerified", {
+            verified: true,
+          });
+        }
+      } catch (error) {
+        console.log("Failed Login Verified: " + error);
+      }
+    },
     async fetchProjects() {
       try {
         const response = await this.$axios.get("/api/projects");
@@ -154,6 +184,17 @@ export default {
         console.error("Failed to fetch projects:", error);
       }
     },
+    async fetchUserSetting() {
+      try {
+        const response = await this.$axios.get("/api/user/findUserByEmail");
+        this.autoSave = response.data.user.autoSaveUse;
+        this.autoSaveTime = response.data.user.autoSaveTime;
+        this.autoSaveTerm = response.data.user.autoSaveTerm;
+        this.savePath = response.data.user.autoSavePath;
+      } catch (error) {
+        console.log("Failed load user setting: " + error);
+      }
+    },
     selectOtherProject() {
       if (this.selectedProject === "new-project") {
         this.showNewProjectModal = true;
@@ -168,9 +209,22 @@ export default {
         return;
       }
 
+      // 중복 이름 확인
+      const isDuplicate = this.projects.some(
+        (project) =>
+          project.name.trim().toLowerCase() ===
+          this.newProjectName.trim().toLowerCase()
+      );
+
+      if (isDuplicate) {
+        alert("이미 존재하는 프로젝트명입니다. 다른 이름을 입력하세요."); // 중복 경고
+        return;
+      }
+
       try {
         this.$axios.post("/api/projects", { name: this.newProjectName });
         this.showNewProjectModal = false;
+        this.$emit("update-projects");
         alert("프로젝트 생성이 완료되었습니다.");
       } catch (error) {
         console.log("Failed Create Project:" + error);

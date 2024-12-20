@@ -1,6 +1,60 @@
 <template>
   <div class="container mt-4">
     <h5 class="mb-5"><b>History</b></h5>
+    <!-- 필터 셀렉트 박스 -->
+    <div class="d-flex align-items-center mb-4">
+      <select
+        class="form-select me-3 w-25"
+        v-model="selectedFilterType"
+        @change="handleFilterTypeChange"
+      >
+        <option value="ALL">ALL</option>
+        <option value="Site">Site</option>
+        <option value="Projects">Projects</option>
+      </select>
+
+      <!-- 동적 필터: Site -->
+      <div
+        v-if="selectedFilterType === 'Site'"
+        class="d-flex align-items-center w-25"
+      >
+        <select
+          class="form-select me-3"
+          v-model="selectedSite"
+          @change="handleSiteChange"
+        >
+          <option v-for="site in uniqueSites" :key="site" :value="site">
+            {{ site }}
+          </option>
+        </select>
+        <select
+          class="form-select"
+          v-if="selectedSite"
+          v-model="selectedEnvironment"
+          @change="filterLogs"
+        >
+          <option v-for="env in uniqueEnvironments" :key="env" :value="env">
+            {{ env }}
+          </option>
+        </select>
+      </div>
+
+      <!-- 동적 필터: Projects -->
+      <select
+        class="form-select w-25"
+        v-if="selectedFilterType === 'Projects'"
+        v-model="selectedProject"
+        @change="filterLogs"
+      >
+        <option
+          v-for="project in uniqueProjects"
+          :key="project"
+          :value="project"
+        >
+          {{ project }}
+        </option>
+      </select>
+    </div>
     <!-- 요청 기록 테이블 -->
     <div class="table-responsive mt-4 table-container">
       <table class="table table-bordered mb-5">
@@ -15,7 +69,7 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="(log, index) in logs" :key="index">
+          <template v-for="(log, index) in filteredLogs" :key="index">
             <tr>
               <td style="text-align: center">
                 <span class="badge text-bg-dark">{{ log.method }}</span>
@@ -86,11 +140,16 @@ export default {
   data() {
     return {
       logs: [],
+      filteredLogs: [],
       method: "",
       url: "",
       parameter: [],
       formParamter: [],
       header: [],
+      selectedFilterType: "ALL",
+      selectedSite: "",
+      selectedEnvironment: "",
+      selectedProject: "",
     };
   },
   methods: {
@@ -103,12 +162,43 @@ export default {
             ...log,
             showDetails: false, // 기본적으로 상세 정보는 숨김
           }));
+          this.filteredLogs = this.logs; // 초기 필터링된 로그 설정
         } else {
           console.error("Unexpected response format:", response.data);
           this.logs = [];
         }
       } catch (error) {
         console.error("Failed to fetch history:", error);
+      }
+    },
+    handleFilterTypeChange() {
+      if (this.selectedFilterType === "ALL") {
+        this.filterLogs();
+      }
+      // 필터 타입 변경 시
+      this.selectedSite = "";
+      this.selectedEnvironment = "";
+      this.selectedProject = "";
+    },
+    handleSiteChange() {
+      // Site 선택 시 환경 초기화
+      this.selectedEnvironment = "";
+      this.filterLogs();
+    },
+    filterLogs() {
+      if (this.selectedFilterType === "ALL") {
+        this.filteredLogs = this.logs; // 모든 로그
+      } else if (this.selectedFilterType === "Site") {
+        this.filteredLogs = this.logs.filter(
+          (log) =>
+            log.siteId === this.selectedSite &&
+            (this.selectedEnvironment === "" ||
+              log.environmentId === this.selectedEnvironment)
+        );
+      } else if (this.selectedFilterType === "Projects") {
+        this.filteredLogs = this.logs.filter(
+          (log) => log.projectId === this.selectedProject
+        );
       }
     },
     addHistory(response, elapsedTime) {
@@ -129,9 +219,58 @@ export default {
       this.$axios.post("/api/history", newLog);
     },
     async reRequest(index) {
-      const log = this.logs[index];
-      // 로그 데이터를 emit하여 App.vue로 전달
-      this.$emit("re-request", log);
+      const startTime = performance.now(); // 요청 시작 시간
+
+      try {
+        let data = new FormData();
+
+        const jsonRequest = {
+          method: this.logs[index].method,
+          url: this.logs[index].url,
+          headers: this.logs[index].headers,
+          body: this.logs[index].body,
+        };
+
+        data.append(
+          "request",
+          new Blob([JSON.stringify(jsonRequest)], { type: "application/json" })
+        );
+
+        const response = await this.$axios.post("/api/proxy", data, {
+          headers: {
+            "Content-Type": "multipart/form-data", // FormData 형식
+          },
+        });
+
+        // 응답 데이터 설정
+        this.response = {
+          statusCode: response.status,
+          statusMessage: response.statusText,
+          body: response.data,
+          headers: response.headers,
+        };
+
+        const endTime = performance.now(); // 요청 완료 시간
+        const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
+
+        this.addHistory(response, elapsedTime);
+        this.fetchHistory();
+      } catch (error) {
+        const failedResponse = {
+          statusCode: error.response?.status || "Error",
+          statusMessage: error.response?.statusText || "Request failed",
+          body: error.response?.data || "Request failed.",
+          headers: error.response?.headers || {},
+        };
+
+        this.response = failedResponse;
+
+        const endTime = performance.now(); // 요청 완료 시간
+        const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
+
+        this.addHistory(this.response, elapsedTime);
+        this.fetchHistory();
+      }
     },
     editRequest(index) {
       const log = this.logs[index];
@@ -220,6 +359,21 @@ export default {
       const serializer = new XMLSerializer();
       const formattedXML = serializer.serializeToString(xmlDoc);
       return formattedXML.replace(/>\s*</g, ">\n<");
+    },
+    uniqueSites() {
+      // 중복 제거 후 Site 목록 생성
+      return [...new Set(this.logs.map((log) => log.siteId))];
+    },
+    uniqueEnvironments() {
+      // 선택된 Site에 해당하는 환경 목록 생성
+      return this.logs
+        .filter((log) => log.siteId === this.selectedSite)
+        .map((log) => log.environmentId)
+        .filter((value, index, self) => self.indexOf(value) === index); // 중복 제거
+    },
+    uniqueProjects() {
+      // 중복 제거 후 Project 목록 생성
+      return [...new Set(this.logs.map((log) => log.projectId))];
     },
   },
   mounted() {

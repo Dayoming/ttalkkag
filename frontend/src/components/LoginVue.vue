@@ -76,7 +76,7 @@ export default {
         localStorage.setItem("accessToken", response.data.accessToken);
         localStorage.setItem("refreshToken", response.data.refreshToken);
 
-        if (response.data.verified) {
+        if (!response.data.verified) {
           await this.$axios.post("/api/projects", { name: "default" });
         }
         this.$router.push("/test-api");

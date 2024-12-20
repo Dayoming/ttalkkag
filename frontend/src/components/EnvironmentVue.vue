@@ -300,7 +300,6 @@ export default {
           }
         }
         this.showAddEnvironment = false; // 모달 닫기
-        this.fetchEnvironments();
         alert("환경이 성공적으로 추가되었습니다.");
         this.fetchEnvironments(); // 환경 목록 갱신
       } catch (error) {

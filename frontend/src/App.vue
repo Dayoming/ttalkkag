@@ -1,6 +1,9 @@
 <template>
   <template v-if="!$route.meta.noHeaderSidebar">
-    <NavHeader :propProjects="projects" @project-selected="handleProjectSelected" />
+    <NavHeader :propProjects="projects"
+      @project-selected="handleProjectSelected"
+      @modal-setting-confirm="handleModalSettingConfirm"
+      @update-projects="updateProjects" />
     <div class="container-fluid">
       <div class="row">
         <CommonSideBar
@@ -24,6 +27,7 @@
             :items="items"
             :tempApi="selectedTempApi"
             :selectedProject="selectedProject"
+            :isSetting="isSetting"
             @temp-save-api="saveTempApi"
             @delete-projects="deleteProjects"
             @update-projects="updateProjects"
@@ -67,6 +71,7 @@ export default {
       selectedProject: null, // 현재 선택된 프로젝트
       projects: [],
       items: [],
+      isSetting: false,
     };
   },
   methods: {
@@ -83,6 +88,9 @@ export default {
     handleReRequest(log) {
       this.selectedTempApi = { ...log, isRequest: true };
       this.$router.push({ name: "ApiTest" });
+    },
+    handleModalSettingConfirm() {
+      this.isSetting = !this.isSetting;
     },
     async handleDropOutside(event) {
       const draggedItemId = event.dataTransfer.getData("draggedItemId");

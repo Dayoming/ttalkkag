@@ -35,7 +35,7 @@
             <button
               type="button"
               class="btn btn-dark"
-              @click.prevent="openSaveModal"
+              @click.prevent="openLoadModal"
             >
               Load
             </button>
@@ -354,7 +354,7 @@
 
     <!-- Resizer -->
     <div class="resizer" @mousedown="startResize">
-      <i class="bi bi-grip-horizontal"></i>
+      <i class="bi bi-grip-horizontal" @click="handleResponseSize"></i>
     </div>
 
     <!-- Response Section -->
@@ -405,9 +405,11 @@
     v-if="showSaveModal"
     :projects="projects"
     :apiData="apiData"
-    @close="showSaveModal = false"
+    :isLoad="isLoad"
+    @close="closeSaveModal"
     @project-saved="updateSavedProject"
     @save-api="saveApiToProject"
+    @load-api="handleLoadApi"
   />
   <DatasetModal
     v-if="showDatasetModal"
@@ -422,11 +424,6 @@
     @modal-selected-environment="handleModalSelectedEnvironment"
     @close="showSiteEnvironmentModal = false"
   />
-  <SettingModal
-    v-if="showSettingsModal"
-    @modal-setting-confirm="handleModalSettingConfirm"
-    @close="closeSettingsModal"
-  />
   <!-- 모달 컴포넌트 -->
 </template>
 
@@ -435,16 +432,16 @@ import hljs from "highlight.js";
 import "highlight.js/styles/default.css";
 import SaveModal from "./SaveModal.vue";
 import DatasetModal from "./DatasetModal.vue";
-import SettingModal from "./SettingModal.vue";
 import SiteEnvironmentModal from "./SiteEnvironmentModal.vue";
 
 export default {
   name: "ApiTest",
-  components: { SaveModal, DatasetModal, SettingModal, SiteEnvironmentModal },
+  components: { SaveModal, DatasetModal, SiteEnvironmentModal },
   props: {
     selectedProject: Object,
     tempApi: Array,
     modalSelectedEnvironment: Object,
+    isSetting: Boolean,
   },
   data() {
     return {
@@ -486,7 +483,6 @@ export default {
       startHeight: 0, // 초기 높이
       statusColor: "#6c757d",
       errorMessage: "",
-      loginVerified: false, // 최초 로그인 여부
       resizing: false,
       autoSaveUse: false, // 자동 저장 사용 여부
       autoSaveTimer: null, // 입력 중 자동 저장 타이머
@@ -497,6 +493,8 @@ export default {
       hasChanges: false, // 데이터 변경 상태
       isSaving: false,
       isRequest: false,
+      isLoad: false,
+      isResponseExpanded: false, // Response 아이콘 토글 상태
     };
   },
   methods: {
@@ -518,6 +516,15 @@ export default {
       this.errorMessage = "";
     },
     openSaveModal() {
+      if (this.apiName === "") {
+        alert("API 이름을 입력해 주세요.");
+        return;
+      }
+      this.isLoad = false;
+      this.showSaveModal = true;
+    },
+    openLoadModal() {
+      this.isLoad = true;
       this.showSaveModal = true;
     },
     openDatasetModal() {
@@ -529,8 +536,9 @@ export default {
       this.datasetVariables = [];
       this.selectedVariables = [];
     },
-    closeSettingsModal() {
-      this.showSettingsModal = false; // 모달 닫기 처리
+    closeSaveModal() {
+      this.showSaveModal = false;
+      this.isLoad = false;
     },
     addFormParameter() {
       this.formParameters.push({ key: "", type: "text", value: "" });
@@ -542,7 +550,7 @@ export default {
       this.queryParameters.push({ key: "", value: "" });
     },
     removeQueryParam(index) {
-      this.queryParams.splice(index, 1);
+      this.queryParameters.splice(index, 1);
     },
     addHeader() {
       this.headers.push({ key: "", value: "" });
@@ -602,8 +610,36 @@ export default {
         });
       }
     },
-    handleModalSettingConfirm() {
-      console.log("dd");
+    handleLoadApi(api) {
+      this.apiName = api.name;
+      this.method = api.method;
+      this.url = api.url;
+      this.headers = JSON.parse(api.headers) || [{ key: "", value: "" }];
+      this.queryParameters = JSON.parse(api.queryParameters) || [
+        { key: "", value: "" },
+      ];
+      this.formParameters = JSON.parse(api.formParameters) || [
+        { key: "", type: "text", value: "" },
+      ];
+      this.file = api.file;
+      this.selectedBodyType = api.selectedBodyType;
+      this.response = {
+        statusCode: null,
+        statusMessage: "",
+        headers: {},
+        body: "",
+      };
+      this.selectedEnvironment = api.environmentId;
+      this.closeSaveModal();
+    },
+    handleResponseSize() {
+      // 높이를 토글
+      if (this.isExpanded) {
+        this.responseHeight = 100; // 줄어든 높이
+      } else {
+        this.responseHeight = 1200; // 늘어난 높이
+      }
+      this.isExpanded = !this.isExpanded; // 상태 토글
     },
     async fetchEnvironmentVariables() {
       if (!this.selectedEnvironment) {
@@ -630,12 +666,6 @@ export default {
     async fetchLoginUserInfo() {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
-        if (response.data.user.verified) {
-          this.showSettingsModal = true;
-          await this.$axios.post("/api/user/renewVerified", {
-            verified: false,
-          });
-        }
 
         this.autoSaveUse = response.data.user.autoSaveUse;
         this.autoSaveTime = response.data.user.autoSaveTime;
@@ -643,7 +673,11 @@ export default {
         this.autoSavePath = response.data.user.autoSavePath;
         this.showResponse = response.data.user.showResponse;
 
-        console.log(this.autoSaveUse);
+        if (this.showResponse) {
+          this.responseHeight = 100;
+        } else {
+          this.responseHeight = 300;
+        }
       } catch (error) {
         console.log("Failed Login Verified: " + error);
       }
@@ -877,7 +911,6 @@ export default {
       this.currentTab = tab;
     },
     updateSavedProject() {
-      this.showSaveModal = false;
       this.$emit("update-items");
     },
     resolveTemplateVariables(template) {
@@ -1144,6 +1177,11 @@ export default {
     file: {
       deep: true,
       handler: "markChanges",
+    },
+    isSetting: {
+      handler() {
+        this.fetchLoginUserInfo();
+      },
     },
     // URL이 직접 변경될 경우 Query Parameters 업데이트
     url: {
