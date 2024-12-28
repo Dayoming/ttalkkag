@@ -16,8 +16,13 @@ public class ApiController {
     private final ApiService apiService;
 
     @PostMapping
-    public void saveApi(@RequestBody Apis apis) {
-        apiService.saveApi(apis);
+    public Apis saveApi(@RequestBody Apis apis) {
+        return apiService.saveApi(apis);
+    }
+
+    @PatchMapping
+    public void updateApi(@RequestBody Apis apis) {
+        apiService.updateApi(apis);
     }
 
     @GetMapping("/{itemId}")

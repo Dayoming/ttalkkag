@@ -38,6 +38,11 @@ public class EnvironmentController {
         return environmentService.createEnvironment(environment);
     }
 
+    @GetMapping("/env/{id}")
+    public Environment getEnvironmentById(@PathVariable Long id) {
+        return environmentService.getEnvironmentById(id);
+    }
+
     @DeleteMapping("/{id}")
     public void deleteEnvironment(@PathVariable Long id) {
         environmentService.deleteEnvironment(id);
@@ -70,4 +75,8 @@ public class EnvironmentController {
         environmentService.deleteVariable(id);
     }
 
+    @DeleteMapping("/variables/key/{key}")
+    public void deleteVariableByKey(@PathVariable String key) {
+        environmentService.deleteVariableByKey(key);
+    }
 }

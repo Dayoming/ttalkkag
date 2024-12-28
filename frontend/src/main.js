@@ -29,16 +29,20 @@ const processQueue = (error, token = null) => {
 
 axios.interceptors.response.use(
   (response) => {
-    const spinner = document.getElementById('global-spinner');
-    if (spinner) spinner.style.display = 'none';
+    if (response.config.showSpinner !== false) {
+      const spinner = document.getElementById('global-spinner');
+      if (spinner) spinner.style.display = 'none';
+    }
 
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
-    const spinner = document.getElementById('global-spinner');
-    if (spinner) spinner.style.display = 'none';
+    if (error.config?.showSpinner !== false) {
+      const spinner = document.getElementById('global-spinner');
+      if (spinner) spinner.style.display = 'none';
+    }
 
     if (error.response.status === 401 && !originalRequest._retry) {
       const refreshToken = localStorage.getItem('refreshToken');
@@ -92,9 +96,11 @@ axios.interceptors.request.use(config => {
     if (token && config.url !== '/api/auth/refresh-token') {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    const spinner = document.getElementById('global-spinner');
-    if (spinner) spinner.style.display = 'block';
+    
+    if (config.showSpinner === undefined || config.showSpinner !== false) {
+      const spinner = document.getElementById('global-spinner');
+      if (spinner) spinner.style.display = 'block';
+    }
 
     return config;
 }, error => {

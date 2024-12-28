@@ -1,14 +1,21 @@
 <template>
   <template v-if="!$route.meta.noHeaderSidebar">
-    <NavHeader :propProjects="projects"
+    <NavHeader
+      :propProjects="projects"
+      :propSites="sites"
+      :propEnvironments="environments"
+      @logout="handleLogout"
       @project-selected="handleProjectSelected"
       @modal-setting-confirm="handleModalSettingConfirm"
-      @update-projects="updateProjects" />
+      @update-projects="fetchProjects"
+      @selected-environment="handleSelectedEnvironment"
+    />
     <div class="container-fluid">
       <div class="row">
         <CommonSideBar
           :projects="projects"
           :items="items"
+          :savedItemId="savedItemId"
           :tempApi="selectedTempApi"
           :selectedProject="selectedProject"
           @select-temp-api="loadTempApi"
@@ -25,8 +32,12 @@
           <router-view
             :projects="projects"
             :items="items"
+            :propSites="sites"
+            :propEnvironments="environments"
             :tempApi="selectedTempApi"
             :selectedProject="selectedProject"
+            :propSelectedEnvironment="selectedEnvironment"
+            :propSelectedSite="selectedSite"
             :isSetting="isSetting"
             @temp-save-api="saveTempApi"
             @delete-projects="deleteProjects"
@@ -69,7 +80,12 @@ export default {
     return {
       selectedTempApi: null, // 현재 선택된 API
       selectedProject: null, // 현재 선택된 프로젝트
+      selectedSite: null,
+      selectedEnvironment: null,
+      savedItemId: null,
       projects: [],
+      sites: [],
+      environments: [],
       items: [],
       isSetting: false,
     };
@@ -114,8 +130,28 @@ export default {
         params: { tempApi: this.selectedTempApi }, // 라우터에 데이터 전달
       });
     },
-    handleRefreshSidebar() {
+    handleRefreshSidebar(itemId) {
       this.fetchItems();
+      // 저장이 되었을 때 해당 폴더에 인터랙션 적용
+      if (itemId) {
+        this.savedItemId = itemId;
+      }
+    },
+    handleSelectedEnvironment(data) {
+      this.selectedEnvironment = data.environmentId;
+      this.selectedSite = data.site;
+    },
+    handleLogout() {
+      this.selectedTempApi = null;
+      this.selectedProject = null;
+      this.selectedSite = null;
+      this.selectedEnvironment = null;
+      this.savedItemId = null;
+      this.projects = [];
+      this.sites = [];
+      this.environments = [];
+      this.items = [];
+      this.isSetting = false;
     },
     // API를 임시 저장
     saveTempApi(apiData) {
@@ -138,9 +174,6 @@ export default {
       try {
         const response = await this.$axios.get("/api/projects");
         this.projects = response.data;
-        if (this.localProjects.length > 0) {
-          this.selectedProject = this.projects[0];
-        }
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
@@ -148,11 +181,38 @@ export default {
     async fetchItems() {
       try {
         const response = await this.$axios.get(
-          `/api/projects/${this.selectedProject.id}`
+          `/api/projects/${this.selectedProject.id}`,
+          { showSpinner: false }
         );
         this.items = [...this.buildTreeStructure(response.data)];
+        this.expandAll(this.items);
       } catch (error) {
         console.log("Failed load items: " + error);
+      }
+    },
+    async fetchSites() {
+      try {
+        const response = await this.$axios.get(
+          `/api/environments/sites/${this.selectedProject.id}`
+        );
+        this.sites = response.data; // 사이트 목록 저장
+        this.fetchEnvironments();
+
+        // Site 선택 프로젝트 초기값
+        this.$emit("site-selected", this.selectedSite);
+      } catch (error) {
+        console.error("사이트 목록을 가져오는 중 오류 발생:", error);
+      }
+    },
+    async fetchEnvironments() {
+      try {
+        const response = await this.$axios.get(
+          `/api/environments/${this.selectedSite.id}`
+        );
+        this.environments = response.data; // 환경 목록 저장
+        // 첫 번째 요소를 자동 선택
+      } catch (error) {
+        console.error("Failed to fetch environments:", error);
       }
     },
     buildTreeStructure(items) {
@@ -173,6 +233,14 @@ export default {
       });
       return tree; // 최종 트리 반환
     },
+    expandAll(items) {
+      items.forEach((item) => {
+        item.isOpen = true;
+        if (item.children.length > 0) {
+          this.expandAll(item.children);
+        }
+      });
+    },
     async updateProjects() {
       try {
         const response = await this.$axios.get("/api/projects");
@@ -189,6 +257,8 @@ export default {
   mounted() {
     this.fetchProjects();
     this.fetchItems();
+    this.fetchSites();
+    this.fetchEnvironments();
   },
   components: {
     NavHeader,

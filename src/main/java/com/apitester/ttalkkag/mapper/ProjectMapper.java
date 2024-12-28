@@ -21,4 +21,7 @@ public interface ProjectMapper {
     void insertProjectItem(ProjectItems items);
     void updateProjectItemName(ProjectItems projectItems);
     void updateParentId(ProjectItems projectItems);
+    void updateItemOrder(Long parentId, Long id, Integer order);
+    Integer getNextItemOrder(Long projectId);
+    ProjectItems getItemByItemId(Long itemId);
 }

@@ -40,6 +40,39 @@
           <option value="new-project">New Project...</option>
         </select>
 
+        <!-- 사이트 선택 드롭다운 -->
+        <select
+          v-model="selectedSite"
+          class="form-select me-2 site-select"
+          @change="fetchEnvironments"
+        >
+          <option v-if="sites.length == 0" value="" disabled selected>
+            사이트가 없습니다.
+          </option>
+          <option v-for="site in sites" :key="site.id" :value="site">
+            {{ site.name }}
+          </option>
+        </select>
+
+        <!-- 환경 선택 드롭다운 -->
+        <select
+          class="form-select"
+          v-model="selectedEnvironment"
+          @change="confirmSelection"
+        >
+          <option v-if="environments.length == 0" value="" disabled selected>
+            환경이 없습니다.
+          </option>
+          <option
+            v-for="environment in environments"
+            :key="environment.id"
+            :value="environment"
+            @change="confirmSelection"
+          >
+            {{ environment.name }}
+          </option>
+        </select>
+
         <!-- 사용자 프로필 -->
         <div class="dropdown login-user-info">
           <button
@@ -54,10 +87,10 @@
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
               <a
-              class="dropdown-item"
-              href="#"
-              @click="showSettingsModal = true"
-              ><i class="bi bi-gear"></i> Setting</a
+                class="dropdown-item"
+                href="#"
+                @click="showSettingsModal = true"
+                ><i class="bi bi-gear"></i> Setting</a
               >
             </li>
             <li>
@@ -84,6 +117,7 @@
         class="form-control"
         v-model="newProjectName"
         placeholder="프로젝트명을 입력하세요."
+        @keyup.enter="addNewProject"
       />
     </template>
   </CommonModal>
@@ -103,13 +137,19 @@ export default {
   components: { CommonModal, SettingModal },
   props: {
     propProjects: Array,
+    propSites: Array,
+    propEnvironments: Array,
   },
   data() {
     return {
       email: "", // 유저 이메일
       loginVerified: false, // 최초 로그인 여부
       projects: [], // 유저 프로젝트 목록
+      sites: [], // 프로젝트 하위 사이트 목록
+      environments: [], // 프로젝트 하위 환경 목록
       selectedProject: "", // 선택 프로젝트
+      selectedSite: "", // 선택 사이트
+      selectedEnvironment: "", // 선택 환경
       showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
       showSettingsModal: false, // 설정 모달 표시 상태
       newProjectName: "", // 새 프로젝트명 입력값
@@ -119,6 +159,16 @@ export default {
     propProjects: {
       handler() {
         this.fetchProjects();
+      },
+    },
+    propSites: {
+      handler() {
+        this.fetchSites();
+      },
+    },
+    propEnvironments: {
+      handler() {
+        this.fetchEnvironments();
       },
     },
   },
@@ -178,6 +228,8 @@ export default {
           this.selectedProject = this.projects[0];
         }
 
+        this.fetchSites();
+
         // SideBar 선택 프로젝트 초기값
         this.$emit("project-selected", this.selectedProject);
       } catch (error) {
@@ -195,15 +247,60 @@ export default {
         console.log("Failed load user setting: " + error);
       }
     },
+    async fetchSites() {
+      try {
+        const response = await this.$axios.get(
+          `/api/environments/sites/${this.selectedProject.id}`
+        );
+        this.sites = response.data; // 사이트 목록 저장
+
+        // 첫 번째 요소를 자동 선택
+        if (this.sites.length > 0) {
+          this.selectedSite = this.sites[0];
+        }
+
+        this.fetchEnvironments();
+
+      } catch (error) {
+        console.error("사이트 목록을 가져오는 중 오류 발생:", error);
+      }
+    },
+    async fetchEnvironments() {
+      try {
+        const response = await this.$axios.get(
+          `/api/environments/${this.selectedSite.id}`
+        );
+        this.environments = response.data; // 환경 목록 저장
+        // 첫 번째 요소를 자동 선택
+        if (this.environments.length > 0) {
+          this.selectedEnvironment = this.environments[0];
+        }
+        this.confirmSelection();
+      } catch (error) {
+        console.error("Failed to fetch environments:", error);
+      }
+    },
+    confirmSelection() {
+      // 선택된 사이트와 환경을 부모로 전달
+      this.$emit("selected-environment", {
+        site: this.selectedSite,
+        environmentId: this.selectedEnvironment,
+      });
+    },
     selectOtherProject() {
       if (this.selectedProject === "new-project") {
         this.showNewProjectModal = true;
         this.selectedProject = this.projects[0];
       } else {
         this.$emit("project-selected", this.selectedProject);
+        this.sites = [];
+        this.environments = [];
+        this.selectedSite = null;
+        this.selectedEnvironment = null;
+        this.fetchSites();
       }
     },
-    addNewProject() {
+    async addNewProject() {
       if (!this.newProjectName.trim()) {
         alert("프로젝트명을 입력해주세요.");
         return;
@@ -222,9 +319,10 @@ export default {
       }
 
       try {
-        this.$axios.post("/api/projects", { name: this.newProjectName });
+        await this.$axios.post("/api/projects", { name: this.newProjectName });
         this.showNewProjectModal = false;
         this.$emit("update-projects");
+        this.fetchSites(); // 관련 사이트 목록 갱신
         alert("프로젝트 생성이 완료되었습니다.");
       } catch (error) {
         console.log("Failed Create Project:" + error);
@@ -233,15 +331,18 @@ export default {
       this.fetchProjects();
     },
     logout() {
-      // localStorage 초기화
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userEmail");
+      if (confirm("로그아웃 하시겠습니까?")) {
+        // localStorage 초기화
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userEmail");
 
-      alert("로그아웃 되었습니다.");
+        alert("로그아웃 되었습니다.");
 
-      // 로그인 화면으로 리다이렉트
-      this.$router.push("/login");
+        this.$emit("logout");
+        // 로그인 화면으로 리다이렉트
+        this.$router.push("/login");
+      }
     },
   },
 };

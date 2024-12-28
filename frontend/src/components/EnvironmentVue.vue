@@ -101,13 +101,14 @@
                   class="form-control"
                   v-model="variable.value"
                   placeholder="Enter Value"
+                  @keyup.enter="toggleEditMode(variable.id)"
                 />
               </td>
               <!-- Actions -->
               <td>
                 <button
                   class="btn btn-link text-danger"
-                  @click="deleteVariable(variable.id)"
+                  @click="openDeleteVariableModal(variable.id, variable.key)"
                 >
                   <i class="bi bi-x-lg"></i>
                 </button>
@@ -147,6 +148,7 @@
             type="text"
             class="form-control"
             placeholder="환경명을 입력하세요."
+            @keyup.enter="addEnvironment"
           />
         </div>
         <div class="modal-footer">
@@ -177,6 +179,7 @@
             type="text"
             class="form-control"
             placeholder="사이트명을 입력하세요."
+            @keyup.enter="addSite"
           />
         </div>
         <div class="modal-footer">
@@ -184,6 +187,53 @@
             취소
           </button>
           <button class="btn btn-primary" @click="addSite">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 삭제 옵션 선택 Modal -->
+  <div
+    v-if="showDeleteEnvironment"
+    class="modal fade show d-block" tabindex="-1"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteVariableModalLabel">
+            환경 변수 삭제
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+            @click="showDeleteEnvironment = false"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p>환경 변수를 어디에서 삭제하시겠습니까?</p>
+          <p>
+            <strong>{{ selectedVariableKey }}</strong> 변수를 삭제하시려면 아래
+            옵션 중 하나를 선택하세요.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+            @click="deleteFromCurrentEnvironment"
+          >
+            현재 환경에서만 삭제
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            data-bs-dismiss="modal"
+            @click="deleteFromAllEnvironments"
+          >
+            전체 환경에서 삭제
+          </button>
         </div>
       </div>
     </div>
@@ -203,9 +253,12 @@ export default {
       environments: [], // 환경 목록
       selectedEnvironment: "", // 현재 선택된 환경
       selectedEnvironmentName: "",
+      selectedVariableId: null,
+      selectedVariableKey: null,
       variables: [], // 환경 변수 목록
       showAddSite: false,
       showAddEnvironment: false,
+      showDeleteEnvironment: false,
       newEnvironmentName: "",
     };
   },
@@ -223,6 +276,11 @@ export default {
     },
     closeAddEnvironmentModal() {
       this.showAddEnvironment = false; // 모달 닫기
+    },
+    openDeleteVariableModal(variableId, variableKey) {
+      this.selectedVariableId = variableId;
+      this.selectedVariableKey = variableKey;
+      this.showDeleteEnvironment = true;
     },
     async fetchSites() {
       try {
@@ -373,6 +431,63 @@ export default {
         }
       }
     },
+    async deleteFromCurrentEnvironment() {
+      if (!this.selectedVariableId) {
+        alert("변수 ID가 누락되었습니다.");
+        return;
+      }
+
+      try {
+        await this.$axios.delete(
+          `/api/environments/variables/${this.selectedVariableId}`
+        );
+        alert("현재 환경에서 변수 삭제 성공");
+        this.fetchVariables(); // 현재 환경 변수 새로고침
+      } catch (error) {
+        console.error("현재 환경에서 변수 삭제 실패:", error);
+        alert("현재 환경에서 변수를 삭제하는 데 실패했습니다.");
+      } finally {
+        this.showDeleteEnvironment = false;
+      }
+    },
+
+    async deleteFromAllEnvironments() {
+      if (!this.selectedVariableKey) {
+        alert("변수 키가 누락되었습니다.");
+        return;
+      }
+
+      try {
+        const environments = this.environments; // 모든 환경 가져오기
+        await Promise.all(
+          environments.map(async (env) => {
+            try {
+              // 각 환경에서 동일한 키의 변수를 삭제
+              const variablesResponse = await this.$axios.get(
+                `/api/environments/variables/${env.id}`
+              );
+              const matchingVariable = variablesResponse.data.find(
+                (variable) => variable.key === this.selectedVariableKey
+              );
+              if (matchingVariable) {
+                await this.$axios.delete(
+                  `/api/environments/variables/${matchingVariable.id}`
+                );
+              }
+            } catch (error) {
+              console.error(`환경 ${env.name}에서 변수 삭제 실패:`, error);
+            }
+          })
+        );
+        alert("전체 환경에서 변수 삭제 성공");
+        this.fetchVariables(); // 현재 환경 변수 새로고침
+      } catch (error) {
+        console.error("전체 환경에서 변수 삭제 실패:", error);
+        alert("전체 환경에서 변수를 삭제하는 데 실패했습니다.");
+      } finally {
+        this.showDeleteEnvironment = false;
+      }
+    },
     async editVariable(variableId) {
       const variable = this.variables.find((v) => v.id === variableId);
       const newValue = prompt("새로운 값을 입력하세요:", variable.value);
@@ -395,9 +510,59 @@ export default {
         isEditing: true,
       });
     },
-    async deleteVariable(variableId) {
-      await this.$axios.delete(`/api/environments/variables/${variableId}`);
-      this.fetchVariables();
+    async deleteVariable(variableId, variableKey) {
+      if (!variableId || !variableKey) {
+        alert("삭제할 변수 정보가 부족합니다.");
+        return;
+      }
+
+      // 삭제 옵션 선택
+      const userChoice = confirm(
+        `현재 환경에서만 삭제하려면 '확인'을 누르세요.\n전체 환경에서 삭제하려면 '취소'를 누르고 다시 시도하세요.`
+      );
+
+      if (userChoice) {
+        // 현재 환경에서만 삭제
+        try {
+          await this.$axios.delete(`/api/environments/variables/${variableId}`);
+          alert("현재 환경에서 변수 삭제 성공");
+          this.fetchVariables(); // 현재 환경 변수 새로고침
+        } catch (error) {
+          console.error("현재 환경에서 변수 삭제 실패:", error);
+          alert("현재 환경에서 변수를 삭제하는 데 실패했습니다.");
+        }
+      } else {
+        // 전체 환경에서 삭제
+        try {
+          const environments = this.environments; // 모든 환경 가져오기
+          await Promise.all(
+            environments.map(async (env) => {
+              console.log(env);
+              try {
+                // 각 환경에서 동일한 키의 변수를 삭제
+                const variablesResponse = await this.$axios.get(
+                  `/api/environments/env/${env.id}`
+                );
+                const matchingVariable = variablesResponse.data.find(
+                  (variable) => variable.key === variableKey
+                );
+                if (matchingVariable) {
+                  await this.$axios.delete(
+                    `/api/environments/variables/${matchingVariable.id}`
+                  );
+                }
+              } catch (error) {
+                console.error(`환경 ${env.name}에서 변수 삭제 실패:`, error);
+              }
+            })
+          );
+          alert("전체 환경에서 변수 삭제 성공");
+          this.fetchVariables(); // 현재 환경 변수 새로고침
+        } catch (error) {
+          console.error("전체 환경에서 변수 삭제 실패:", error);
+          alert("전체 환경에서 변수를 삭제하는 데 실패했습니다.");
+        }
+      }
     },
     toggleEditMode(variableId) {
       const variable = this.variables.find((v) => v.id === variableId);
@@ -491,6 +656,10 @@ export default {
         this.fetchVariables();
       }
     },
+  },
+  updated() {
+    const spinner = document.getElementById("global-spinner");
+    if (spinner) spinner.style.display = "none";
   },
 };
 </script>

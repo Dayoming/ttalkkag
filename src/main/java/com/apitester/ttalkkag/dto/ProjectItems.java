@@ -10,5 +10,6 @@ public class ProjectItems {
     private String type;
     private String name;
     private int depth;
+    private int itemOrder;
     private String createAt;
 }

@@ -13,11 +13,18 @@ public class ApiService {
 
     private final ApiMapper apiMapper;
 
-    public void saveApi(Apis apis) {
+    public Apis saveApi(Apis apis) {
         apiMapper.saveApi(apis);
+        
+        // 생성된 ID로 데이터 조회
+        return apiMapper.findById(apis.getId());
     }
 
     public Apis loadApi(Long itemId) {
         return apiMapper.loadApi(itemId);
+    }
+
+    public void updateApi(Apis apis) {
+        apiMapper.updateApi(apis);
     }
 }

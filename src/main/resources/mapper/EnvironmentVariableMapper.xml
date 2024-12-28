@@ -20,4 +20,8 @@
     <delete id="deleteVariable">
         DELETE FROM environment_variable WHERE id = #{id}
     </delete>
+
+    <delete id="deleteVariableByKey">
+        DELETE FROM environment_variable WHERE key = #{key}
+    </delete>
 </mapper>

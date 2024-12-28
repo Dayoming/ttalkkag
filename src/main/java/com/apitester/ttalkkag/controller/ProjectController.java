@@ -65,7 +65,8 @@ public class ProjectController {
     public Map<String, Object> updateProjectItemName(@RequestBody ProjectItems projectItems) {
         Map<String, Object> response = new HashMap<>();
         try {
-            projectService.updateProjectItemName(projectItems);
+            ProjectItems updatedItem = projectService.updateProjectItemName(projectItems);
+            response.put("updatedItem", updatedItem);
         } catch (Exception e) {
             response.put("errorMessage", "이름 변경에 실패했습니다.");
         }
@@ -84,6 +85,14 @@ public class ProjectController {
         return response;
     }
 
+    @PatchMapping("/update/itemOrder")
+    public void updateItemOrder(@RequestBody Map<String, Object> payload) {
+        Long parentId = Long.valueOf(payload.get("parentId").toString());
+        List<Map<String, Object>> items = (List<Map<String, Object>>) payload.get("items");
+        projectService.updateItemOrder(parentId, items);
+    }
+
+
     @GetMapping("/{projectId}")
     public List<ProjectItems> getProjectItems(@PathVariable Long projectId) {
         return projectService.getProjectItemsByProjectId(projectId);
@@ -92,6 +101,11 @@ public class ProjectController {
     @GetMapping("/items/{parentId}")
     public List<ProjectItems> getItemsByParentId(@PathVariable Long parentId) {
         return projectService.getItemsByParentId(parentId);
+    }
+
+    @GetMapping("/item/{itemId}")
+    public ProjectItems getItemByItemId(@PathVariable Long itemId) {
+        return projectService.getItemByItemId(itemId);
     }
 
     @DeleteMapping("/items")

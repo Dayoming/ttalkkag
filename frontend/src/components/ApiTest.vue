@@ -7,7 +7,7 @@
         <form class="d-flex w-100">
           <!-- Input Box -->
           <div class="me-3 flex-grow-1">
-            <span v-if="savedProject">{{ savedProject }}</span>
+            <span v-if="apiPath" style="font-size: x-small">{{ apiPath }}</span>
             <input
               v-model="apiName"
               type="text"
@@ -21,23 +21,9 @@
             <button
               type="button"
               class="btn btn-dark me-2"
-              @click.prevent="showSiteEnvironmentModal = true"
-            >
-              환경 선택
-            </button>
-            <button
-              type="button"
-              class="btn btn-dark me-2"
               @click.prevent="openSaveModal"
             >
               Save
-            </button>
-            <button
-              type="button"
-              class="btn btn-dark"
-              @click.prevent="openLoadModal"
-            >
-              Load
             </button>
             <a href="#" class="request-add" @click.prevent="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
@@ -61,6 +47,7 @@
             type="text"
             class="form-control"
             placeholder="URL"
+            @keyup.enter="sendRequest"
             :title="resolveTooltip(url)"
           />
           <button
@@ -177,6 +164,7 @@
                     placeholder="Value"
                     v-model="header.value"
                     :title="resolveTooltip(header.value)"
+                    @keyup.enter="addHeader"
                   />
                 </div>
                 <div class="col-auto">
@@ -230,6 +218,7 @@
                     v-model="queryParam.value"
                     :title="resolveTooltip(queryParam.value)"
                     @input="updateUrl"
+                    @keyup.enter="addQueryParameter"
                   />
                 </div>
                 <div class="col-auto">
@@ -293,7 +282,11 @@
               class="border p-4 text-center"
             >
               <p>파일을 여기에 올려주세요.</p>
-              <input type="file" class="form-control" />
+              <input
+                type="file"
+                class="form-control"
+                @change="handleFileUpload"
+              />
             </div>
 
             <!-- Form Parameters -->
@@ -326,6 +319,7 @@
                     placeholder="Value"
                     v-model="formParam.value"
                     :title="resolveTooltip(formParam.value)"
+                    @keyup.enter="addFormParameter"
                   />
                   <input
                     v-if="formParam.type === 'file'"
@@ -360,7 +354,10 @@
     <!-- Response Section -->
     <div
       class="response-section mt-4"
-      :style="{ height: responseHeight + 'px' }"
+      :style="{
+        height: responseHeight + 'px',
+        overflow: showResponse ? 'hidden' : 'auto',
+      }"
     >
       <h5>Response</h5>
 
@@ -403,13 +400,16 @@
   <!-- SaveModal 추가 -->
   <SaveModal
     v-if="showSaveModal"
+    :selectedProject="selectedProject"
     :projects="projects"
     :apiData="apiData"
     :isLoad="isLoad"
+    :items="items"
     @close="closeSaveModal"
     @project-saved="updateSavedProject"
     @save-api="saveApiToProject"
     @load-api="handleLoadApi"
+    @update-items="this.$emit('update-items')"
   />
   <DatasetModal
     v-if="showDatasetModal"
@@ -439,12 +439,20 @@ export default {
   components: { SaveModal, DatasetModal, SiteEnvironmentModal },
   props: {
     selectedProject: Object,
+    propSelectedSite: Object,
+    propSelectedEnvironment: Object,
+    propSites: Array,
+    propEnvironments: Array,
     tempApi: Array,
     modalSelectedEnvironment: Object,
     isSetting: Boolean,
+    items: Array,
   },
   data() {
     return {
+      apiId: "",
+      itemId: "",
+      apiPath: "",
       apiName: "",
       method: "GET",
       url: "",
@@ -500,6 +508,9 @@ export default {
   methods: {
     resetInputs() {
       // 모든 입력 필드를 초기화
+      this.apiId = "";
+      this.itemId = "";
+      this.apiPath = "";
       this.apiName = "";
       this.method = "GET";
       this.url = "";
@@ -581,11 +592,7 @@ export default {
     },
     handleFileUpload(event) {
       this.file = event.target.files[0];
-    },
-    handleModalSelectedEnvironment(modalSelectedEnvironment) {
-      this.selectedEnvironment = modalSelectedEnvironment.environmentId;
-      this.selectedSite = modalSelectedEnvironment.site;
-      this.fetchEnvironmentVariables();
+      console.log(this.file);
     },
     handleAddVariables({ variables, currentTab }) {
       if (!variables || variables.length === 0) {
@@ -647,7 +654,7 @@ export default {
         return;
       }
 
-      const environmentId = this.selectedEnvironment;
+      const environmentId = this.selectedEnvironment.id;
 
       try {
         const response = await this.$axios.get(
@@ -757,14 +764,18 @@ export default {
       };
 
       this.$axios
-        .post("/api/projects/items", {
-          projectId: selectedFolder.projectId,
-          parentId: selectedFolder.id,
-          type: "api",
-          name: apiData.name,
-          depth: selectedFolder.depth + 1,
-          apiData,
-        })
+        .post(
+          "/api/projects/items",
+          {
+            projectId: selectedFolder.projectId,
+            parentId: selectedFolder.id,
+            type: "api",
+            name: apiData.name,
+            depth: selectedFolder.depth + 1,
+            apiData,
+          },
+          { showSpinner: false }
+        )
         .then(() => {
           alert("API가 성공적으로 저장되었습니다.");
           this.showModal = false;
@@ -802,38 +813,90 @@ export default {
         if (this.hasChanges) {
           this.isSaving = true;
           await this.saveApiData(); // 자동 저장 실행
-          this.isSaving = false;
           this.hasChanges = false; // 변경 상태 초기화
         }
       }, autoSaveTermMs);
     },
     async saveApiData() {
       try {
-        const project = await this.$axios.post("/api/projects/add-api", {
-          projectId: Number(this.selectedProject.id),
-          parentId: this.autoSavePath,
-          type: "api",
-          name: this.apiName || "TempAPI",
-          depth: 1,
-        });
+        // this.apiId가 있는 경우(이미 저장된 파일의 경우) 업데이트
+        if (this.apiId !== "") {
+          const project = await this.$axios.patch(
+            "/api/projects/update/projectItemName",
+            {
+              id: this.itemId,
+              projectId: Number(this.selectedProject.id),
+              parentId: this.autoSavePath,
+              type: "api",
+              name: this.apiName || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
 
-        const apiData = {
-          name: this.apiName || "TempAPI",
-          itemId: Number(project.data.id),
-          method: this.method,
-          url: this.url,
-          headers: JSON.stringify(this.headers),
-          queryParameters: JSON.stringify(this.queryParameters),
-          formParameters: JSON.stringify(this.formParameters),
-          file: this.file,
-          selectedBodyType: this.selectedBodyType,
-          selectedEnvironment: this.selectedEnvironment,
-        };
+          const apiData = {
+            name: this.apiName || "TempAPI",
+            itemId: Number(project.data.id),
+            method: this.method,
+            url: this.url,
+            headers: JSON.stringify(this.headers),
+            queryParameters: JSON.stringify(this.queryParameters),
+            formParameters: JSON.stringify(this.formParameters),
+            file: this.file,
+            selectedBodyType: this.selectedBodyType,
+            selectedEnvironment: this.selectedEnvironment,
+          };
 
-        await this.$axios.post("/api/apis", apiData);
-        this.hasChanges = false; // 저장 완료 후 상태 초기화
-        this.$emit("refresh-sidebar");
-        console.log("자동 저장 완료");
+          await this.$axios.patch(
+            "/api/apis",
+            {
+              id: this.apiId,
+              ...apiData,
+            },
+            { showSpinner: false }
+          );
+
+          this.hasChanges = false; // 저장 완료 후 상태 초기화
+          this.$emit("refresh-sidebar", this.itemId);
+          this.buildApiPath(this.itemId);
+          console.log("자동 저장 완료");
+        } else {
+          // this.apiId가 없는 경우 추가
+          const project = await this.$axios.post(
+            "/api/projects/add-api",
+            {
+              projectId: Number(this.selectedProject.id),
+              parentId: this.autoSavePath,
+              type: "api",
+              name: this.apiName || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
+
+          const apiData = {
+            name: this.apiName || "TempAPI",
+            itemId: Number(project.data.id),
+            method: this.method,
+            url: this.url,
+            headers: JSON.stringify(this.headers),
+            queryParameters: JSON.stringify(this.queryParameters),
+            formParameters: JSON.stringify(this.formParameters),
+            file: this.file,
+            selectedBodyType: this.selectedBodyType,
+            selectedEnvironment: this.selectedEnvironment,
+          };
+
+          // 저장된 apiId 반환
+          const savedApi = await this.$axios.post("/api/apis", apiData, {
+            showSpinner: false,
+          });
+          this.apiId = savedApi.id;
+          this.itemId = Number(project.data.id);
+          this.hasChanges = false; // 저장 완료 후 상태 초기화
+          this.$emit("refresh-sidebar");
+          console.log("자동 저장 완료");
+        }
       } catch (error) {
         console.log("Failed save projectItem: " + error);
         alert("API 자동 저장에 실패했습니다.");
@@ -848,13 +911,17 @@ export default {
       }
 
       try {
-        const project = await this.$axios.post("/api/projects/add-api", {
-          projectId: Number(this.selectedProject.id),
-          parentId: this.autoSavePath,
-          type: "api",
-          name: this.apiName || "TempAPI",
-          depth: 1,
-        });
+        const project = await this.$axios.post(
+          "/api/projects/add-api",
+          {
+            projectId: Number(this.selectedProject.id),
+            parentId: this.autoSavePath,
+            type: "api",
+            name: this.apiName || "TempAPI",
+            depth: 1,
+          },
+          { showSpinner: false }
+        );
 
         const apiData = {
           name: this.apiName || "TempAPI",
@@ -871,8 +938,10 @@ export default {
 
         this.resetInputs();
 
-        await this.$axios.post("/api/apis", apiData);
+        await this.$axios.post("/api/apis", apiData, { showSpinner: false });
         this.hasChanges = false; // 저장 완료 후 상태 초기화
+        this.apiId = "";
+        this.itemId = "";
         this.$emit("refresh-sidebar");
         console.log("저장 완료");
       } catch (error) {
@@ -910,8 +979,10 @@ export default {
     updateCurrentTab(tab) {
       this.currentTab = tab;
     },
-    updateSavedProject() {
+    updateSavedProject(newApis) {
       this.$emit("update-items");
+      this.buildApiPath(newApis.itemId);
+      this.showSaveModal = false;
     },
     resolveTemplateVariables(template) {
       if (!template || typeof template !== "string") return template;
@@ -1029,11 +1100,14 @@ export default {
           data.append("file", this.file);
         }
 
+        console.log(data);
+
         // 요청 전송
         const response = await this.$axios.post("/api/proxy", data, {
           headers: {
             "Content-Type": "multipart/form-data", // FormData 형식
           },
+          validateStatus: (status) => status >= 100 && status < 600, // 모든 상태 코드 허용
         });
 
         // 응답 데이터 설정
@@ -1047,7 +1121,7 @@ export default {
         const endTime = performance.now(); // 요청 완료 시간
         const elapsedTime = Math.round(endTime - startTime); // 소요 시간(ms)
 
-        this.addHistory(response, elapsedTime);
+        this.addHistory(this.response, elapsedTime);
       } catch (error) {
         // 에러 처리
         const failedResponse = {
@@ -1066,6 +1140,38 @@ export default {
       } finally {
         this.isRequest = false;
       }
+    },
+    async buildApiPath(itemId) {
+      const pathSegments = [];
+      let isFirstItem = true; // 첫 번째 아이템인지 확인하는 플래그
+
+      while (itemId) {
+        try {
+          // 현재 ID로 API 호출하여 parent_id와 name 가져오기
+          const response = await this.$axios.get(
+            `/api/projects/item/${itemId}`,
+            { showSpinner: false }
+          );
+          const item = response.data;
+
+          // 첫 번째 아이템은 제외
+          if (isFirstItem) {
+            isFirstItem = false;
+          } else {
+            // 이름 추가
+            pathSegments.unshift("/" + item.name);
+          }
+
+          // 다음 parent_id 설정
+          itemId = item.parentId;
+        } catch (error) {
+          console.error("경로를 가져오는 중 오류 발생:", error);
+          break;
+        }
+      }
+
+      // 경로를 연결하여 반환
+      return pathSegments.join("");
     },
     addHistory(response, elapsedTime) {
       // 정규 표현식을 사용하여 {{key}} 찾기
@@ -1103,6 +1209,9 @@ export default {
   },
   mounted() {
     this.fetchLoginUserInfo();
+    this.selectedSite = this.propSelectedSite;
+    this.selectedEnvironment = this.propSelectedEnvironment;
+    this.fetchEnvironmentVariables();
   },
   computed: {
     formattedBody() {
@@ -1214,9 +1323,37 @@ export default {
       },
       immediate: false,
     },
+    // propSelectedEnvironment 값이 변경되었을 때 selectedEnvironment를 업데이트
+    propSelectedEnvironment: {
+      immediate: true, // 초기에도 실행
+      handler(newValue) {
+        this.selectedEnvironment = newValue;
+        this.fetchEnvironmentVariables(); // 변경된 환경 변수 로드
+      },
+    },
+    propEnvironments: {
+      immediate: true, // environments 변경 시 실행
+      handler(newValue) {
+        if (newValue.length > 0 && !this.selectedEnvironment) {
+          this.selectedEnvironment = newValue[0].id;
+          this.fetchEnvironmentVariables();
+        }
+      },
+    },
+    propSites: {
+      immediate: true, // sites 변경 시 실행
+      handler(newValue) {
+        if (newValue.length > 0 && !this.selectedSite) {
+          this.selectedSite = newValue[0].id;
+        }
+      },
+    },
     tempApi: {
-      handler(newTempApi) {
+      async handler(newTempApi) {
         if (newTempApi) {
+          this.apiId = newTempApi.id;
+          this.itemId = newTempApi.itemId;
+          this.apiPath = await this.buildApiPath(newTempApi.itemId); // 경로 설정
           this.apiName = newTempApi.name || "";
           this.method = newTempApi.method || "GET";
           this.url = newTempApi.url || "";
@@ -1237,6 +1374,7 @@ export default {
             body: "",
           };
         }
+        console.log(this.apiId);
       },
       immediate: true, // 초기에도 실행
     },
@@ -1362,5 +1500,12 @@ textarea {
 
 .auto-save-spinner {
   margin-left: 8px; /* 버튼과의 여백 */
+}
+
+.spinner-border {
+  position: revert;
+  width: 30px;
+  height: 25px;
+  margin-top: 5px;
 }
 </style>

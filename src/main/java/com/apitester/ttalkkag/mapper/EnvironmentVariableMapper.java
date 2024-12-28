@@ -11,4 +11,5 @@ public interface EnvironmentVariableMapper {
     void insertVariable(EnvironmentVariable environmentVariable);
     void updateVariable(EnvironmentVariable environmentVariable);
     void deleteVariable(Long id);
+    void deleteVariableByKey(String key);
 }

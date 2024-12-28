@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -37,7 +38,9 @@ public class ProjectService {
         project.setName(name);
         project.setUserId(userId);
         projectMapper.insertProject(project);
-        return project;
+
+        // 생성된 ID로 Project 객체 조회
+        return projectMapper.getProjectByProjectId(project.getId());
     }
 
     // 프로젝트 삭제
@@ -67,6 +70,8 @@ public class ProjectService {
     }
 
     public void addFolder(ProjectItems projectItems) {
+        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId());
+
         ProjectItems newFolder = new ProjectItems();
         newFolder.setProjectId(projectItems.getProjectId());
         newFolder.setParentId(projectItems.getParentId());
@@ -74,11 +79,13 @@ public class ProjectService {
         newFolder.setName(projectItems.getName());
         newFolder.setDepth(projectItems.getDepth());
         newFolder.setCreateAt(LocalDateTime.now().toString());
+        newFolder.setItemOrder(nextItemOrder);
 
         projectMapper.insertProjectItem(newFolder);
     }
 
     public ProjectItems addProjectItemApi(ProjectItems projectItems) {
+        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId());
         ProjectItems newApi = new ProjectItems();
         newApi.setProjectId(projectItems.getProjectId());
         newApi.setParentId(projectItems.getParentId());
@@ -86,7 +93,7 @@ public class ProjectService {
         newApi.setName(projectItems.getName());
         newApi.setDepth(projectItems.getDepth());
         newApi.setCreateAt(LocalDateTime.now().toString());
-        System.out.println(newApi);
+        newApi.setItemOrder(nextItemOrder);
         projectMapper.insertProjectItem(newApi);
         return projectMapper.getProjectItemsById(newApi.getId());
     }
@@ -107,8 +114,11 @@ public class ProjectService {
         return projectMapper.getProjectByProjectId(projectId);
     }
 
-    public void updateProjectItemName(ProjectItems projectItems) {
+    public ProjectItems updateProjectItemName(ProjectItems projectItems) {
         projectMapper.updateProjectItemName(projectItems);
+
+        // 업데이트된 객체 조회
+        return projectMapper.getProjectItemsById(projectItems.getId());
     }
 
     public void updateParentId(ProjectItems projectItems) {
@@ -117,5 +127,16 @@ public class ProjectService {
 
     public void deleteItemById(Long itemId) {
         projectMapper.deleteByItemId(itemId);
+    }
+
+    public void updateItemOrder(Long parentId, List<Map<String, Object>> items) {
+        items.forEach(item -> {
+            Long id = Long.valueOf(item.get("id").toString());
+            Integer order = Integer.valueOf(item.get("order").toString());
+            projectMapper.updateItemOrder(parentId, id, order);
+        });
+    }
+    public ProjectItems getItemByItemId(Long itemId) {
+        return projectMapper.getItemByItemId(itemId);
     }
 }

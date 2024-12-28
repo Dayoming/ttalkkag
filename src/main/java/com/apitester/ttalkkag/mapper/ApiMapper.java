@@ -7,4 +7,6 @@ import org.apache.ibatis.annotations.Mapper;
 public interface ApiMapper {
     void saveApi(Apis api);
     Apis loadApi(Long itemId);
+    Apis findById(Long id);
+    void updateApi(Apis apis);
 }

@@ -63,6 +63,20 @@
         SELECT DISTINCT * FROM project_hierarchy;
     </select>
 
+    <select id="getItemByItemId" resultType="ProjectItems">
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            parent_id AS parentId,
+            type AS type,
+            name AS name,
+            depth AS depth,
+            item_order AS itemOrder,
+            create_at AS createAt
+        FROM project_items
+        WHERE id = #{itemId}
+    </select>
+
     <!-- 프로젝트 생성 -->
     <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project (name, create_at, user_id)
@@ -76,9 +90,31 @@
     </delete>
 
     <insert id="insertProjectItem" parameterType="ProjectItems" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
-        VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, #{createAt})
+        INSERT INTO project_items (
+            project_id,
+            parent_id,
+            type,
+            name,
+            depth,
+            create_at,
+            item_order
+            )
+        VALUES (
+            #{projectId},
+            #{parentId},
+            #{type},
+            #{name},
+            #{depth},
+            NOW(),
+            #{itemOrder}
+        )
     </insert>
+
+    <select id="getNextItemOrder" parameterType="long" resultType="int">
+        SELECT COALESCE(MAX(item_order), 0) + 1
+        FROM project_items
+        WHERE parent_id = #{parentId}
+    </select>
 
     <insert id="insertApi" parameterType="ProjectItems">
         INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
@@ -94,9 +130,11 @@
             type AS type,
             name AS name,
             depth AS depth,
+            item_order AS itemOrder,
             create_at AS createAt
         FROM project_items
         WHERE project_id = #{projectId}
+        ORDER BY parent_id, item_order
     </select>
 
     <select id="getProjectItemsById" parameterType="long" resultType="ProjectItems">
@@ -107,9 +145,11 @@
             type AS type,
             name AS name,
             depth AS depth,
+            item_order AS itemOrder,
             create_at AS createAt
         FROM project_items
         WHERE id = #{id}
+        ORDER BY parent_id, item_order
     </select>
 
     <select id="findByParentId" parameterType="long" resultType="ProjectItems">
@@ -120,9 +160,11 @@
             type AS type,
             name AS name,
             depth AS depth,
+            item_order AS itemOrder,
             create_at AS createAt
         FROM project_items
         WHERE parent_id = #{parentId}
+        ORDER BY parent_id, item_order
     </select>
 
     <!-- 항목 삭제 -->
@@ -136,9 +178,25 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateProjectItem" parameterType="ProjectItems">
+        UPDATE project_items SET
+            name = #{name}
+            parentId = #{parentId}
+        WHERE id = #{id}
+    </update>
+
     <update id="updateParentId" parameterType="projectItems">
         UPDATE project_items SET
             parent_id = #{parentId}
         WHERE id = #{id}
     </update>
+
+    <update id="updateItemOrder" parameterType="map">
+        <foreach collection="items" item="item" index="index" separator=";">
+            UPDATE project_items
+            SET item_order = #{item.order}
+            WHERE id = #{item.id} AND parent_id = #{parentId}
+        </foreach>
+    </update>
+
 </mapper>

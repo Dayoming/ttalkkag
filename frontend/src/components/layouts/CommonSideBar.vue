@@ -4,7 +4,7 @@
     @dragover.prevent
   >
     <div
-      class="offcanvas-md offcanvas-end d-flex flex-column vh-100"
+      class="offcanvas-md offcanvas-end d-flex flex-column"
       tabindex="-1"
       id="sidebarMenu"
       aria-labelledby="sidebarMenuLabel"
@@ -22,7 +22,16 @@
         <div class="table-responsive mt-4"></div>
       </div>
       <div class="sidebar-hierarchy">
-        <div class="table-responsive mt-4">
+        <!-- 모든 폴더 열기/닫기 버튼 -->
+        <div class="d-flex justify-content-end mb-2">
+          <button class="btn btn-dark mt-2 me-2 folder-toggle-btn" @click="toggleAllFolders(true)">
+            Open All Folders
+          </button>
+          <button class="btn btn-dark mt-2 folder-toggle-btn" @click="toggleAllFolders(false)">
+            Close All Folders
+          </button>
+        </div>
+        <div class="table-responsive mt-2">
           <table class="table table-borderless">
             <tbody>
               <RecursiveFolderItem
@@ -30,6 +39,7 @@
                 :key="item.id + '_' + updateKey"
                 :item="item"
                 :depth="0"
+                :saved-item-id="savedItemId"
                 :selected-file-id="selectedFileId"
                 @selection-change="handleSelectionChange"
                 @toggle-folder="toggleFolder"
@@ -122,6 +132,7 @@
               :key="item.id + '_' + updateKey"
               :item="item"
               :depth="0"
+              :saved-item-id="savedItemId"
               :selected-file-id="selectedFileId"
               @selection-change="handleSelectionChange"
               @update-items="$emit('update-items')"
@@ -210,6 +221,7 @@ export default {
   props: {
     selectedProject: Object,
     items: Array,
+    savedItemId: Number,
   },
   data() {
     return {
@@ -253,6 +265,7 @@ export default {
           `/api/projects/${this.localSelectedProject.id}`
         );
         this.localItems = [...this.buildTreeStructure(response.data)];
+        this.expandAll(this.localItems);
       } catch (error) {
         console.log("Failed load items: " + error);
       }
@@ -281,6 +294,28 @@ export default {
 
       return tree; // 최종 트리 반환
     },
+    expandAll(items) {
+      items.forEach((item) => {
+        item.isOpen = true;
+        if (item.children.length > 0) {
+          this.expandAll(item.children);
+        }
+      });
+    },
+    toggleAllFolders(open) {
+      const toggleRecursive = (items) => {
+        items.forEach((item) => {
+          if (item.type === "folder") {
+            item.isOpen = open;
+            if (item.children.length > 0) {
+              toggleRecursive(item.children);
+            }
+          }
+        });
+      };
+      toggleRecursive(this.localItems);
+      this.updateKey++; // 화면 갱신
+    },
     handleApiSelected(selectedTempApi) {
       this.$emit("api-selected", selectedTempApi);
     },
@@ -299,7 +334,7 @@ export default {
           id: Number(draggedItemId),
           parentId: null,
         });
-        this.$emit('update-items');
+        this.$emit("update-items");
         this.fetchItems(); // 갱신 요청
       } catch (error) {
         console.error("바깥 영역 드롭 중 오류 발생:", error);
@@ -345,5 +380,9 @@ export default {
   font-size: small;
   padding-left: 20px;
   padding-right: 20px;
+}
+
+.folder-toggle-btn {
+  font-size: small;
 }
 </style>

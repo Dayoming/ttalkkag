@@ -3,6 +3,9 @@ package com.apitester.ttalkkag.controller;
 import com.apitester.ttalkkag.dto.ProxyRequest;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +20,7 @@ public class ProxyController {
     }
 
     @PostMapping
-    public ResponseEntity<?> proxyRequest(@RequestPart ProxyRequest request,
+    public ResponseEntity<?> proxyRequest(@RequestPart(value = "request") ProxyRequest request,
                                           @RequestPart(value = "file", required = false) MultipartFile file) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -25,7 +28,7 @@ public class ProxyController {
                 request.getHeaders().forEach(headers::set);
             }
 
-            System.out.println("Request: " + request);
+            System.out.println("File: " + (file != null ? file.getOriginalFilename() : "No file"));
 
             HttpEntity<?> entity = new HttpEntity<>(request.getBody(), headers);
             ResponseEntity<String> response = restTemplate.exchange(
@@ -36,7 +39,14 @@ public class ProxyController {
             );
 
             return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body("Client error: " + e.getMessage());
+        } catch (HttpServerErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body("Server error: " + e.getMessage());
+        } catch (ResourceAccessException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid URL: " + e.getMessage());
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Proxy request failed: " + e.getMessage());
         }

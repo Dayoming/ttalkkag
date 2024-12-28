@@ -63,4 +63,12 @@ public class EnvironmentService {
     public void deleteSite(Long id) {
         environmentMapper.deleteSite(id);
     }
+
+    public void deleteVariableByKey(String key) {
+        variableMapper.deleteVariableByKey(key);
+    }
+
+    public Environment getEnvironmentById(Long id) {
+        return environmentMapper.getEnvironmentById(id);
+    }
 }

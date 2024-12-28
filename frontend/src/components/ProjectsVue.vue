@@ -44,6 +44,7 @@
           class="form-control"
           v-model="newProjectName"
           placeholder="프로젝트명을 입력하세요."
+          @keyup.enter="addNewProject"
         />
       </template>
     </CommonModal>
@@ -51,7 +52,7 @@
     <!-- Request Actions -->
     <div class="mt-4">
       <div class="d-flex align-items-center mb-4 w-75">
-        <i class="bi bi-search"></i>
+        <i class="bi bi-search" style="margin-right: 5px;"></i>
         <input
           type="text"
           class="form-control me-2 input-search"
@@ -79,7 +80,6 @@
           <option value="DELETE">DELETE</option>
           <option value="PATCH">PATCH</option>
         </select>
-        <button class="btn btn-dark" @click="fetchFilteredItems">Search</button>
       </div>
       <button class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
       <button class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
@@ -87,6 +87,21 @@
       </button>
     </div>
 
+    <!-- 모든 폴더 열기/닫기 버튼 -->
+    <div class="d-flex justify-content-end mb-2">
+      <button
+        class="btn btn-dark mt-2 me-2 folder-toggle-btn"
+        @click="toggleAllFolders(true)"
+      >
+        Open All Folders
+      </button>
+      <button
+        class="btn btn-dark mt-2 folder-toggle-btn"
+        @click="toggleAllFolders(false)"
+      >
+        Close All Folders
+      </button>
+    </div>
     <!-- 테이블 -->
     <div class="table-responsive mt-4">
       <table class="table table-borderless">
@@ -164,7 +179,31 @@ export default {
         const response = await this.$axios.get(
           `/api/projects/${selectedProject.id}`
         );
-        this.localItems = [...this.buildTreeStructure(response.data)]; // 최상위 항목만 로드
+
+        const updatedItems = await Promise.all(
+          response.data.map(async (item) => {
+            if (item.type === "api") {
+              try {
+                const apiResponse = await this.$axios.get(
+                  `/api/apis/${item.id}`
+                );
+                return {
+                  ...item,
+                  apiId: apiResponse.data.api.id,
+                  apiUrl: apiResponse.data.api.url || "",
+                  apiMethod: apiResponse.data.api.method || "",
+                };
+              } catch (apiError) {
+                console.error(`API 호출 실패: ${item.id}`, apiError);
+                return { ...item }; // 오류 발생 시 원래 데이터를 반환
+              }
+            }
+            return { ...item }; // `type`이 `api`가 아닌 경우 그대로 반환
+          })
+        );
+
+        this.localItems = this.buildTreeStructure(updatedItems); // 최상위 항목만 로드
+        this.expandAll(this.localItems);
       } catch (error) {
         console.error("아이템을 불러오는 중 오류가 발생했습니다:", error);
       }
@@ -172,8 +211,7 @@ export default {
     async fetchApi(itemId) {
       try {
         const apiResponse = await this.$axios.get(`/api/apis/${itemId}`);
-        this.localApi = apiResponse.data.api;
-        return this.localApi;
+        return apiResponse.data.api;
       } catch (error) {
         console.log("Failed Api Response Fetch: " + error);
       }
@@ -201,8 +239,29 @@ export default {
           }
         );
 
-        console.log(response.data);
-        this.localItems = this.buildTreeWithParents(response.data);
+        const updatedItems = await Promise.all(
+          response.data.map(async (item) => {
+            if (item.type === "api") {
+              try {
+                const apiResponse = await this.$axios.get(
+                  `/api/apis/${item.id}`
+                );
+                return {
+                  ...item,
+                  apiId: apiResponse.data.api.id,
+                  apiUrl: apiResponse.data.api.url || "",
+                  apiMethod: apiResponse.data.api.method || "",
+                };
+              } catch (apiError) {
+                console.error(`API 호출 실패: ${item.id}`, apiError);
+                return { ...item }; // 오류 발생 시 원래 데이터를 반환
+              }
+            }
+            return { ...item }; // `type`이 `api`가 아닌 경우 그대로 반환
+          })
+        );
+
+        this.localItems = this.buildTreeStructure(updatedItems);
         this.expandAll(this.localItems);
       } catch (error) {
         console.error("검색 중 오류가 발생했습니다:", error);
@@ -210,6 +269,7 @@ export default {
     },
     buildTreeWithParents(items) {
       const itemMap = {};
+      console.log(items);
 
       // 모든 항목을 맵에 저장
       items.forEach((item) => {
@@ -240,12 +300,9 @@ export default {
       items.forEach((item) => {
         try {
           if (item.type === "api") {
-            this.fetchApi(item.id);
             idToItemMap[item.id] = {
               ...item,
               children: [],
-              apiUrl: "",
-              apiMethod: "",
               isOpen: false,
               isProjectsVue: true,
             };
@@ -284,6 +341,21 @@ export default {
       });
     },
 
+    toggleAllFolders(open) {
+      const toggleRecursive = (items) => {
+        items.forEach((item) => {
+          if (item.type === "folder") {
+            item.isOpen = open;
+            if (item.children.length > 0) {
+              toggleRecursive(item.children);
+            }
+          }
+        });
+      };
+      toggleRecursive(this.localItems);
+      this.updateKey++; // 화면 갱신
+    },
+
     findFolderById(folderId, items) {
       for (const item of items) {
         if (item.id === folderId) {
@@ -315,15 +387,15 @@ export default {
         alert("이미 존재하는 프로젝트명입니다. 다른 이름을 입력하세요."); // 중복 경고
         return;
       }
-      
+
       try {
         const response = await this.$axios.post("/api/projects", {
           name: this.newProjectName,
         });
         this.$emit("update-projects", response.data);
+        console.log(this.localProjects);
         this.localSelectedProject = this.localProjects[0].name;
         this.showNewProjectModal = false;
-        this.fetchProjects();
       } catch (error) {
         console.error("Failed to create project:", error);
       }
@@ -347,7 +419,6 @@ export default {
           depth: 1,
         });
         this.$emit("update-items");
-        this.fetchItems();
       } catch (error) {
         console.error("폴더 추가 중 오류가 발생했습니다:", error);
       }
@@ -416,6 +487,16 @@ export default {
         this.localItems = newItems;
         this.fetchItems();
       },
+    },
+    searchQuery: {
+      handler(newQuery) {
+        if (newQuery.trim() !== "") {
+          this.fetchFilteredItems();
+        } else {
+          this.fetchItems();
+        }
+      },
+      immediate: false,
     },
   },
 };
