@@ -26,6 +26,16 @@
                 #{showResponse})
     </insert>
 
+    <insert id="insertSocialUser">
+        INSERT INTO users (
+            email, verified, auto_save_use,
+            auto_save_time, auto_save_term, auto_save_path,
+            show_response, social_provider)
+        VALUES (#{email}, #{verified}, #{autoSaveUse},
+                #{autoSaveTime}, #{autoSaveTerm}, #{autoSavePath},
+                #{showResponse}, #{socialProvider})
+    </insert>
+
     <update id="renewVerified" parameterType="User">
         UPDATE users SET
             verified = #{verified}

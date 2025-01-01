@@ -45,6 +45,16 @@
         </div>
         <button type="submit" class="btn btn-dark w-100 py-2">Login</button>
       </form>
+      <button
+        type="button"
+        class="kakao-login-btn w-100 mt-2"
+        @click="loginWithKakao"
+      ></button>
+      <button
+        type="button"
+        class="google-login-btn mt-2"
+        @click="loginWithGoogle"
+      ></button>
     </main>
   </div>
 </template>
@@ -77,16 +87,47 @@ export default {
         localStorage.setItem("refreshToken", response.data.refreshToken);
 
         if (!response.data.verified) {
-          await this.$axios.post("/api/projects", { name: "default" });
+          const createProjectResponse = await this.$axios.post(
+            "/api/projects",
+            { name: "default" }
+          );
+          console.log(createProjectResponse);
         }
         this.$router.push("/test-api");
       } catch (error) {
         this.errorMessage = "서버에 문제가 발생했습니다. 다시 시도해 주세요.";
       }
     },
+    loginWithKakao() {
+      try {
+        // 카카오 로그인 호출
+        window.Kakao.Auth.authorize({
+          redirectUri: process.env.VUE_APP_KAKAO_FRONT_URL,
+          prompt: "select_account",
+        });
+      } catch (error) {
+        console.error("서버 통신 중 에러 발생", error);
+        this.errorMessage = "카카오 로그인 처리 중 문제가 발생했습니다.";
+      }
+    },
+    loginWithGoogle() {
+      const googleAuthUrl = "https://accounts.google.com/o/oauth2/auth";
+      const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
+      const redirectUri = process.env.VUE_APP_GOOGLE_REDIRECT_URL;
+      const scope = "email profile";
+      const responseType = "code";
+
+      const url = `${googleAuthUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`;
+      window.location.href = url;
+    },
     togglePasswordVisibility() {
       this.showPassword = !this.showPassword;
     },
+  },
+  mounted() {
+    if (!window.Kakao.isInitialized()) {
+      window.Kakao.init(process.env.VUE_APP_KAKAO_JS_KEY);
+    }
   },
 };
 </script>
@@ -136,5 +177,21 @@ h1 {
   margin-bottom: 10px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+}
+
+.kakao-login-btn {
+  background: url(../assets/img/kakao_login_medium_wide.png) no-repeat;
+  background-size: contain;
+  width: 100%;
+  height: 50px;
+  border: 0;
+}
+
+.google-login-btn {
+  background: url(../assets/img/google_login_btn.jpg) no-repeat;
+  background-size: contain;
+  width: 99%;
+  height: 50px;
+  border: 0;
 }
 </style>

@@ -7,6 +7,8 @@ import DatasetVue from '@/components/DatasetVue.vue';
 import ReportsVue from '@/components/ReportsVue.vue';
 import LoginVue from '@/components/LoginVue.vue';
 import SignUpVue from '@/components/SignUpVue.vue';
+import KakaoLoginCallback from '@/components/KakaoLoginCallback.vue';
+import GoogleLoginCallback from '@/components/GoogleLoginCallback.vue';
 
 const routes = [
     {
@@ -52,6 +54,16 @@ const routes = [
         name: 'DatasetVue',
         component: DatasetVue,
     },
+    {
+        path: '/login-kakao',
+        name: 'KakaoLoginCallback',
+        component: KakaoLoginCallback,
+    },
+    {
+        path: '/login-google',
+        name: 'GoogleLoginCallback',
+        component: GoogleLoginCallback,
+    },
 ];
 
 const router = createRouter({
@@ -61,7 +73,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("accessToken");
-    const publicPages = ['/login', '/sign-up'];
+    const publicPages = ['/login', '/sign-up', '/login-kakao', '/login-google'];
     const isPublicPage = publicPages.includes(to.path);
   
     // 이미 로그인 된 상태에서 로그인 페이지로 이동하려고 하는 경우

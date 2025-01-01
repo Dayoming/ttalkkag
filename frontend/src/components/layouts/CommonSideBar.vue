@@ -132,7 +132,7 @@
               :key="item.id + '_' + updateKey"
               :item="item"
               :depth="0"
-              :saved-item-id="savedItemId"
+              :savedItemId="savedItemId"
               :selected-file-id="selectedFileId"
               @selection-change="handleSelectionChange"
               @update-items="$emit('update-items')"

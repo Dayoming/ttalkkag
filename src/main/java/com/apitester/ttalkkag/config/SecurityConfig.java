@@ -1,16 +1,22 @@
 package com.apitester.ttalkkag.config;
 
+import com.apitester.ttalkkag.mapper.UserMapper;
+import com.apitester.ttalkkag.service.CustomOAuth2UserService;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -37,12 +43,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter,
+                                    CustomOAuth2UserService customOAuth2UserService) throws Exception {
 
         http
                 // 인증/인가 설정
                 .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
-                        .requestMatchers("/api/auth/**", "/error").permitAll()  // 회원가입, 로그인은 인증 없이 접근 가능
+                        .requestMatchers("/api/auth/**", "/error", "/oauth/**").permitAll()  // 회원가입, 로그인은 인증 없이 접근 가능
                         .anyRequest().authenticated())  // 인증 필요
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // CORS 설정
@@ -51,7 +58,12 @@ public class SecurityConfig {
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/login")
                         .invalidateHttpSession(true))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // 필터 추가
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // 필터 추가
+                .oauth2Login(oauth -> oauth.loginPage("/login")
+                        .defaultSuccessUrl("/test-api")
+                        .failureUrl("/login")
+                        .userInfoEndpoint(Customizer.withDefaults()) // Deprecated 사용 제거
+                        .userInfoEndpoint(endpoint -> endpoint.userService(customOAuth2UserService))); // Bean으로 등록된 CustomOAuth2UserService 사용
         return http.build();
     }
 

@@ -4,13 +4,16 @@ import com.apitester.ttalkkag.config.JwtTokenUtil;
 import com.apitester.ttalkkag.dto.User;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import com.apitester.ttalkkag.service.EmailService;
+import com.apitester.ttalkkag.service.GoogleOAuthService;
+import com.apitester.ttalkkag.service.KakaoOAuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -18,15 +21,14 @@ import java.util.Random;
 @RestController
 @Transactional
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
-    @Autowired
-    private UserMapper userMapper;
 
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
+    private final UserMapper userMapper;
+    private final EmailService emailService;
+    private final KakaoOAuthService kakaoOAuthService;
+    private final GoogleOAuthService googleOAuthService;
+    private final JwtTokenUtil jwtTokenUtil;
 
     private final Map<String, String> verificationCodes = new HashMap<>();
 
@@ -62,10 +64,15 @@ public class AuthController {
             return response;
         }
 
+        if (userMapper.findByEmail(email) != null) {
+            response.put("errorMessage", "이미 가입되어 있는 계정입니다.");
+            return response;
+        }
+
         User user = new User();
         user.setEmail(email);
         user.setPassword(new BCryptPasswordEncoder().encode(password));
-        user.setVerified(true);
+        user.setVerified(false);
         user.setAutoSaveUse(false);
         user.setAutoSaveTime(60);
         user.setAutoSaveTerm(5);
@@ -84,6 +91,12 @@ public class AuthController {
         String password = request.get("password");
 
         User user = userMapper.findByEmail(email);
+
+        if (user.getSocialProvider() != null) {
+            response.put("errorMessage", "해당 계정은 소셜 로그인 계정입니다. 다시 확인해 주세요.");
+            return response;
+        }
+
         if (user == null || !new BCryptPasswordEncoder().matches(password, user.getPassword())) {
             response.put("errorMessage", "이메일이나 비밀번호가 일치하지 않습니다. 다시 확인해 주세요.");
             return response;
@@ -106,6 +119,92 @@ public class AuthController {
         }
 
         return response;
+    }
+
+    @GetMapping("/oauth/kakao")
+    public Map<String, Object> kakaoCallback(@RequestParam String code) {
+        // 1. Access Token 요청
+        String accessToken = kakaoOAuthService.getAccessToken(code);
+        Map<String, Object> response = new HashMap<>();
+
+        // 2. 사용자 정보 요청
+        Map<String, Object> userInfo = kakaoOAuthService.getUserInfo(accessToken);
+
+        String email = (String) ((Map<String, Object>) userInfo.get("kakao_account")).get("email");
+        String nickname = (String) ((Map<String, Object>) ((Map<String, Object>) userInfo.get("kakao_account")).get("profile")).get("nickname");
+
+        // 3. 사용자 정보 저장 또는 조회
+        User user = userMapper.findByEmail(email);
+        if (user == null) {
+            user = new User();
+            user.setEmail(email);
+            user.setVerified(false);
+            user.setAutoSaveUse(false);
+            user.setAutoSaveTime(60);
+            user.setAutoSaveTerm(5);
+            user.setShowResponse(false);
+            user.setSocialProvider("kakao");
+            userMapper.insertSocialUser(user); // 새 사용자 저장
+        }
+
+        // 4. JWT 발급
+        String jwtAccessToken = jwtTokenUtil.generateToken(email);
+        String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(email);
+
+        // 5. 응답 반환
+        response.put("accessToken", jwtAccessToken);
+        response.put("refreshToken", jwtRefreshToken);
+        response.put("nickname", nickname);
+        response.put("email", email);
+        response.put("verified", user.isVerified());
+        return response;
+    }
+
+    @GetMapping("/oauth/google")
+    public Map<String, Object> googleCallback(@RequestParam String code) {
+        try {
+            // 1. Access Token 요청
+            String accessToken = googleOAuthService.getAccessToken(code);
+
+            // 2. 사용자 정보 요청
+            Map<String, Object> userInfo = googleOAuthService.getUserInfo(accessToken);
+
+            String email = (String) userInfo.get("email");
+            String name = (String) userInfo.get("name");
+
+            // 3. 사용자 정보 저장 또는 조회
+            User user = userMapper.findByEmail(email);
+            if (user == null) {
+                user = new User();
+                user.setEmail(email);
+                user.setVerified(false);
+                user.setAutoSaveUse(false);
+                user.setAutoSaveTime(60);
+                user.setAutoSaveTerm(5);
+                user.setShowResponse(false);
+                user.setSocialProvider("google");
+                userMapper.insertSocialUser(user); // 새 사용자 저장
+            }
+
+            // 4. JWT 발급
+            String jwtAccessToken = jwtTokenUtil.generateToken(email);
+            String jwtRefreshToken = jwtTokenUtil.generateRefreshToken(email);
+
+            // 5. 응답 반환
+            Map<String, Object> response = new HashMap<>();
+            response.put("accessToken", jwtAccessToken);
+            response.put("refreshToken", jwtRefreshToken);
+            response.put("name", name);
+            response.put("email", email);
+            response.put("verified", user.isVerified());
+
+            return response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, Object> response = new HashMap<>();
+            response.put("errorMessage", "Google 로그인 처리 중 문제가 발생했습니다.");
+            return response;
+        }
     }
 
     /* 로그아웃 */
