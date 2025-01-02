@@ -61,6 +61,37 @@ public class ProjectController {
         return projectService.addProjectItemApi(projectItems);
     }
 
+    @PostMapping("/invite")
+    public Map<String, Object> generateInviteCode(@RequestBody Map<String, Long> requestBody) {
+        Map<String, Object> response = new HashMap<>();
+        Long projectId = requestBody.get("projectId");
+        if (projectId == null) {
+            response.put("errorMessage", "Invalid project ID");
+            return response;
+        }
+
+        String inviteCode = projectService.generateInviteCode(projectId);
+        response.put("code", inviteCode);
+        return response;
+    }
+
+    @PostMapping("/validate-invite")
+    public Map<String, Object> validateInviteCode(@AuthenticationPrincipal String userEmail,
+                                                  @RequestBody Map<String, String> requestBody) {
+        Map<String, Object> response = new HashMap<>();
+        String inviteCode = requestBody.get("inviteCode");
+        try {
+            Long projectId = projectService.validateInviteCode(inviteCode);
+            projectService.addParticipant(userEmail, projectId);
+            response.put("projectId", projectId);
+            return response;
+        } catch (IllegalArgumentException e) {
+            response.put("errorMessage", "초대 코드를 확인할 수 없습니다. 다시 시도해주세요.");
+            e.printStackTrace();
+            return response;
+        }
+    }
+
     @PatchMapping("/update/projectItemName")
     public Map<String, Object> updateProjectItemName(@RequestBody ProjectItems projectItems) {
         Map<String, Object> response = new HashMap<>();

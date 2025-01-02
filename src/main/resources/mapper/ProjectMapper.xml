@@ -110,6 +110,57 @@
         )
     </insert>
 
+    <insert id="insertParticipant" parameterType="ProjectParticipants" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project_participants (
+        project_id,
+        user_id,
+        name,
+        role,
+        permission_level
+        )
+        VALUES (
+        #{projectId},
+        #{userId},
+        #{name},
+        #{role},
+        #{permissionLevel}
+        )
+    </insert>
+
+    <select id="getParticipantsById" parameterType="Long" resultType="ProjectParticipants">
+        SELECT
+            id,
+            project_id AS projectId,
+            user_id AS userId,
+            name,
+            role,
+            permission_level AS permissionLevel
+        FROM project_participants
+        WHERE id = #{id}
+    </select>
+
+    <select id="getParticipantsByUserId" parameterType="Long" resultType="ProjectParticipants">
+        SELECT
+        id,
+        project_id AS projectId,
+        user_id AS userId,
+        name,
+        role,
+        permission_level AS permissionLevel
+        FROM project_participants
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" parameterType="String" resultType="InviteCode">
+        SELECT
+            id,
+            project_id AS projectId,
+            code,
+            expiry_time AS expiryTime
+        FROM invite_code
+        WHERE code = #{code}
+    </select>
+
     <select id="getNextItemOrder" parameterType="long" resultType="int">
         SELECT COALESCE(MAX(item_order), 0) + 1
         FROM project_items
@@ -120,6 +171,26 @@
         INSERT INTO project_items (project_id, parent_id, type, name, depth, create_at)
         VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, NOW());
     </insert>
+
+    <select id="getInviteCodeByProjectId" parameterType="Long">
+        SELECT * FROM invite_code WHERE project_id = #{projectId}
+    </select>
+
+    <insert id="insertInviteCode" parameterType="InviteCode">
+        INSERT INTO invite_code (
+            project_id, code, expiry_time
+        )
+            VALUES (
+            #{projectId}, #{code}, #{expiryTime}
+        );
+    </insert>
+
+    <update id="updateInviteCode" parameterType="InviteCode">
+        UPDATE invite_code SET
+            code = #{code},
+            expiry_time = #{expiryTime}
+        WHERE project_id = #{projectId}
+    </update>
 
 
     <select id="findByProjectId" parameterType="long" resultType="ProjectItems">

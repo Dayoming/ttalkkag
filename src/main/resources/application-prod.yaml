@@ -35,7 +35,7 @@ spring:
           kakao:
             client-id: 24b929724341e55b9663835716132de8
             client-secret: Jib9c6dvgfRID3rCUnoGRcD2BRatmpKm
-            redirect-uri: http://localhost:8080/login-kakao
+            redirect-uri: http://192.168.50.63:8080/login-kakao
             authorization-grant-type: authorization_code
             client-authentication-method: POST
             client-name: Kakao
@@ -46,7 +46,7 @@ spring:
           google:
             client-id: 621177431619-bp8odms6b439rq40ukcc02oullm8ofm4.apps.googleusercontent.com
             client-secret: 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
-            redirect-uri: http://localhost:8080/login-google
+            redirect-uri: http://192.168.50.63:8080/login-google
             scope:
               - email
               - profile

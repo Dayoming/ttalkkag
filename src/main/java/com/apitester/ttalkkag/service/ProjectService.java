@@ -1,16 +1,20 @@
 package com.apitester.ttalkkag.service;
 
+import com.apitester.ttalkkag.dto.InviteCode;
 import com.apitester.ttalkkag.dto.Project;
 import com.apitester.ttalkkag.dto.ProjectItems;
+import com.apitester.ttalkkag.dto.ProjectParticipants;
 import com.apitester.ttalkkag.mapper.ProjectMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -138,5 +142,54 @@ public class ProjectService {
     }
     public ProjectItems getItemByItemId(Long itemId) {
         return projectMapper.getItemByItemId(itemId);
+    }
+
+    public String generateInviteCode(Long projectId) {
+        // 초대 코드 생성
+        String inviteCode = UUID.randomUUID().toString().substring(0, 6); // 8자리 코드 생성
+
+        // 초대 코드 저장 (5분 유효 기간 설정)
+        InviteCode code = new InviteCode();
+        code.setProjectId(projectId);
+        code.setCode(inviteCode);
+        code.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        if (projectMapper.getInviteCodeByProjectId(projectId) != null) {
+            projectMapper.updateInviteCode(code);
+            return inviteCode;
+        }
+
+        projectMapper.insertInviteCode(code);
+        return inviteCode;
+    }
+
+    public Long validateInviteCode(String inviteCode) {
+        // 초대 코드 유효성 확인
+        InviteCode code = projectMapper.findByCode(inviteCode);
+
+
+        if (code == null || code.isExpired()) {
+            throw new IllegalArgumentException("유효하지 않은 코드입니다. 다시 확인해 주세요.");
+        }
+
+        return code.getProjectId();
+    }
+
+    public ProjectParticipants addParticipant(String userEmail, Long projectId) {
+        // 현재 로그인한 사용자 ID
+        Long userId = userMapper.findByEmail(userEmail).getId();
+
+        // 프로젝트 이름
+        String projectName = projectMapper.getProjectByProjectId(projectId).getName();
+
+        // 프로젝트 참여자 추가
+        ProjectParticipants participant = new ProjectParticipants();
+        participant.setProjectId(projectId);
+        participant.setName(projectName);
+        participant.setUserId(userId);
+        participant.setRole("participant"); // 소유자, 참여자 구분
+        participant.setPermissionLevel("read"); // 기본 권한: 읽기 전용
+        projectMapper.insertParticipant(participant);
+        return projectMapper.getParticipantsById(participant.getId());
     }
 }

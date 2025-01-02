@@ -11,8 +11,10 @@ public interface EnvironmentMapper {
     List<Site> getSitesByProjectId(Long projectId);
     List<Environment> getEnvironments(Long siteId);
     Environment getEnvironmentById(Long id);
+    Site getSiteById(Long id);
     void insertEnvironment(Environment environment);
     void createSite(Site site);
     void deleteEnvironment(Long id);
     void deleteSite(Long id);
+
 }

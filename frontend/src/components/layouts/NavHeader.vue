@@ -89,6 +89,14 @@
               <a
                 class="dropdown-item"
                 href="#"
+                @click="showInputCodeModal = true"
+                ><i class="bi bi-calendar-event"></i>프로젝트 참여</a
+              >
+            </li>
+            <li>
+              <a
+                class="dropdown-item"
+                href="#"
                 @click="showSettingsModal = true"
                 ><i class="bi bi-gear"></i> Setting</a
               >
@@ -126,6 +134,42 @@
     @modal-setting-confirm="this.$emit('modal-setting-confirm')"
     @close="closeSettingsModal"
   />
+  <!-- 초대 코드 입력 모달 -->
+  <div v-if="showInputCodeModal" class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">초대코드 입력</h5>
+          <button
+            type="button"
+            class="btn-close"
+            @click="this.showInputCodeModal = false"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p>프로젝트 소유자로부터 전달받은 초대 코드를 입력해주세요.</p>
+          <div v-if="errorMessage" class="alert alert-danger">
+            {{ errorMessage }}
+          </div>
+          <input
+            v-model="inviteCode"
+            type="text"
+            class="form-control"
+            placeholder="초대 코드를 입력하세요."
+          />
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-dark w-100"
+            @click="validateInviteCode"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -139,6 +183,7 @@ export default {
     propProjects: Array,
     propSites: Array,
     propEnvironments: Array,
+    propSelectedProject: Object,
   },
   data() {
     return {
@@ -152,13 +197,16 @@ export default {
       selectedEnvironment: "", // 선택 환경
       showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
       showSettingsModal: false, // 설정 모달 표시 상태
+      showInputCodeModal: false, // 초대 코드 입력 모달 표시 상태
       newProjectName: "", // 새 프로젝트명 입력값
+      errorMessage: "",
+      inviteCode: "",
     };
   },
   watch: {
     propProjects: {
       handler() {
-        this.fetchProjects();
+        this.projects = [...this.propProjects];
       },
     },
     propSites: {
@@ -169,6 +217,11 @@ export default {
     propEnvironments: {
       handler() {
         this.fetchEnvironments();
+      },
+    },
+    propSelectedProject: {
+      handler() {
+        this.selectedProject = this.propSelectedProject;
       },
     },
   },
@@ -218,19 +271,25 @@ export default {
         console.log("Failed Login Verified: " + error);
       }
     },
-    async fetchProjects() {
+    async fetchProjects(selectedProjectId = null) {
       try {
         const response = await this.$axios.get("/api/projects");
         this.projects = response.data;
 
-        // 첫 번째 요소를 자동 선택
+        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.projects.length > 0) {
-          this.selectedProject = this.projects[0];
+          const selectedProject = selectedProjectId
+            ? this.projects.find((project) => project.id === selectedProjectId)
+            : this.projects[0];
+
+          if (selectedProject) {
+            this.selectedProject = selectedProject;
+          }
         }
 
         this.fetchSites();
 
-        // SideBar 선택 프로젝트 초기값
+        // SideBar 선택 프로젝트 값
         this.$emit("project-selected", this.selectedProject);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
@@ -260,7 +319,6 @@ export default {
         }
 
         this.fetchEnvironments();
-
       } catch (error) {
         console.error("사이트 목록을 가져오는 중 오류 발생:", error);
       }
@@ -319,16 +377,41 @@ export default {
       }
 
       try {
-        await this.$axios.post("/api/projects", { name: this.newProjectName });
+        const createdProject = await this.$axios.post("/api/projects", {
+          name: this.newProjectName,
+        });
         this.showNewProjectModal = false;
-        this.$emit("update-projects");
+        this.$emit("update-projects", createdProject.data.id);
         this.fetchSites(); // 관련 사이트 목록 갱신
         alert("프로젝트 생성이 완료되었습니다.");
+        this.newProjectName = "";
       } catch (error) {
         console.log("Failed Create Project:" + error);
       }
+    },
+    async validateInviteCode() {
+      try {
+        // 서버로 초대 코드 유효성 검증 요청
+        const response = await this.$axios.post(
+          "/api/projects/validate-invite",
+          {
+            inviteCode: this.inviteCode,
+          }
+        );
 
-      this.fetchProjects();
+        if (response.data.errorMessage != null) {
+          this.errorMessage = response.data.errorMessage;
+          return;
+        }
+
+        // 성공 시 참여 완료 처리
+        alert("프로젝트에 성공적으로 참여하였습니다!");
+        this.showInputCodeModal = false;
+        this.$emit("update-projects", response.data.projectId); // 프로젝트 목록 갱신
+      } catch (error) {
+        // 실패 시 에러 메시지 표시
+        console.log("Invite Code Valid Error: " + error);
+      }
     },
     logout() {
       if (confirm("로그아웃 하시겠습니까?")) {

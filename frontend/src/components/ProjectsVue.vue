@@ -52,7 +52,7 @@
     <!-- Request Actions -->
     <div class="mt-4">
       <div class="d-flex align-items-center mb-4 w-75">
-        <i class="bi bi-search" style="margin-right: 5px;"></i>
+        <i class="bi bi-search" style="margin-right: 5px"></i>
         <input
           type="text"
           class="form-control me-2 input-search"
@@ -85,6 +85,9 @@
       <button class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
         새 요청 추가
       </button>
+      <button class="btn btn-dark" @click="generateInviteCode">
+        프로젝트 초대
+      </button>
     </div>
 
     <!-- 모든 폴더 열기/닫기 버튼 -->
@@ -114,6 +117,7 @@
             :key="item.id + '_' + updateKey"
             :item="item"
             :depth="0"
+            :selected-file-id="selectedFileId"
             @selection-change="handleSelectionChange"
             @toggle-folder="toggleFolder"
             @update-items="$emit('update-items')"
@@ -123,9 +127,37 @@
       </table>
     </div>
   </div>
+  <!-- 초대 코드 발급 모달 -->
+  <div v-if="showInviteCodeModal" class="modal fade show d-block" tabindex="-1">
+    <div class="modal-dialog text-center">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">프로젝트 초대</h5>
+          <button
+            type="button"
+            class="btn-close"
+            @click="closeInviteCodeModal"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-4">
+            초대 코드를 프로젝트에 초대하고자 하는 사용자에게 공유하세요. <br />
+            초대 코드는 <strong>5분 동안</strong> 유효합니다.
+          </p>
+          <div class="display-4 fw-bold">{{ inviteCode }}</div>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button class="btn btn-dark w-100" type="button" @click="copyInviteCode">
+            복사
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
+import useClipboard from 'vue-clipboard3'
 import CommonModal from "./layouts/CommonModal.vue";
 import RecursiveFolderItem from "./RecursiveFolderItem.vue";
 
@@ -148,19 +180,34 @@ export default {
       searchQuery: "",
       selectedMethod: "",
       selectedType: "",
+      selectedFileId: null,
+      showInviteCodeModal: false,
+      inviteCode: "",
     };
   },
   methods: {
-    async fetchProjects() {
+    closeInviteCodeModal() {
+      this.showInviteCodeModal = false;
+    },
+    async fetchProjects(selectedProject = null) {
       try {
         const response = await this.$axios.get("/api/projects");
         this.localProjects = response.data;
 
-        // 첫 번째 프로젝트 자동 선택
+        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.localProjects.length > 0) {
-          this.localSelectedProject = this.localProjects[0].name;
-          this.fetchItems(); // 첫 번째 프로젝트의 아이템 불러오기
+          const selectProject = selectedProject
+            ? this.localProjects.find(
+                (project) => project.name === selectedProject.name
+              )
+            : this.localProjects[0];
+
+          if (selectProject) {
+            this.localSelectedProject = selectProject.name;
+          }
         }
+
+        this.fetchItems();
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
@@ -393,9 +440,10 @@ export default {
           name: this.newProjectName,
         });
         this.$emit("update-projects", response.data);
-        console.log(this.localProjects);
-        this.localSelectedProject = this.localProjects[0].name;
+        this.fetchProjects(response.data);
+        this.localSelectedProject = response.data.name;
         this.showNewProjectModal = false;
+        this.newProjectName = "";
       } catch (error) {
         console.error("Failed to create project:", error);
       }
@@ -456,12 +504,35 @@ export default {
       }
     },
     handleSelectionChange(selectedItem) {
-      if (selectedItem.type === "api") {
-        this.selectedFileId = selectedItem.id;
-      }
+      this.$emit("item-selected", selectedItem);
     },
     handleApiSelected(selectedTempApi) {
       this.$emit("api-selected", selectedTempApi);
+    },
+    async generateInviteCode() {
+      try {
+        const selectedProject = this.localProjects.find(
+          (project) => project.name === this.localSelectedProject
+        );
+
+        const response = await this.$axios.post("/api/projects/invite", {
+          projectId: selectedProject.id,
+        });
+
+        this.inviteCode = response.data.code;
+
+        // 모달 창 열기
+        this.showInviteCodeModal = true;
+      } catch (error) {
+        console.error("Failed to generate invite code:", error);
+        alert("초대 코드를 생성하는 중 오류가 발생했습니다.");
+      }
+    },
+    async copyInviteCode() {
+      const { toClipboard } = useClipboard();
+      // 초대 코드 복사
+      await toClipboard(this.inviteCode);
+      alert("초대 코드가 복사되었습니다.");
     },
   },
   mounted() {

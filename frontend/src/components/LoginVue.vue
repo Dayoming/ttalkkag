@@ -45,16 +45,18 @@
         </div>
         <button type="submit" class="btn btn-dark w-100 py-2">Login</button>
       </form>
-      <button
-        type="button"
-        class="kakao-login-btn w-100 mt-2"
-        @click="loginWithKakao"
-      ></button>
-      <button
-        type="button"
-        class="google-login-btn mt-2"
-        @click="loginWithGoogle"
-      ></button>
+      <div class="social-login-div mt-4">
+        <button
+          type="button"
+          class="kakao-login-btn"
+          @click="loginWithKakao"
+        ></button>
+        <button
+          type="button"
+          class="google-login-btn ms-2"
+          @click="loginWithGoogle"
+        ></button>
+      </div>
     </main>
   </div>
 </template>
@@ -179,18 +181,22 @@ h1 {
   border-top-right-radius: 0;
 }
 
+.social-login-div {
+  text-align: center;
+}
+
 .kakao-login-btn {
-  background: url(../assets/img/kakao_login_medium_wide.png) no-repeat;
+  background: url(../assets/img/kakao_login_icon.png) no-repeat;
   background-size: contain;
-  width: 100%;
+  width: 60px;
   height: 50px;
   border: 0;
 }
 
 .google-login-btn {
-  background: url(../assets/img/google_login_btn.jpg) no-repeat;
+  background: url(../assets/img/web_light_rd_na@2x.png) no-repeat;
   background-size: contain;
-  width: 99%;
+  width: 60px;
   height: 50px;
   border: 0;
 }

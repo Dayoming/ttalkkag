@@ -19,7 +19,16 @@
         WHERE project_id = #{projectId}
     </select>
 
-    <insert id="createSite">
+    <select id="getSiteById" parameterType="Long" resultType="Site">
+        SELECT
+            id AS id,
+            project_id AS projectId,
+            name AS name
+        FROM site
+        WHERE id = #{id}
+    </select>
+
+    <insert id="createSite" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO site (project_id, name, create_at)
         VALUES (#{projectId}, #{name}, NOW())
     </insert>

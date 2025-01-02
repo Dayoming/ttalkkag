@@ -4,6 +4,7 @@
       :propProjects="projects"
       :propSites="sites"
       :propEnvironments="environments"
+      :propSelectedProject="selectedProject"
       @logout="handleLogout"
       @project-selected="handleProjectSelected"
       @modal-setting-confirm="handleModalSettingConfirm"
@@ -18,6 +19,7 @@
           :savedItemId="savedItemId"
           :tempApi="selectedTempApi"
           :selectedProject="selectedProject"
+          :selectedItem="selectedItem"
           @select-temp-api="loadTempApi"
           @delete-projects="deleteProjects"
           @update-projects="updateProjects"
@@ -43,9 +45,12 @@
             @delete-projects="deleteProjects"
             @update-projects="updateProjects"
             @update-items="fetchItems"
+            @update-sites="fetchSites"
+            @update-environments="fetchEnvironments"
             @edit-request="handleEditRequest"
             @re-request="handleReRequest"
             @api-selected="handleApiSelected"
+            @item-selected="handleItemSelected"
             @refresh-sidebar="handleRefreshSidebar"
           />
           <div
@@ -80,8 +85,10 @@ export default {
     return {
       selectedTempApi: null, // 현재 선택된 API
       selectedProject: null, // 현재 선택된 프로젝트
+      selectedItem: null,
       selectedSite: null,
       selectedEnvironment: null,
+      selectedFileId: null,
       savedItemId: null,
       projects: [],
       sites: [],
@@ -130,8 +137,11 @@ export default {
         params: { tempApi: this.selectedTempApi }, // 라우터에 데이터 전달
       });
     },
-    handleRefreshSidebar(itemId) {
-      this.fetchItems();
+    handleItemSelected(selectedItem) {
+      this.selectedItem = selectedItem;
+    },
+    async handleRefreshSidebar(itemId) {
+      await this.fetchItems();
       // 저장이 되었을 때 해당 폴더에 인터랙션 적용
       if (itemId) {
         this.savedItemId = itemId;
@@ -170,10 +180,21 @@ export default {
     loadTempApi(loadTempApi) {
       this.selectedTempApi = loadTempApi;
     },
-    async fetchProjects() {
+    async fetchProjects(selectedProjectId = null) {
       try {
         const response = await this.$axios.get("/api/projects");
         this.projects = response.data;
+
+        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
+        if (this.projects.length > 0) {
+          const selectedProject = selectedProjectId
+            ? this.projects.find((project) => project.id === selectedProjectId)
+            : this.projects[0];
+
+          if (selectedProject) {
+            this.selectedProject = selectedProject;
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
@@ -197,9 +218,7 @@ export default {
         );
         this.sites = response.data; // 사이트 목록 저장
         this.fetchEnvironments();
-
-        // Site 선택 프로젝트 초기값
-        this.$emit("site-selected", this.selectedSite);
+        
       } catch (error) {
         console.error("사이트 목록을 가져오는 중 오류 발생:", error);
       }
@@ -210,7 +229,6 @@ export default {
           `/api/environments/${this.selectedSite.id}`
         );
         this.environments = response.data; // 환경 목록 저장
-        // 첫 번째 요소를 자동 선택
       } catch (error) {
         console.error("Failed to fetch environments:", error);
       }

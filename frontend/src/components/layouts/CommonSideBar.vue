@@ -222,6 +222,7 @@ export default {
     selectedProject: Object,
     items: Array,
     savedItemId: Number,
+    selectedItem: Object,
   },
   data() {
     return {
@@ -255,6 +256,11 @@ export default {
     items: {
       handler(newItems) {
         this.localItems = newItems;
+      },
+    },
+    selectedItem: {
+      handler() {
+        this.handleSelectionChange(this.selectedItem);
       },
     },
   },

@@ -282,30 +282,48 @@ export default {
       this.selectedVariableKey = variableKey;
       this.showDeleteEnvironment = true;
     },
-    async fetchSites() {
+    async fetchSites(selectedSiteId = null) {
       try {
         const response = await this.$axios.get(
           `/api/environments/sites/${this.selectedProject.id}`
         );
         this.sites = response.data; // 사이트 목록 저장
+
+        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.sites.length > 0) {
-          this.selectedSite = this.sites[0];
+          const selectSite = selectedSiteId
+            ? this.sites.find((site) => site.id === selectedSiteId)
+            : this.sites[0];
+
+          if (selectSite) {
+            this.selectedSite = selectSite;
+          }
         }
+
         this.fetchEnvironments();
       } catch (error) {
         console.error("사이트 목록을 가져오는 중 오류 발생:", error);
       }
     },
-    async fetchEnvironments() {
+    async fetchEnvironments(selectedEnvironmentId = null) {
       try {
         this.selectedEnvironment = "";
         const response = await this.$axios.get(
           `/api/environments/${this.selectedSite.id}`
         );
         this.environments = response.data; // 환경 목록 저장
+
+        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.environments.length > 0) {
-          this.selectedEnvironment = this.environments[0];
+          const selectEnvironment = selectedEnvironmentId
+            ? this.environments.find((environment) => environment.id === selectedEnvironmentId)
+            : this.environments[0];
+
+          if (selectEnvironment) {
+            this.selectedEnvironment = selectEnvironment;
+          }
         }
+
       } catch (error) {
         console.error("Failed to fetch environments:", error);
       }
@@ -359,7 +377,8 @@ export default {
         }
         this.showAddEnvironment = false; // 모달 닫기
         alert("환경이 성공적으로 추가되었습니다.");
-        this.fetchEnvironments(); // 환경 목록 갱신
+        this.$emit("update-environments");
+        this.fetchEnvironments(newEnvironmentId); // 환경 목록 갱신
       } catch (error) {
         console.error("환경 추가 실패", error);
       }
@@ -380,12 +399,13 @@ export default {
       }
 
       try {
-        await this.$axios.post(`/api/environments/site`, {
+        const createSite = await this.$axios.post(`/api/environments/site`, {
           projectId: this.selectedProject.id,
           name: this.newSiteName,
         });
         this.closeSiteModal();
-        this.fetchSites(); // 사이트 목록 갱신
+        this.fetchSites(createSite.data.id); // 사이트 목록 갱신
+        this.$emit("update-sites");
         alert("사이트가 성공적으로 추가되었습니다.");
       } catch (error) {
         console.error("사이트 추가 중 오류 발생:", error);

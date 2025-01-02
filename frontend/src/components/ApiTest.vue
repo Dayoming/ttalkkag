@@ -65,12 +65,14 @@
           >
             <i class="bi bi-stop-fill"></i>Wait...
           </button>
-          <div
-            v-if="isSaving"
-            class="spinner-border spinner-border-sm ms-2"
-            role="status"
-          >
-            <span class="visually-hidden">Loading...</span>
+          <div class="spinner-container">
+            <div
+              v-if="isSaving"
+              class="spinner-border spinner-border-sm ms-2"
+              role="status"
+            >
+              <span class="visually-hidden">Loading...</span>
+            </div>
           </div>
         </form>
       </div>
@@ -811,11 +813,25 @@ export default {
       }
       this.autoSaveDelayTimer = setTimeout(async () => {
         if (this.hasChanges) {
-          this.isSaving = true;
-          await this.saveApiData(); // 자동 저장 실행
+          this.showSpinnerAndSave();
           this.hasChanges = false; // 변경 상태 초기화
         }
       }, autoSaveTermMs);
+    },
+    // 스피너를 보여준 후 저장 작업 실행
+    showSpinnerAndSave() {
+      this.isSaving = true;
+
+      // 1초 대기 후 저장 작업 실행
+      setTimeout(async () => {
+        try {
+          await this.saveApiData(); // 자동 저장 실행
+        } catch (error) {
+          console.error("자동 저장 중 오류 발생:", error);
+        } finally {
+          this.isSaving = false; // 스피너 숨김
+        }
+      }, 1000);
     },
     async saveApiData() {
       try {
@@ -894,7 +910,7 @@ export default {
           this.apiId = savedApi.id;
           this.itemId = Number(project.data.id);
           this.hasChanges = false; // 저장 완료 후 상태 초기화
-          this.$emit("refresh-sidebar");
+          this.$emit("refresh-sidebar", this.itemId);
           console.log("자동 저장 완료");
         }
       } catch (error) {
@@ -911,39 +927,82 @@ export default {
       }
 
       try {
-        const project = await this.$axios.post(
-          "/api/projects/add-api",
-          {
-            projectId: Number(this.selectedProject.id),
-            parentId: this.autoSavePath,
-            type: "api",
+        if (this.apiId !== "") {
+          const project = await this.$axios.patch(
+            "/api/projects/update/projectItemName",
+            {
+              id: this.itemId,
+              projectId: Number(this.selectedProject.id),
+              parentId: this.autoSavePath,
+              type: "api",
+              name: this.apiName || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
+
+          const apiData = {
             name: this.apiName || "TempAPI",
-            depth: 1,
-          },
-          { showSpinner: false }
-        );
+            itemId: Number(project.data.id),
+            method: this.method,
+            url: this.url,
+            headers: JSON.stringify(this.headers),
+            queryParameters: JSON.stringify(this.queryParameters),
+            formParameters: JSON.stringify(this.formParameters),
+            file: this.file,
+            selectedBodyType: this.selectedBodyType,
+            selectedEnvironment: this.selectedEnvironment,
+          };
 
-        const apiData = {
-          name: this.apiName || "TempAPI",
-          itemId: Number(project.data.id),
-          method: this.method,
-          url: this.url,
-          headers: JSON.stringify(this.headers),
-          queryParameters: JSON.stringify(this.queryParameters),
-          formParameters: JSON.stringify(this.formParameters),
-          file: this.file,
-          selectedBodyType: this.selectedBodyType,
-          selectedEnvironment: this.selectedEnvironment,
-        };
+          await this.$axios.patch(
+            "/api/apis",
+            {
+              id: this.apiId,
+              ...apiData,
+            },
+            { showSpinner: false }
+          );
 
-        this.resetInputs();
+          this.resetInputs();
+          
+          this.hasChanges = false; // 저장 완료 후 상태 초기화
+          this.$emit("refresh-sidebar", this.itemId);
+          console.log("자동 저장 완료");
+        } else {
+          const project = await this.$axios.post(
+            "/api/projects/add-api",
+            {
+              projectId: Number(this.selectedProject.id),
+              parentId: this.autoSavePath,
+              type: "api",
+              name: this.apiName || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
 
-        await this.$axios.post("/api/apis", apiData, { showSpinner: false });
-        this.hasChanges = false; // 저장 완료 후 상태 초기화
-        this.apiId = "";
-        this.itemId = "";
-        this.$emit("refresh-sidebar");
-        console.log("저장 완료");
+          const apiData = {
+            name: this.apiName || "TempAPI",
+            itemId: Number(project.data.id),
+            method: this.method,
+            url: this.url,
+            headers: JSON.stringify(this.headers),
+            queryParameters: JSON.stringify(this.queryParameters),
+            formParameters: JSON.stringify(this.formParameters),
+            file: this.file,
+            selectedBodyType: this.selectedBodyType,
+            selectedEnvironment: this.selectedEnvironment,
+          };
+
+          this.resetInputs();
+
+          await this.$axios.post("/api/apis", apiData, { showSpinner: false });
+          this.$emit("refresh-sidebar", this.itemId);
+          this.hasChanges = false; // 저장 완료 후 상태 초기화
+          this.apiId = "";
+          this.itemId = "";
+          console.log("저장 완료");
+        }
       } catch (error) {
         console.log("Failed save projectItem: " + error);
         alert("API 저장에 실패했습니다.");
@@ -980,8 +1039,9 @@ export default {
       this.currentTab = tab;
     },
     updateSavedProject(newApis) {
-      this.$emit("update-items");
+      this.$emit("refresh-sidebar", newApis.data.itemId);
       this.buildApiPath(newApis.itemId);
+      
       this.showSaveModal = false;
     },
     resolveTemplateVariables(template) {
@@ -1188,8 +1248,8 @@ export default {
 
       const newLog = {
         projectId: this.selectedProject.id,
-        environmentId: this.selectedEnvironment,
-        siteId: this.selectedSite,
+        environmentId: this.propSelectedEnvironment.id,
+        siteId: this.propSelectedSite.id,
         method: this.method,
         url: matchUrl,
         responseCode: response.status,
@@ -1202,6 +1262,8 @@ export default {
         responseBody: JSON.stringify(response.data, null, 2),
         responseHeader: JSON.stringify(response.headers, null, 2),
       };
+
+      console.log(newLog);
 
       // 서버에 기록 저장 API 호출
       this.$axios.post("/api/history", newLog);
@@ -1410,6 +1472,7 @@ export default {
 
 <style scoped>
 .api-tester {
+  width: 95%;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -1504,8 +1567,18 @@ textarea {
 
 .spinner-border {
   position: revert;
-  width: 30px;
+  width: 25px;
   height: 25px;
   margin-top: 5px;
+  visibility: visible;
+}
+
+.spinner-container {
+  width: 45px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
 }
 </style>

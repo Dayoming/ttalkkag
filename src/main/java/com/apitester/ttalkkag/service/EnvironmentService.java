@@ -36,7 +36,6 @@ public class EnvironmentService {
     }
 
     public void createVariable(EnvironmentVariable variable) {
-        System.out.println("variable: " + variable);
         variableMapper.insertVariable(variable);
     }
 
@@ -56,8 +55,9 @@ public class EnvironmentService {
         return environmentMapper.getEnvironments(siteId);
     }
 
-    public void createSite(Site site) {
+    public Site createSite(Site site) {
         environmentMapper.createSite(site);
+        return environmentMapper.getSiteById(site.getId());
     }
 
     public void deleteSite(Long id) {

@@ -29,8 +29,8 @@ public class EnvironmentController {
     }
 
     @PostMapping("/site")
-    public void createSite(@RequestBody Site site) {
-        environmentService.createSite(site);
+    public Site createSite(@RequestBody Site site) {
+        return environmentService.createSite(site);
     }
 
     @PostMapping
