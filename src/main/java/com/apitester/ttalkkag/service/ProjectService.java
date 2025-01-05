@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -72,7 +73,7 @@ public class ProjectService {
     }
 
     public void addFolder(ProjectItems projectItems) {
-        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId());
+        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
 
         ProjectItems newFolder = new ProjectItems();
         newFolder.setProjectId(projectItems.getProjectId());
@@ -89,7 +90,7 @@ public class ProjectService {
     }
 
     public ProjectItems addProjectItemApi(ProjectItems projectItems) {
-        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId());
+        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
         ProjectItems newApi = new ProjectItems();
         newApi.setProjectId(projectItems.getProjectId());
         newApi.setParentId(projectItems.getParentId());
@@ -123,10 +124,14 @@ public class ProjectService {
         ProjectItems updatedProjectItem = projectMapper.getProjectItemsById(projectItems.getId());
         notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update itemName");
         // 업데이트된 객체 조회
-        return updatedProjectItem;
+        return projectMapper.getProjectItemsById(projectItems.getId());
     }
 
     public void updateParentId(ProjectItems projectItems) {
+        Long projectId = projectMapper.getItemByItemId(projectItems.getId()).getProjectId();
+        Integer itemOrder = projectMapper.getNextItemOrder(projectId, projectItems.getParentId());
+        projectItems.setItemOrder(itemOrder);
+
         projectMapper.updateParentId(projectItems);
         ProjectItems updatedProjectItem = projectMapper.getItemByItemId(projectItems.getId());
         notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update parentId");
@@ -138,13 +143,21 @@ public class ProjectService {
         notificationService.notifyProjectParticipants(item.getProjectId(), "delete folder");
     }
 
-    public void updateItemOrder(Long parentId, List<Map<String, Object>> items) {
-        items.forEach(item -> {
-            Long id = Long.valueOf(item.get("id").toString());
-            Integer order = Integer.valueOf(item.get("order").toString());
-            projectMapper.updateItemOrder(parentId, id, order);
-        });
+    @Transactional
+    public void updateItemOrder(Long draggedItemId, Long targetParentId, Integer targetOrder) {
+        // 1. 대상 parent_id와 item_order 업데이트
+        ProjectItems item = projectMapper.getItemByItemId(draggedItemId);
+        projectMapper.incrementItemOrder(targetParentId, targetOrder, item.getProjectId());
+
+        // 2. 드래그된 요소 업데이트
+        projectMapper.updateItemOrder(draggedItemId, targetOrder, targetParentId);
+
+        // 3. 알림 전송 (선택)
+        ProjectItems updatedItem = projectMapper.getItemByItemId(draggedItemId);
+        notificationService.notifyProjectParticipants(updatedItem.getProjectId(), "update parentId");
     }
+
+
     public ProjectItems getItemByItemId(Long itemId) {
         return projectMapper.getItemByItemId(itemId);
     }

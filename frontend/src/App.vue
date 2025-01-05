@@ -34,8 +34,6 @@
         />
         <main
           class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents"
-          @dragover.prevent
-          @drop="handleDropOutside"
         >
           <router-view
             :projects="projects"
@@ -51,6 +49,7 @@
             :isSetting="isSetting"
             :message="message"
             :apiSelections="apiSelections"
+            @drop-item="handleDropOutside"
             @temp-save-api="saveTempApi"
             @delete-projects="deleteProjects"
             @update-projects="updateProjects"
@@ -184,7 +183,6 @@ export default {
     },
     async handleDropOutside(event) {
       if (this.projectAuth === "read") {
-        console.log("App");
         alert("폴더나 파일 이동 권한이 없습니다.");
         return;
       }
@@ -513,7 +511,7 @@ export default {
               message.body === "update parentId" ||
               message.body === "update itemName"
             ) {
-              this.fetchItems();
+              await this.fetchItems();
             }
 
             if (message.body === "api select") {

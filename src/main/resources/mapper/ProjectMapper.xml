@@ -162,6 +162,20 @@
         )
     </insert>
 
+    <select id="getNextItemOrder" resultType="int">
+        SELECT IFNULL(MAX(item_order), 0) + 1
+        FROM project_items
+        WHERE
+        <choose>
+            <when test="parentId != null">
+                parent_id = #{parentId}
+            </when>
+            <otherwise>
+                parent_id IS NULL AND project_id = #{projectId}
+            </otherwise>
+        </choose>
+    </select>
+
     <insert id="insertParticipant" parameterType="ProjectParticipants" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_participants (
         project_id,
@@ -211,12 +225,6 @@
             expiry_time AS expiryTime
         FROM invite_code
         WHERE code = #{code}
-    </select>
-
-    <select id="getNextItemOrder" parameterType="long" resultType="int">
-        SELECT COALESCE(MAX(item_order), 0) + 1
-        FROM project_items
-        WHERE parent_id = #{parentId}
     </select>
 
     <insert id="insertApi" parameterType="ProjectItems">
@@ -303,23 +311,40 @@
 
     <update id="updateProjectItem" parameterType="ProjectItems">
         UPDATE project_items SET
-            name = #{name}
+            name = #{name},
             parentId = #{parentId}
         WHERE id = #{id}
     </update>
 
     <update id="updateParentId" parameterType="projectItems">
         UPDATE project_items SET
-            parent_id = #{parentId}
+            parent_id = #{parentId},
+            item_order = #{itemOrder}
         WHERE id = #{id}
     </update>
 
+    <update id="incrementItemOrder" parameterType="map">
+        UPDATE project_items
+        SET item_order = item_order + 1
+        WHERE
+        <choose>
+            <!-- parent_id가 null이 아닌 경우 -->
+            <when test="targetParentId != null">
+                parent_id = #{targetParentId}
+            </when>
+            <!-- parent_id가 null인 경우 project_id 조건 사용 -->
+            <otherwise>
+                parent_id IS NULL AND project_id = #{projectId}
+            </otherwise>
+        </choose>
+        AND item_order >= #{targetOrder}
+    </update>
+
     <update id="updateItemOrder" parameterType="map">
-        <foreach collection="items" item="item" index="index" separator=";">
-            UPDATE project_items
-            SET item_order = #{item.order}
-            WHERE id = #{item.id} AND parent_id = #{parentId}
-        </foreach>
+        UPDATE project_items
+        SET item_order = #{targetOrder},
+        parent_id = #{targetParentId}
+        WHERE id = #{draggedItemId}
     </update>
 
 </mapper>

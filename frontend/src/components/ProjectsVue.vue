@@ -81,8 +81,18 @@
           <option value="PATCH">PATCH</option>
         </select>
       </div>
-      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
-      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
+      <button
+        v-if="projectAuth === 'write'"
+        class="btn btn-dark me-2"
+        @click="addFolder"
+      >
+        새 폴더 추가
+      </button>
+      <button
+        v-if="projectAuth === 'write'"
+        class="btn btn-dark me-2"
+        @click="this.$router.push('/test-api')"
+      >
         새 요청 추가
       </button>
       <button
@@ -117,7 +127,11 @@
       </button>
     </div>
     <!-- 테이블 -->
-    <div class="table-responsive mt-4">
+    <div
+      class="table-responsive mt-4"
+      @dragover.prevent
+      @drop="handleDropOutside"
+    >
       <table class="table table-borderless">
         <th>API명/폴더명</th>
         <th>URL</th>
@@ -260,7 +274,13 @@ export default {
     CommonModal,
     RecursiveFolderItem,
   },
-  props: ["projects", "selectedProject", "items", "projectAuth", "apiSelections"],
+  props: [
+    "projects",
+    "selectedProject",
+    "items",
+    "projectAuth",
+    "apiSelections",
+  ],
   data() {
     return {
       localProjects: [],
@@ -545,7 +565,6 @@ export default {
         );
 
         this.participants = updatedParticipants; // 업데이트된 데이터를 저장
-
       } catch (error) {
         console.error("Failed to fetch participants: ", error);
       }
@@ -672,6 +691,9 @@ export default {
     },
     handleApiSelected(selectedTempApi) {
       this.$emit("api-selected", selectedTempApi);
+    },
+    handleDropOutside(event) {
+      this.$emit("drop-item", event);
     },
     async generateInviteCode() {
       try {

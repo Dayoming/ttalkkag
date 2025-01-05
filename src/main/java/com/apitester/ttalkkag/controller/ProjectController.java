@@ -1,5 +1,6 @@
 package com.apitester.ttalkkag.controller;
 
+import com.apitester.ttalkkag.dto.ItemOrderUpdateRequest;
 import com.apitester.ttalkkag.dto.Project;
 import com.apitester.ttalkkag.dto.ProjectItems;
 import com.apitester.ttalkkag.dto.ProjectParticipants;
@@ -117,10 +118,12 @@ public class ProjectController {
     }
 
     @PatchMapping("/update/itemOrder")
-    public void updateItemOrder(@RequestBody Map<String, Object> payload) {
-        Long parentId = Long.valueOf(payload.get("parentId").toString());
-        List<Map<String, Object>> items = (List<Map<String, Object>>) payload.get("items");
-        projectService.updateItemOrder(parentId, items);
+    public void updateItemOrder(@RequestBody ItemOrderUpdateRequest request) {
+        projectService.updateItemOrder(
+                request.getDraggedItemId(),
+                request.getTargetParentId(),
+                request.getTargetOrder()
+        );
     }
 
 

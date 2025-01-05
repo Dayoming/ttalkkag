@@ -7,6 +7,7 @@ import com.apitester.ttalkkag.dto.ProjectParticipants;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ProjectMapper {
@@ -30,10 +31,10 @@ public interface ProjectMapper {
     void insertParticipant(ProjectParticipants participant);
     void updateProjectItemName(ProjectItems projectItems);
     void updateParentId(ProjectItems projectItems);
-    void updateItemOrder(Long parentId, Long id, Integer order);
     void updateInviteCode(InviteCode code);
     void updateParticipant(Long projectId, ProjectParticipants participant);
-    Integer getNextItemOrder(Long projectId);
+    Integer getNextItemOrder(Long projectId, Long parentId);
     ProjectItems getItemByItemId(Long itemId);
-
+    void incrementItemOrder(Long targetParentId, Integer targetOrder, Long projectId);
+    void updateItemOrder(Long draggedItemId, Integer targetOrder, Long targetParentId);
 }
