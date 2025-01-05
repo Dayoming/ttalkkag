@@ -18,7 +18,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @PostMapping("/setting")
+    @PutMapping("/setting")
     public Map<String, Object> settingUser(@AuthenticationPrincipal String userEmail, @RequestBody User user) {
         Map<String, Object> response = new HashMap<>();
         try {
@@ -39,6 +39,14 @@ public class UserController {
     public Map<String, Object> findUserByEmail(@AuthenticationPrincipal String userEmail) {
         Map<String, Object> response = new HashMap<>();
         User user = userService.findUserByEmail(userEmail);
+        response.put("user", user);
+        return response;
+    }
+
+    @GetMapping("/findById/{id}")
+    public Map<String, Object> findUserById(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        User user = userService.findUserById(id);
         response.put("user", user);
         return response;
     }

@@ -2,6 +2,7 @@ package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.Project;
 import com.apitester.ttalkkag.dto.ProjectItems;
+import com.apitester.ttalkkag.dto.ProjectParticipants;
 import com.apitester.ttalkkag.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -109,7 +110,6 @@ public class ProjectController {
         Map<String, Object> response = new HashMap<>();
         try {
             projectService.updateParentId(projectItems);
-            System.out.println(projectItems);
         } catch (Exception e) {
             response.put("errorMessage", "경로 변경에 실패했습니다.");
         }
@@ -155,6 +155,29 @@ public class ProjectController {
         Map<String, Object> response = new HashMap<>();
         projectService.saveApi(item);
         response.put("message", "API가 정상적으로 저장되었습니다.");
+        return response;
+    }
+
+    // 특정 프로젝트 참여자 조회
+    @GetMapping("/{projectId}/participants")
+    public List<ProjectParticipants> getParticipants(@PathVariable Long projectId) {
+        List<ProjectParticipants> participants = projectService.getParticipantsByProjectId(projectId);
+        return participants;
+    }
+
+    // 특정 프로젝트의 특정 참여자 정보 조회
+    @GetMapping("/{projectId}/{userId}/participants")
+    public ProjectParticipants getParticipantByProjectIdAndUserId(@PathVariable Long projectId, @PathVariable Long userId) {
+        ProjectParticipants participant = projectService.getParticipantByProjectIdAndUserId(projectId, userId);
+        return participant;
+    }
+
+    // 특정 프로젝트 참여자 권한 수정
+    @PostMapping("/{projectId}/participants")
+    public Map<String, Object> updateParticipants(@PathVariable Long projectId, @RequestBody List<ProjectParticipants> participants) {
+        projectService.updateParticipants(projectId, participants);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "권한이 업데이트 되었습니다.");
         return response;
     }
 

@@ -92,7 +92,7 @@ public class AuthController {
 
         User user = userMapper.findByEmail(email);
 
-        if (user.getSocialProvider() != null) {
+        if (user != null && user.getSocialProvider() != null) {
             response.put("errorMessage", "해당 계정은 소셜 로그인 계정입니다. 다시 확인해 주세요.");
             return response;
         }

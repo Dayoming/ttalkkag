@@ -24,7 +24,7 @@
         <button class="btn btn-dark me-2" @click="showNewProjectModal = true">
           New Project
         </button>
-        <button class="btn btn-dark" @click="deleteProject">
+        <button v-if="isMyProject" class="btn btn-dark" @click="deleteProject">
           Delete Project
         </button>
       </div>
@@ -81,12 +81,23 @@
           <option value="PATCH">PATCH</option>
         </select>
       </div>
-      <button class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
-      <button class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
+      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="addFolder">새 폴더 추가</button>
+      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
         새 요청 추가
       </button>
-      <button class="btn btn-dark" @click="generateInviteCode">
+      <button
+        v-if="isMyProject"
+        class="btn btn-dark me-2"
+        @click="generateInviteCode"
+      >
         프로젝트 초대
+      </button>
+      <button
+        v-if="isMyProject"
+        class="btn btn-dark"
+        @click="manageParticipants"
+      >
+        참여자 관리
       </button>
     </div>
 
@@ -118,6 +129,8 @@
             :item="item"
             :depth="0"
             :selected-file-id="selectedFileId"
+            :projectAuth="projectAuth"
+            :apiSelections="apiSelections"
             @selection-change="handleSelectionChange"
             @toggle-folder="toggleFolder"
             @update-items="$emit('update-items')"
@@ -147,8 +160,88 @@
           <div class="display-4 fw-bold">{{ inviteCode }}</div>
         </div>
         <div class="modal-footer justify-content-center">
-          <button class="btn btn-dark w-100" type="button" @click="copyInviteCode">
+          <button
+            class="btn btn-dark w-100"
+            type="button"
+            @click="copyInviteCode"
+          >
             복사
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 참여자 관리 모달 -->
+  <div
+    v-if="showManageParticipantsModal"
+    class="modal fade show d-block"
+    tabindex="-1"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">참여자 관리</h5>
+          <button
+            type="button"
+            class="btn-close"
+            @click="this.showManageParticipantsModal = false"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <template v-if="participants.length > 0">
+            <div
+              v-for="participant in participants"
+              :key="participant.id"
+              class="d-flex align-items-center mb-3"
+            >
+              <img
+                src="../assets/icon/profile-default-icon.png"
+                class="rounded-circle me-2"
+                width="40"
+                height="40"
+              />
+              <div>
+                <p class="mb-0">{{ participant.email }}</p>
+                <div>
+                  <label>
+                    <input
+                      type="radio"
+                      :value="'read'"
+                      v-model="participant.permissionLevel"
+                    />
+                    읽기
+                  </label>
+                  <label class="ms-2">
+                    <input
+                      type="radio"
+                      :value="'write'"
+                      v-model="participant.permissionLevel"
+                    />
+                    수정
+                  </label>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <p>참여자가 없습니다.</p>
+          </template>
+        </div>
+        <div class="modal-footer">
+          <button
+            v-if="participants.length > 0"
+            class="btn btn-dark w-100"
+            @click="saveParticipants"
+          >
+            저장
+          </button>
+          <button
+            v-else
+            class="btn btn-secondary"
+            @click="this.showManageParticipantsModal = false"
+          >
+            확인
           </button>
         </div>
       </div>
@@ -157,7 +250,7 @@
 </template>
 
 <script>
-import useClipboard from 'vue-clipboard3'
+import useClipboard from "vue-clipboard3";
 import CommonModal from "./layouts/CommonModal.vue";
 import RecursiveFolderItem from "./RecursiveFolderItem.vue";
 
@@ -167,7 +260,7 @@ export default {
     CommonModal,
     RecursiveFolderItem,
   },
-  props: ["projects", "selectedProject", "items"],
+  props: ["projects", "selectedProject", "items", "projectAuth", "apiSelections"],
   data() {
     return {
       localProjects: [],
@@ -182,7 +275,11 @@ export default {
       selectedType: "",
       selectedFileId: null,
       showInviteCodeModal: false,
+      showManageParticipantsModal: false,
       inviteCode: "",
+      userId: null,
+      isMyProject: false,
+      participants: null,
     };
   },
   methods: {
@@ -210,6 +307,14 @@ export default {
         this.fetchItems();
       } catch (error) {
         console.error("Failed to fetch projects:", error);
+      }
+    },
+    async loadUserId() {
+      try {
+        const response = await this.$axios.get("/api/user/findUserByEmail");
+        this.userId = response.data.user.id;
+      } catch (error) {
+        console.log("load User Id Failed: " + error);
       }
     },
     async fetchItems() {
@@ -248,6 +353,14 @@ export default {
             return { ...item }; // `type`이 `api`가 아닌 경우 그대로 반환
           })
         );
+
+        if (selectedProject.userId === this.userId) {
+          this.isMyProject = true;
+        } else {
+          this.isMyProject = false;
+        }
+
+        this.fetchParticipants(selectedProject.id);
 
         this.localItems = this.buildTreeStructure(updatedItems); // 최상위 항목만 로드
         this.expandAll(this.localItems);
@@ -403,6 +516,57 @@ export default {
       this.updateKey++; // 화면 갱신
     },
 
+    async fetchParticipants(projectId) {
+      try {
+        const response = await this.$axios.get(
+          `/api/projects/${projectId}/participants`
+        );
+        const participants = response.data;
+
+        // 각 userId로 이메일 조회 및 병합
+        const updatedParticipants = await Promise.all(
+          participants.map(async (participant) => {
+            try {
+              const emailResponse = await this.$axios.get(
+                `/api/user/findById/${participant.userId}`
+              );
+              return {
+                ...participant, // 기존 데이터 복사
+                email: emailResponse.data.user.email, // 이메일 추가
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch email for userId ${participant.userId}: `,
+                error
+              );
+              return participant; // 이메일을 가져오지 못한 경우 기존 데이터 유지
+            }
+          })
+        );
+
+        this.participants = updatedParticipants; // 업데이트된 데이터를 저장
+
+      } catch (error) {
+        console.error("Failed to fetch participants: ", error);
+      }
+    },
+    async saveParticipants() {
+      try {
+        const selectedProject = this.localProjects.find(
+          (project) => project.name === this.localSelectedProject
+        );
+
+        await this.$axios.post(
+          `/api/projects/${selectedProject.id}/participants`,
+          this.participants
+        );
+        alert("변경 사항이 저장되었습니다.");
+        this.showManageParticipantsModal = false;
+      } catch (error) {
+        console.error("Failed to save participants:", error);
+        alert("저장 중 오류가 발생했습니다.");
+      }
+    },
     findFolderById(folderId, items) {
       for (const item of items) {
         if (item.id === folderId) {
@@ -533,10 +697,15 @@ export default {
       // 초대 코드 복사
       await toClipboard(this.inviteCode);
       alert("초대 코드가 복사되었습니다.");
+      this.showInviteCodeModal = false;
+    },
+    async manageParticipants() {
+      this.showManageParticipantsModal = true;
     },
   },
   mounted() {
     this.fetchProjects();
+    this.loadUserId();
   },
   watch: {
     // 부모에서 전달받은 projects가 변경되면 localProjects도 동기화
@@ -554,7 +723,6 @@ export default {
     },
     items: {
       handler(newItems) {
-        console.log(newItems);
         this.localItems = newItems;
         this.fetchItems();
       },

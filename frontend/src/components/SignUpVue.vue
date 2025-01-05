@@ -24,6 +24,7 @@
             class="form-control"
             placeholder="이메일을 입력해 주세요."
             v-model="email"
+            @keyup.enter="sendCode"
           />
           <button
             class="btn btn-dark"

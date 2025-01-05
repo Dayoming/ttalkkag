@@ -19,6 +19,8 @@ public interface ProjectMapper {
     InviteCode getInviteCodeByProjectId(Long projectId);
     InviteCode findByCode(String code);
     ProjectParticipants getParticipantsById(Long id);
+    ProjectParticipants getParticipantByProjectIdAndUserId(Long projectId, Long userId);
+    List<ProjectParticipants> getParticipantsByProjectId(Long projectId);
     void insertProject(Project project);
     void insertApi(ProjectItems item);
     void deleteProject(Long id);
@@ -30,6 +32,7 @@ public interface ProjectMapper {
     void updateParentId(ProjectItems projectItems);
     void updateItemOrder(Long parentId, Long id, Integer order);
     void updateInviteCode(InviteCode code);
+    void updateParticipant(Long projectId, ProjectParticipants participant);
     Integer getNextItemOrder(Long projectId);
     ProjectItems getItemByItemId(Long itemId);
 

@@ -440,6 +440,7 @@ export default {
   name: "ApiTest",
   components: { SaveModal, DatasetModal, SiteEnvironmentModal },
   props: {
+    projectAuth: String,
     selectedProject: Object,
     propSelectedSite: Object,
     propSelectedEnvironment: Object,
@@ -449,6 +450,7 @@ export default {
     modalSelectedEnvironment: Object,
     isSetting: Boolean,
     items: Array,
+    updatedTempApi: Array,
   },
   data() {
     return {
@@ -527,12 +529,19 @@ export default {
         body: "",
       };
       this.errorMessage = "";
+      this.$emit("item-selected", null);
     },
     openSaveModal() {
       if (this.apiName === "") {
         alert("API 이름을 입력해 주세요.");
         return;
       }
+
+      if (this.projectAuth === "read") {
+        alert("저장 권한이 없습니다.");
+        return;
+      }
+
       this.isLoad = false;
       this.showSaveModal = true;
     },
@@ -722,6 +731,9 @@ export default {
         alert("API 이름을 입력해주세요.");
         return;
       }
+      if (this.projectAuth === 'read') {
+        return;
+      }
       // 현재 데이터를 App.vue로 전달
       this.$emit("temp-save-api", {
         name: this.apiName,
@@ -791,7 +803,7 @@ export default {
     },
     triggerAutoSave() {
       if (!this.autoSaveUse) return; // 자동 저장 사용 안 할 경우
-
+      if (this.projectAuth === 'read') return; // 권한이 read인 경우
       const autoSaveTimeMs = this.autoSaveTime * 1000; // 초 → 밀리초 변환
       const autoSaveTermMs = this.autoSaveTerm * 1000;
 
@@ -834,6 +846,7 @@ export default {
       }, 1000);
     },
     async saveApiData() {
+      if (this.projectAuth === 'read') return;
       try {
         // this.apiId가 있는 경우(이미 저장된 파일의 경우) 업데이트
         if (this.apiId !== "") {
@@ -852,7 +865,7 @@ export default {
 
           const apiData = {
             name: this.apiName || "TempAPI",
-            itemId: Number(project.data.id),
+            itemId: Number(project.data.updatedItem.id),
             method: this.method,
             url: this.url,
             headers: JSON.stringify(this.headers),
@@ -907,7 +920,8 @@ export default {
           const savedApi = await this.$axios.post("/api/apis", apiData, {
             showSpinner: false,
           });
-          this.apiId = savedApi.id;
+
+          this.apiId = savedApi.data.id;
           this.itemId = Number(project.data.id);
           this.hasChanges = false; // 저장 완료 후 상태 초기화
           this.$emit("refresh-sidebar", this.itemId);
@@ -923,6 +937,11 @@ export default {
     async saveApiDataPlus() {
       if (this.apiName === "") {
         alert("API 이름을 입력해 주세요.");
+        return;
+      }
+
+      if (this.projectAuth === 'read') {
+        this.resetInputs();
         return;
       }
 
@@ -943,7 +962,7 @@ export default {
 
           const apiData = {
             name: this.apiName || "TempAPI",
-            itemId: Number(project.data.id),
+            itemId: Number(project.data.updatedItem.id),
             method: this.method,
             url: this.url,
             headers: JSON.stringify(this.headers),
@@ -981,9 +1000,11 @@ export default {
             { showSpinner: false }
           );
 
+          console.log(project);
+
           const apiData = {
             name: this.apiName || "TempAPI",
-            itemId: Number(project.data.id),
+            itemId: Number(project.data.updatedItem.id),
             method: this.method,
             url: this.url,
             headers: JSON.stringify(this.headers),
@@ -1248,8 +1269,8 @@ export default {
 
       const newLog = {
         projectId: this.selectedProject.id,
-        environmentId: this.propSelectedEnvironment.id,
-        siteId: this.propSelectedSite.id,
+        environmentId: this.propSelectedEnvironment?.id || null,
+        siteId: this.propSelectedSite?.id || null,
         method: this.method,
         url: matchUrl,
         responseCode: response.status,
@@ -1262,8 +1283,6 @@ export default {
         responseBody: JSON.stringify(response.data, null, 2),
         responseHeader: JSON.stringify(response.headers, null, 2),
       };
-
-      console.log(newLog);
 
       // 서버에 기록 저장 API 호출
       this.$axios.post("/api/history", newLog);
@@ -1436,9 +1455,36 @@ export default {
             body: "",
           };
         }
-        console.log(this.apiId);
       },
       immediate: true, // 초기에도 실행
+    },
+    updatedTempApi: {
+      async handler(newTempApi) {
+        if (newTempApi) {
+          this.apiId = newTempApi.id;
+          this.itemId = newTempApi.itemId;
+          this.apiPath = await this.buildApiPath(newTempApi.itemId); // 경로 설정
+          this.apiName = newTempApi.name || "";
+          this.method = newTempApi.method || "GET";
+          this.url = newTempApi.url || "";
+          this.headers = JSON.parse(newTempApi.headers) || [
+            { key: "", value: "" },
+          ];
+          this.queryParameters = JSON.parse(newTempApi.queryParameters) || [
+            { key: "", value: "" },
+          ];
+          this.formParameters = JSON.parse(newTempApi.formParameters) || [
+            { key: "", type: "text", value: "" },
+          ];
+          this.selectedBodyType = newTempApi.selectedBodyType || "text";
+          this.response = newTempApi.response || {
+            statusCode: null,
+            statusMessage: "",
+            headers: {},
+            body: "",
+          };
+        }
+      },
     },
     "response.statusCode": {
       handler(statusCode) {

@@ -1,9 +1,6 @@
 package com.apitester.ttalkkag.service;
 
-import com.apitester.ttalkkag.dto.InviteCode;
-import com.apitester.ttalkkag.dto.Project;
-import com.apitester.ttalkkag.dto.ProjectItems;
-import com.apitester.ttalkkag.dto.ProjectParticipants;
+import com.apitester.ttalkkag.dto.*;
 import com.apitester.ttalkkag.mapper.ProjectMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +20,7 @@ public class ProjectService {
 
     private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     // 사용자별 프로젝트 조회
     public List<Project> getProjectsByUserId(String userEmail) {
@@ -85,6 +83,8 @@ public class ProjectService {
         newFolder.setCreateAt(LocalDateTime.now().toString());
         newFolder.setItemOrder(nextItemOrder);
 
+        notificationService.notifyProjectParticipants(newFolder.getProjectId(), "add folder");
+
         projectMapper.insertProjectItem(newFolder);
     }
 
@@ -120,17 +120,22 @@ public class ProjectService {
 
     public ProjectItems updateProjectItemName(ProjectItems projectItems) {
         projectMapper.updateProjectItemName(projectItems);
-
+        ProjectItems updatedProjectItem = projectMapper.getProjectItemsById(projectItems.getId());
+        notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update itemName");
         // 업데이트된 객체 조회
-        return projectMapper.getProjectItemsById(projectItems.getId());
+        return updatedProjectItem;
     }
 
     public void updateParentId(ProjectItems projectItems) {
         projectMapper.updateParentId(projectItems);
+        ProjectItems updatedProjectItem = projectMapper.getItemByItemId(projectItems.getId());
+        notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update parentId");
     }
 
     public void deleteItemById(Long itemId) {
+        ProjectItems item = projectMapper.getItemByItemId(itemId);
         projectMapper.deleteByItemId(itemId);
+        notificationService.notifyProjectParticipants(item.getProjectId(), "delete folder");
     }
 
     public void updateItemOrder(Long parentId, List<Map<String, Object>> items) {
@@ -176,8 +181,8 @@ public class ProjectService {
     }
 
     public ProjectParticipants addParticipant(String userEmail, Long projectId) {
-        // 현재 로그인한 사용자 ID
-        Long userId = userMapper.findByEmail(userEmail).getId();
+        // 현재 로그인한 사용자
+        User user = userMapper.findByEmail(userEmail);
 
         // 프로젝트 이름
         String projectName = projectMapper.getProjectByProjectId(projectId).getName();
@@ -186,10 +191,39 @@ public class ProjectService {
         ProjectParticipants participant = new ProjectParticipants();
         participant.setProjectId(projectId);
         participant.setName(projectName);
-        participant.setUserId(userId);
+        participant.setUserId(user.getId());
         participant.setRole("participant"); // 소유자, 참여자 구분
         participant.setPermissionLevel("read"); // 기본 권한: 읽기 전용
         projectMapper.insertParticipant(participant);
+
+        // 자동 저장을 사용하지 않고 있다면 사용으로 변경
+        if (!user.isAutoSaveUse()) {
+            user.setAutoSaveUse(true);
+            userMapper.settingUser(user);
+        }
+
+        // 알림 전송
+        notificationService.notifyProjectParticipants(
+                projectId,
+                "new participant"
+        );
         return projectMapper.getParticipantsById(participant.getId());
+    }
+
+    public List<ProjectParticipants> getParticipantsByProjectId(Long projectId) {
+        return projectMapper.getParticipantsByProjectId(projectId);
+    }
+
+    public void updateParticipants(Long projectId, List<ProjectParticipants> participants) {
+        for (ProjectParticipants participant : participants) {
+            System.out.println(participant);
+            projectMapper.updateParticipant(projectId, participant);
+            // 각 참가자에게 WebSocket 메시지 전송
+            notificationService.notifyProjectParticipantsUserId(projectId, participant.getUserId(), "update auth");
+        }
+    }
+
+    public ProjectParticipants getParticipantByProjectIdAndUserId(Long projectId, Long userId) {
+        return projectMapper.getParticipantByProjectIdAndUserId(projectId, userId);
     }
 }

@@ -14,4 +14,5 @@ public class User {
     private boolean showResponse;
     private boolean verified;
     private String socialProvider; // 소셜 로그인 제공자
+    private ApiUsage apiUsage;
 }

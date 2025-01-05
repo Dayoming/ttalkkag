@@ -34,6 +34,11 @@
             v-for="project in projects"
             :key="project.id"
             :value="project"
+            :class="
+              project.participantUserId && project.userId !== this.loginUserId
+                ? 'participant-project'
+                : ''
+            "
           >
             {{ project.name }}
           </option>
@@ -46,7 +51,7 @@
           class="form-select me-2 site-select"
           @change="fetchEnvironments"
         >
-          <option v-if="sites.length == 0" value="" disabled selected>
+          <option v-if="sites.length === 0" value="null" disabled selected>
             사이트가 없습니다.
           </option>
           <option v-for="site in sites" :key="site.id" :value="site">
@@ -60,7 +65,7 @@
           v-model="selectedEnvironment"
           @change="confirmSelection"
         >
-          <option v-if="environments.length == 0" value="" disabled selected>
+          <option v-if="environments.length === 0" value="null" disabled selected>
             환경이 없습니다.
           </option>
           <option
@@ -188,13 +193,15 @@ export default {
   data() {
     return {
       email: "", // 유저 이메일
+      loginUserId: "", // 현재 로그인한 유저 id
       loginVerified: false, // 최초 로그인 여부
       projects: [], // 유저 프로젝트 목록
       sites: [], // 프로젝트 하위 사이트 목록
       environments: [], // 프로젝트 하위 환경 목록
       selectedProject: "", // 선택 프로젝트
-      selectedSite: "", // 선택 사이트
-      selectedEnvironment: "", // 선택 환경
+      selectedSite: null, // 선택 사이트
+      selectedEnvironment: null, // 선택 환경
+      stompClient: null,
       showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
       showSettingsModal: false, // 설정 모달 표시 상태
       showInputCodeModal: false, // 초대 코드 입력 모달 표시 상태
@@ -261,6 +268,7 @@ export default {
     async fetchLoginUserInfo() {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
+        this.loginUserId = response.data.user.id;
         if (!response.data.user.verified) {
           this.showSettingsModal = true;
           await this.$axios.post("/api/user/renewVerified", {
@@ -341,8 +349,8 @@ export default {
     confirmSelection() {
       // 선택된 사이트와 환경을 부모로 전달
       this.$emit("selected-environment", {
-        site: this.selectedSite,
-        environmentId: this.selectedEnvironment,
+        site: this.selectedSite || null,
+        environmentId: this.selectedEnvironment || null
       });
     },
     selectOtherProject() {
@@ -406,6 +414,7 @@ export default {
 
         // 성공 시 참여 완료 처리
         alert("프로젝트에 성공적으로 참여하였습니다!");
+        this.inviteCode = "";
         this.showInputCodeModal = false;
         this.$emit("update-projects", response.data.projectId); // 프로젝트 목록 갱신
       } catch (error) {
@@ -414,18 +423,7 @@ export default {
       }
     },
     logout() {
-      if (confirm("로그아웃 하시겠습니까?")) {
-        // localStorage 초기화
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("userEmail");
-
-        alert("로그아웃 되었습니다.");
-
-        this.$emit("logout");
-        // 로그인 화면으로 리다이렉트
-        this.$router.push("/login");
-      }
+      this.$emit("logout");
     },
   },
 };
@@ -484,5 +482,9 @@ ul {
 
 .login-user-email {
   color: white;
+}
+
+.participant-project {
+  background-color: #e1e1e1;
 }
 </style>

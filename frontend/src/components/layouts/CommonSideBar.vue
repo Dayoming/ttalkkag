@@ -22,6 +22,11 @@
         <div class="table-responsive mt-4"></div>
       </div>
       <div class="sidebar-hierarchy">
+        <!-- 프로젝트 소유자, 권한 표시 영역 -->
+        <div class="mt-3">
+          <p><b>Owner:</b><br>{{ projectOwner }}</p>
+          <p><b>My Authority:</b><br>{{ projectAuth }}</p>
+        </div>
         <!-- 모든 폴더 열기/닫기 버튼 -->
         <div class="d-flex justify-content-end mb-2">
           <button class="btn btn-dark mt-2 me-2 folder-toggle-btn" @click="toggleAllFolders(true)">
@@ -41,6 +46,8 @@
                 :depth="0"
                 :saved-item-id="savedItemId"
                 :selected-file-id="selectedFileId"
+                :projectAuth="projectAuth"
+                :apiSelections="apiSelections"
                 @selection-change="handleSelectionChange"
                 @toggle-folder="toggleFolder"
                 @update-items="$emit('update-items')"
@@ -134,6 +141,8 @@
               :depth="0"
               :savedItemId="savedItemId"
               :selected-file-id="selectedFileId"
+              :projectAuth="projectAuth"
+              :apiSelections="apiSelections"
               @selection-change="handleSelectionChange"
               @update-items="$emit('update-items')"
               @toggle-folder="toggleFolder"
@@ -219,10 +228,13 @@ export default {
   name: "CommonSideBar",
   components: { RecursiveFolderItem },
   props: {
+    projectOwner: String,
+    projectAuth: String,
     selectedProject: Object,
     items: Array,
     savedItemId: Number,
     selectedItem: Object,
+    apiSelections: Object,
   },
   data() {
     return {
@@ -326,15 +338,25 @@ export default {
       this.$emit("api-selected", selectedTempApi);
     },
     handleSelectionChange(selectedItem) {
-      // 선택된 파일 ID 업데이트
-      if (selectedItem.type === "api") {
-        this.selectedFileId = selectedItem.id;
+      if (selectedItem) {
+        // 선택된 파일 ID 업데이트
+        if (selectedItem.type === "api") {
+          this.selectedFileId = selectedItem.id;
+          return;
+        }
+      } else {
+        this.selectedFileId = null;
+        return;
       }
     },
     async handleDropOutside(event) {
       const draggedItemId = event.dataTransfer.getData("draggedItemId");
       if (!draggedItemId) return;
-
+      if (this.projectAuth === "read") {
+        console.log("Side");
+        alert("폴더나 파일 이동 권한이 없습니다.");
+        return;
+      }
       try {
         await this.$axios.patch(`/api/projects/update/parentId`, {
           id: Number(draggedItemId),
@@ -350,6 +372,9 @@ export default {
   },
   mounted() {
     this.fetchItems();
+  },
+  beforeUnmount() {
+    this.selectedFileId = null;
   },
 };
 </script>

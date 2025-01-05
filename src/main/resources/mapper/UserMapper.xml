@@ -16,6 +16,20 @@
         FROM users WHERE email = #{email}
     </select>
 
+    <select id="findById" resultType="User">
+        SELECT
+            id AS id,
+            email AS email,
+            password AS password,
+            auto_save_use as autoSaveUse,
+            auto_save_time as autoSaveTime,
+            auto_save_term as autoSaveTerm,
+            auto_save_path as autoSavePath,
+            show_response as showResponse,
+            verified as verified
+        FROM users WHERE id = #{id}
+    </select>
+
     <insert id="insertUser">
         INSERT INTO users (
             email, password, verified, auto_save_use,

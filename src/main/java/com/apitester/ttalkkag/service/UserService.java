@@ -30,4 +30,8 @@ public class UserService {
     public User findUserByEmail(String userEmail) {
         return userMapper.findByEmail(userEmail);
     }
+
+    public User findUserById(Long userId) {
+        return userMapper.findById(userId);
+    }
 }

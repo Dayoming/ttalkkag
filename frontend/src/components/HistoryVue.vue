@@ -97,6 +97,11 @@
                   <p><b>URL:</b> {{ log.url }}</p>
                   <p><b>Header:</b> {{ log.header }}</p>
                   <p><b>Parameter:</b> {{ log.parameter }}</p>
+                  <p><b>Requested By:</b> {{ log.request_user_email }}</p>
+                  <p><b>Project Name:</b> {{ log.project_name }}</p>
+                  <p><b>Project Owner:</b> {{ log.project_owner_email }}</p>
+                  <p><b>Site Name:</b> {{ log.site_name }}</p>
+                  <p><b>Environment Name:</b> {{ log.environment_name }}</p>
                   <hr />
                   <div class="row">
                     <div class="col-md-6">
