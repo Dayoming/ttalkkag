@@ -4,14 +4,69 @@
     <!-- 선택 박스 -->
     <div class="d-flex align-items-center justify-content-between mb-4">
       <div class="d-flex align-items-center w-100">
-        <select v-model="selectedProject" class="form-select w-25">
-          <option value="History">History</option>
-          <option
-            v-for="project in projects"
-            :key="project.id"
-            :value="project.name"
+        <select
+          class="form-select me-3 w-25"
+          v-model="selectedFilterType"
+          @change="handleFilterTypeChange"
+        >
+          <option value="ALL">ALL</option>
+          <option value="Site">Site</option>
+          <option value="Projects">Projects</option>
+        </select>
+
+        <!-- 동적 필터: Site -->
+        <div
+          v-if="selectedFilterType === 'Site'"
+          class="d-flex align-items-center w-25"
+        >
+          <select
+            class="form-select me-3"
+            v-model="selectedSite"
+            @change="handleSiteChange"
           >
-            {{ project.name }}
+            <option v-if="uniqueSites.length > 0" disabled hidden value="">
+              사이트를 선택해 주세요.
+            </option>
+            <option v-for="site in uniqueSites" :key="site" :value="site">
+              {{ site }}
+            </option>
+          </select>
+          <select
+            class="form-select"
+            v-if="selectedSite"
+            v-model="selectedEnvironment"
+            @change="filterLogs"
+          >
+            <option
+              v-if="uniqueEnvironments.length > 0"
+              disabled
+              hidden
+              value=""
+            >
+              환경을 선택해 주세요.
+            </option>
+            <option v-for="env in uniqueEnvironments" :key="env" :value="env">
+              {{ env }}
+            </option>
+          </select>
+        </div>
+
+        <!-- 동적 필터: Projects -->
+        <select
+          class="form-select w-25"
+          v-if="selectedFilterType === 'Projects'"
+          v-model="selectedProject"
+          @change="filterLogs"
+        >
+          <option v-if="uniqueProjects.length > 0" disabled hidden value="">
+            프로젝트를 선택해 주세요.
+          </option>
+          <option
+            v-for="project in uniqueProjects"
+            :key="project"
+            :value="project"
+          >
+            {{ project }}
           </option>
         </select>
       </div>
@@ -100,13 +155,18 @@ export default {
   name: "ReportsVue",
   data() {
     return {
+      logs: [],
+      filteredLogs: [],
       historyData: [],
       filteredHistoryData: [],
       errorData: [],
       projects: [],
+      selectedFilterType: "ALL",
+      selectedProject: "",
+      selectedSite: "",
+      selectedEnvironment: "",
       selectedTimeUnit: "day",
       selectedErrorRange: "4XX",
-      selectedProject: "History",
       selectedErrorDetails: [],
       successFailureChart: null,
       errorTimeChart: null,
@@ -115,11 +175,26 @@ export default {
     };
   },
   computed: {
+    uniqueSites() {
+      // 중복 제거 후 Site 목록 생성
+      return [...new Set(this.logs.map((log) => log.siteName))];
+    },
+    uniqueEnvironments() {
+      // 선택된 Site에 해당하는 환경 목록 생성
+      return this.logs
+        .filter((log) => log.siteName === this.selectedSite)
+        .map((log) => log.environmentName)
+        .filter((value, index, self) => self.indexOf(value) === index); // 중복 제거
+    },
+    uniqueProjects() {
+      // 중복 제거 후 Project 목록 생성
+      return [...new Set(this.logs.map((log) => log.projectName))];
+    },
     successFailureData() {
-      const successCount = this.filteredHistoryData.filter(
+      const successCount = this.filteredLogs.filter(
         (log) => log.responseCode >= 200 && log.responseCode < 300
       ).length;
-      const failureCount = this.filteredHistoryData.length - successCount;
+      const failureCount = this.filteredLogs.length - successCount;
 
       return {
         labels: ["성공", "실패"],
@@ -132,7 +207,7 @@ export default {
     },
     errorFrequencyData() {
       const range = this.selectedErrorRange === "4XX" ? [400, 499] : [500, 599];
-      const errorCounts = this.filteredHistoryData.reduce((acc, log) => {
+      const errorCounts = this.filteredLogs.reduce((acc, log) => {
         if (log.responseCode >= range[0] && log.responseCode <= range[1]) {
           acc[log.responseCode] = (acc[log.responseCode] || 0) + 1;
         }
@@ -154,57 +229,72 @@ export default {
     },
   },
   methods: {
-    async fetchProjects() {
-      try {
-        const response = await this.$axios.get("/api/projects");
-        this.projects = response.data;
-      } catch (error) {
-        console.error("Failed to fetch projects:", error);
-      }
-    },
     async fetchHistoryData() {
       try {
         const response = await this.$axios.get("/api/history");
-        this.historyData = response.data;
-        this.updateFilteredHistoryData(); // 필터링된 데이터를 기반으로 초기화
+        if (Array.isArray(response.data)) {
+          // 데이터가 배열일 때만 처리
+          this.logs = response.data.map((log) => ({
+            ...log,
+            showDetails: false, // 기본적으로 상세 정보는 숨김
+          }));
+          this.filteredLogs = this.logs;
+          this.updateFilteredHistoryData(); // 필터링된 데이터를 기반으로 초기화
+        } else {
+          console.error("Unexpected response format:", response.data);
+          this.logs = [];
+        }
       } catch (error) {
         console.error("Error fetching history data:", error);
       }
     },
-    async updateFilteredHistoryData() {
-      if (this.selectedProject === "History") {
-        this.filteredHistoryData = this.historyData; // 전체 데이터 표시
-        this.renderCharts();
-      } else {
-        // 선택된 프로젝트의 ID 찾기
-        const selectedProject = this.projects.find(
-          (project) => project.name === this.selectedProject
+    handleFilterTypeChange() {
+      if (this.selectedFilterType === "ALL") {
+        this.filterLogs();
+      }
+      // 필터 타입 변경 시
+      this.selectedSite = "";
+      this.selectedEnvironment = "";
+      this.selectedProject = "";
+    },
+    handleSiteChange() {
+      // Site 선택 시 환경 초기화
+      this.selectedEnvironment = "";
+      this.filterLogs();
+    },
+    filterLogs() {
+      if (this.selectedFilterType === "ALL") {
+        this.filteredLogs = this.logs; // 모든 로그
+      } else if (this.selectedFilterType === "Site") {
+        this.filteredLogs = this.logs.filter(
+          (log) =>
+            log.siteName === this.selectedSite &&
+            (this.selectedEnvironment === "" ||
+              log.environmentName === this.selectedEnvironment)
         );
-
-        console.log(selectedProject);
-
-        if (selectedProject) {
-          const selectedProjectId = selectedProject.id;
-
-          try {
-            // 프로젝트 ID로 필터링된 데이터 가져오기
-            const response = await this.$axios.get(
-              `/api/history/projects/${selectedProjectId}`
-            );
-            this.filteredHistoryData = response.data || []; // 데이터 할당
-            this.renderCharts(); // 데이터 업데이트 후 차트 렌더링
-          } catch (error) {
-            console.error("Failed to fetch filtered history data:", error);
-            this.filteredHistoryData = []; // 에러 시 기본값 설정
-          }
-        } else {
-          console.error(
-            "Selected project not found in projects list:",
-            this.selectedProject
-          );
-          this.filteredHistoryData = []; // 프로젝트를 찾지 못한 경우 기본값
-          this.renderCharts();
-        }
+      } else if (this.selectedFilterType === "Projects") {
+        this.filteredLogs = this.logs.filter(
+          (log) => log.projectName === this.selectedProject
+        );
+      }
+    },
+    async updateFilteredHistoryData() {
+      if (this.selectedFilterType === "ALL") {
+        this.filteredLogs = this.logs; // 전체 데이터 표시
+        this.renderCharts();
+      } else if (this.selectedFilterType === "Projects") {
+        this.filteredLogs = this.logs.filter(
+          (log) => log.projectName === this.selectedProject
+        );
+        this.renderCharts(); // 데이터 업데이트 후 차트 렌더링
+      } else if (this.selectedFilterType === "Site") {
+        this.filteredLogs = this.logs.filter(
+          (log) =>
+            log.siteName === this.selectedSite &&
+            (this.selectedEnvironment === "" ||
+              log.environmentName === this.selectedEnvironment)
+        );
+        this.renderCharts();
       }
     },
     renderErrorTimeChart() {
@@ -314,7 +404,7 @@ export default {
               if (elements.length > 0) {
                 const index = elements[0].index;
                 const errorCode = this.errorFrequencyData.labels[index];
-                this.selectedErrorDetails = this.filteredHistoryData.filter(
+                this.selectedErrorDetails = this.filteredLogs.filter(
                   (log) => log.responseCode == errorCode
                 );
               }
@@ -331,7 +421,7 @@ export default {
         hour: "YYYY-MM-DD HH",
       }[this.selectedTimeUnit];
 
-      this.filteredHistoryData.forEach((log) => {
+      this.filteredLogs.forEach((log) => {
         if (log.responseCode >= 400) {
           const timeKey = moment(log.loggedTime).format(timeFormat);
           if (!groupedData[timeKey]) groupedData[timeKey] = [];
@@ -356,7 +446,7 @@ export default {
       );
 
       const methodStats = {};
-      this.filteredHistoryData.forEach((log) => {
+      this.filteredLogs.forEach((log) => {
         const method = log.method;
         if (!methodStats[method]) {
           methodStats[method] = { count: 0, totalTime: 0 };
@@ -431,7 +521,7 @@ export default {
               if (elements.length > 0) {
                 const index = elements[0].index;
                 const errorCode = this.errorFrequencyData.labels[index];
-                this.selectedErrorDetails = this.filteredHistoryData.filter(
+                this.selectedErrorDetails = this.filteredLogs.filter(
                   (log) => log.responseCode == errorCode
                 );
               }
@@ -443,7 +533,6 @@ export default {
   },
   mounted() {
     this.fetchHistoryData();
-    this.fetchProjects();
   },
   watch: {
     selectedTimeUnit() {
