@@ -36,90 +36,121 @@
         );
     </insert>
 
-    <select id="getAllHistories" resultType="ApiHistory">
+    <select id="getAllHistories" resultType="ApiHistoryResponse">
         SELECT
-            id AS id,
-            user_id AS userId,
-            project_id AS projectId,
-            environment_id AS environmentId,
-            site_id AS siteId,
-            method AS method,
-            url AS url,
-            response_code AS responseCode,
-            response_time AS responseTime,
-            logged_time AS loggedTime,
-            header AS header,
-            parameter AS parameter,
-            form_parameter AS formParameter,
-            response_body AS responseBody,
-            response_header AS responseHeader
-        FROM history
-        WHERE user_id = #{userId}
-        ORDER BY logged_time DESC
+            h.id,
+            h.method,
+            h.url,
+            h.response_code AS responseCode,
+            h.response_time AS responseTime,
+            h.logged_time AS loggedTime,
+            h.header,
+            h.parameter,
+            h.form_parameter AS formParameter,
+            h.response_body AS responseBody,
+            h.response_header AS responseHeader,
+            u.email AS requestUserEmail,
+            p.name AS projectName,
+            pu.email AS projectOwnerEmail,
+            COALESCE(s.name, 'X') AS siteName,
+            COALESCE(e.name, 'X') AS environmentName
+        FROM
+            history h
+            LEFT JOIN users u ON h.user_id = u.id
+            LEFT JOIN project p ON h.project_id = p.id
+            LEFT JOIN users pu ON p.user_id = pu.id
+            LEFT JOIN site s ON h.site_id = s.id
+            LEFT JOIN environment e ON h.environment_id = e.id
+        WHERE h.user_id = #{userId}
+        ORDER BY h.logged_time DESC
     </select>
 
-    <select id="getHistoryById" resultType="ApiHistory">
+    <select id="getHistoryById" resultType="ApiHistoryResponse">
         SELECT
-            id AS id,
-            user_id AS userId,
-            project_id AS projectId,
-            environment_id AS environmentId,
-            site_id AS siteId,
-            method AS method,
-            url AS url,
-            response_code AS responseCode,
-            response_time AS responseTime,
-            logged_time AS loggedTime,
-            header AS header,
-            parameter AS parameter,
-            form_parameter AS formParameter,
-            response_body AS responseBody,
-            response_header AS responseHeader
-        FROM history
-        WHERE id = #{id}
+            h.id,
+            h.method,
+            h.url,
+            h.response_code AS responseCode,
+            h.response_time AS responseTime,
+            h.logged_time AS loggedTime,
+            h.header,
+            h.parameter,
+            h.form_parameter AS formParameter,
+            h.response_body AS responseBody,
+            h.response_header AS responseHeader,
+            u.email AS requestUserEmail,
+            p.name AS projectName,
+            pu.email AS projectOwnerEmail,
+            COALESCE(s.name, 'X') AS siteName,
+            COALESCE(e.name, 'X') AS environmentName
+            FROM
+            history h
+            LEFT JOIN users u ON h.user_id = u.id
+            LEFT JOIN project p ON h.project_id = p.id
+            LEFT JOIN users pu ON p.user_id = pu.id
+            LEFT JOIN site s ON h.site_id = s.id
+            LEFT JOIN environment e ON h.environment_id = e.id
+        WHERE h.id = #{id}
+        ORDER BY h.logged_time DESC
     </select>
 
-    <select id="getErrorHistory" resultType="ApiHistory">
+    <select id="getErrorHistory" resultType="ApiHistoryResponse">
         SELECT
-            id AS id,
-            user_id AS userId,
-            project_id AS projectId,
-            environment_id AS environmentId,
-            site_id AS siteId,
-            method AS method,
-            url AS url,
-            response_code AS responseCode,
-            response_time AS responseTime,
-            logged_time AS loggedTime,
-            header AS header,
-            parameter AS parameter,
-            form_parameter AS formParameter,
-            response_body AS responseBody,
-            response_header AS responseHeader
-        FROM history
-        WHERE user_id = #{userId} AND
+            h.id,
+            h.method,
+            h.url,
+            h.response_code AS responseCode,
+            h.response_time AS responseTime,
+            h.logged_time AS loggedTime,
+            h.header,
+            h.parameter,
+            h.form_parameter AS formParameter,
+            h.response_body AS responseBody,
+            h.response_header AS responseHeader,
+            u.email AS requestUserEmail,
+            p.name AS projectName,
+            pu.email AS projectOwnerEmail,
+            COALESCE(s.name, 'X') AS siteName,
+            COALESCE(e.name, 'X') AS environmentName
+        FROM
+            history h
+            LEFT JOIN users u ON h.user_id = u.id
+            LEFT JOIN project p ON h.project_id = p.id
+            LEFT JOIN users pu ON p.user_id = pu.id
+            LEFT JOIN site s ON h.site_id = s.id
+            LEFT JOIN environment e ON h.environment_id = e.id
+        WHERE h.user_id = #{userId} AND
             response_code >= 400 AND response_code <![CDATA[<]]> 600 AND logged_time BETWEEN #{start} AND #{end}
+        ORDER BY h.logged_time DESC
     </select>
 
-    <select id="getHistoriesByProjectId" resultType="ApiHistory">
-            SELECT
-            id AS id,
-            user_id AS userId,
-            project_id AS projectId,
-            environment_id AS environmentId,
-            site_id AS siteId,
-            method AS method,
-            url AS url,
-            response_code AS responseCode,
-            response_time AS responseTime,
-            logged_time AS loggedTime,
-            header AS header,
-            parameter AS parameter,
-            form_parameter AS formParameter,
-            response_body AS responseBody,
-            response_header AS responseHeader
-        FROM history
-        WHERE project_id = #{projectId}
+    <select id="getHistoriesByProjectId" resultType="ApiHistoryResponse">
+        SELECT
+            h.id,
+            h.method,
+            h.url,
+            h.response_code AS responseCode,
+            h.response_time AS responseTime,
+            h.logged_time AS loggedTime,
+            h.header,
+            h.parameter,
+            h.form_parameter AS formParameter,
+            h.response_body AS responseBody,
+            h.response_header AS responseHeader,
+            u.email AS requestUserEmail,
+            p.name AS projectName,
+            pu.email AS projectOwnerEmail,
+            COALESCE(s.name, 'X') AS siteName,
+            COALESCE(e.name, 'X') AS environmentName
+        FROM
+            history h
+            LEFT JOIN users u ON h.user_id = u.id
+            LEFT JOIN project p ON h.project_id = p.id
+            LEFT JOIN users pu ON p.user_id = pu.id
+            LEFT JOIN site s ON h.site_id = s.id
+            LEFT JOIN environment e ON h.environment_id = e.id
+        WHERE h.project_id = #{projectId}
+        ORDER BY h.logged_time DESC
     </select>
 </mapper>
 

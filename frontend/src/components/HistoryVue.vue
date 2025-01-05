@@ -23,6 +23,9 @@
           v-model="selectedSite"
           @change="handleSiteChange"
         >
+          <option v-if="uniqueSites.length > 0" disabled hidden value="">
+            사이트를 선택해 주세요.
+          </option>
           <option v-for="site in uniqueSites" :key="site" :value="site">
             {{ site }}
           </option>
@@ -33,6 +36,9 @@
           v-model="selectedEnvironment"
           @change="filterLogs"
         >
+          <option v-if="uniqueEnvironments.length > 0" disabled hidden value="">
+            환경을 선택해 주세요.
+          </option>
           <option v-for="env in uniqueEnvironments" :key="env" :value="env">
             {{ env }}
           </option>
@@ -46,6 +52,7 @@
         v-model="selectedProject"
         @change="filterLogs"
       >
+      <option v-if="uniqueProjects.length > 0" disabled hidden value="">프로젝트를 선택해 주세요.</option>
         <option
           v-for="project in uniqueProjects"
           :key="project"
@@ -97,11 +104,13 @@
                   <p><b>URL:</b> {{ log.url }}</p>
                   <p><b>Header:</b> {{ log.header }}</p>
                   <p><b>Parameter:</b> {{ log.parameter }}</p>
-                  <p><b>Requested By:</b> {{ log.request_user_email }}</p>
-                  <p><b>Project Name:</b> {{ log.project_name }}</p>
-                  <p><b>Project Owner:</b> {{ log.project_owner_email }}</p>
-                  <p><b>Site Name:</b> {{ log.site_name }}</p>
-                  <p><b>Environment Name:</b> {{ log.environment_name }}</p>
+                  <p><b>Requested By:</b> {{ log.requestUserEmail }}</p>
+                  <p><b>Project Name:</b> {{ log.projectName }}</p>
+                  <p><b>Project Owner:</b> {{ log.projectOwnerEmail }}</p>
+                  <p><b>Site Name:</b> {{ log.siteName || "X" }}</p>
+                  <p>
+                    <b>Environment Name:</b> {{ log.environmentName || "X" }}
+                  </p>
                   <hr />
                   <div class="row">
                     <div class="col-md-6">
@@ -167,6 +176,7 @@ export default {
             ...log,
             showDetails: false, // 기본적으로 상세 정보는 숨김
           }));
+          console.log(this.logs);
           this.filteredLogs = this.logs; // 초기 필터링된 로그 설정
         } else {
           console.error("Unexpected response format:", response.data);
@@ -196,13 +206,13 @@ export default {
       } else if (this.selectedFilterType === "Site") {
         this.filteredLogs = this.logs.filter(
           (log) =>
-            log.siteId === this.selectedSite &&
+            log.siteName === this.selectedSite &&
             (this.selectedEnvironment === "" ||
-              log.environmentId === this.selectedEnvironment)
+              log.environmentName === this.selectedEnvironment)
         );
       } else if (this.selectedFilterType === "Projects") {
         this.filteredLogs = this.logs.filter(
-          (log) => log.projectId === this.selectedProject
+          (log) => log.projectName === this.selectedProject
         );
       }
     },
@@ -367,18 +377,18 @@ export default {
     },
     uniqueSites() {
       // 중복 제거 후 Site 목록 생성
-      return [...new Set(this.logs.map((log) => log.siteId))];
+      return [...new Set(this.logs.map((log) => log.siteName))];
     },
     uniqueEnvironments() {
       // 선택된 Site에 해당하는 환경 목록 생성
       return this.logs
-        .filter((log) => log.siteId === this.selectedSite)
-        .map((log) => log.environmentId)
+        .filter((log) => log.siteName === this.selectedSite)
+        .map((log) => log.environmentName)
         .filter((value, index, self) => self.indexOf(value) === index); // 중복 제거
     },
     uniqueProjects() {
       // 중복 제거 후 Project 목록 생성
-      return [...new Set(this.logs.map((log) => log.projectId))];
+      return [...new Set(this.logs.map((log) => log.projectName))];
     },
   },
   mounted() {
