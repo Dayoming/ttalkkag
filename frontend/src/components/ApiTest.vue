@@ -13,7 +13,12 @@
               type="text"
               class="form-control input-api-name"
               placeholder="API Name"
+              style="margin-bottom: 10px"
             />
+            <span v-if="fileConflict" class="change-warning">
+              ⚠️ 파일에 변경 사항이 있습니다. 적용하시려면
+              <a href="#" @click.prevent="reloadApi">여기</a>를 눌러 주세요.
+            </span>
           </div>
 
           <!-- Select Box and Buttons -->
@@ -23,9 +28,9 @@
               class="btn btn-dark me-2"
               @click.prevent="openSaveModal"
             >
-              Save
+              새로 저장
             </button>
-            <a href="#" class="request-add" @click.prevent="saveApiDataPlus">
+            <a href="#" class="request-add" @click="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
             </a>
           </div>
@@ -445,12 +450,14 @@ export default {
     propSelectedSite: Object,
     propSelectedEnvironment: Object,
     propSites: Array,
+    propFileConflict: Boolean,
     propEnvironments: Array,
     tempApi: Array,
     modalSelectedEnvironment: Object,
     isSetting: Boolean,
     items: Array,
     updatedTempApi: Array,
+    changeMessage: String,
   },
   data() {
     return {
@@ -503,9 +510,13 @@ export default {
       autoSaveTerm: 0, // 입력 후 자동 저장 시간
       autoSavePath: null, // 자동 저장 경로
       hasChanges: false, // 데이터 변경 상태
-      isSaving: false,
+      initialState: null, // 초기 상태 저장
+      isInitializing: true, // 초기화 상태 플래그
+      isSaving: false, // 저장 중
+      isSave: false, // 현재 작업 중인 파일 저장 여부
       isRequest: false,
       isLoad: false,
+      isReloading: false,
       isResponseExpanded: false, // Response 아이콘 토글 상태
     };
   },
@@ -722,6 +733,18 @@ export default {
       // Close modal
       this.closeModal();
     },
+    getCurrentApiData() {
+      return {
+        apiName: this.apiName,
+        method: this.method,
+        url: this.url,
+        headers: this.headers,
+        queryParameters: this.queryParameters,
+        formParameters: this.formParameters,
+        selectedBodyType: this.selectedBodyType,
+        selectedEnvironment: this.selectedEnvironment,
+      };
+    },
     saveEnvironment() {
       // 현재 선택된 환경을 저장하는 로직
       console.log("Selected Environment:", this.selectedEnvironment);
@@ -731,7 +754,7 @@ export default {
         alert("API 이름을 입력해주세요.");
         return;
       }
-      if (this.projectAuth === 'read') {
+      if (this.projectAuth === "read") {
         return;
       }
       // 현재 데이터를 App.vue로 전달
@@ -792,6 +815,7 @@ export default {
         )
         .then(() => {
           alert("API가 성공적으로 저장되었습니다.");
+          this.isSave = true;
           this.showModal = false;
         })
         .catch((error) => {
@@ -801,9 +825,47 @@ export default {
 
       this.showSaveModal = false;
     },
+    saveInitialState() {
+      this.initialState = {
+        id: this.apiId,
+        itemId: this.itemId,
+        name: this.apiName || "TempAPI",
+        method: this.method,
+        url: this.url,
+        headers: this.sortAndStringify(this.headers),
+        queryParameters: this.sortAndStringify(this.queryParameters),
+        formParameters: this.sortAndStringify(this.formParameters),
+        file: this.file,
+        selectedBodyType: this.selectedBodyType,
+        selectedEnvironment: this.selectedEnvironment,
+      };
+      this.hasChanges = false; // 초기 상태에서는 변경 없음
+    },
+    sortAndStringify(obj) {
+      if (Array.isArray(obj)) {
+        return JSON.stringify(
+          obj.map((item) => {
+            if (typeof item === "object") {
+              return this.sortObjectKeys(item);
+            }
+            return item;
+          })
+        );
+      }
+      return JSON.stringify(this.sortObjectKeys(obj));
+    },
+
+    sortObjectKeys(obj) {
+      return Object.keys(obj)
+        .sort()
+        .reduce((sorted, key) => {
+          sorted[key] = obj[key];
+          return sorted;
+        }, {});
+    },
     triggerAutoSave() {
       if (!this.autoSaveUse) return; // 자동 저장 사용 안 할 경우
-      if (this.projectAuth === 'read') return; // 권한이 read인 경우
+      if (this.projectAuth === "read") return; // 권한이 read인 경우
       const autoSaveTimeMs = this.autoSaveTime * 1000; // 초 → 밀리초 변환
       const autoSaveTermMs = this.autoSaveTerm * 1000;
 
@@ -827,6 +889,7 @@ export default {
         if (this.hasChanges) {
           this.showSpinnerAndSave();
           this.hasChanges = false; // 변경 상태 초기화
+          this.$emit("input-modified", this.hasChanges);
         }
       }, autoSaveTermMs);
     },
@@ -846,7 +909,7 @@ export default {
       }, 1000);
     },
     async saveApiData() {
-      if (this.projectAuth === 'read') return;
+      if (this.projectAuth === "read") return;
       try {
         // this.apiId가 있는 경우(이미 저장된 파일의 경우) 업데이트
         if (this.apiId !== "") {
@@ -887,6 +950,7 @@ export default {
 
           this.hasChanges = false; // 저장 완료 후 상태 초기화
           this.$emit("refresh-sidebar", this.itemId);
+          this.$emit("input-modified", this.hasChanges);
           this.buildApiPath(this.itemId);
           console.log("자동 저장 완료");
         } else {
@@ -925,8 +989,10 @@ export default {
           this.itemId = Number(project.data.id);
           this.hasChanges = false; // 저장 완료 후 상태 초기화
           this.$emit("refresh-sidebar", this.itemId);
+          this.$emit("input-modified", this.hasChanges);
           console.log("자동 저장 완료");
         }
+        this.isSave = true;
       } catch (error) {
         console.log("Failed save projectItem: " + error);
         alert("API 자동 저장에 실패했습니다.");
@@ -940,8 +1006,7 @@ export default {
         return;
       }
 
-      if (this.projectAuth === 'read') {
-        this.resetInputs();
+      if (this.projectAuth === "read") {
         return;
       }
 
@@ -983,9 +1048,10 @@ export default {
           );
 
           this.resetInputs();
-          
+
           this.hasChanges = false; // 저장 완료 후 상태 초기화
           this.$emit("refresh-sidebar", this.itemId);
+          this.$emit("input-modified", this.hasChanges);
           console.log("자동 저장 완료");
         } else {
           const project = await this.$axios.post(
@@ -999,8 +1065,6 @@ export default {
             },
             { showSpinner: false }
           );
-
-          console.log(project);
 
           const apiData = {
             name: this.apiName || "TempAPI",
@@ -1018,8 +1082,9 @@ export default {
           this.resetInputs();
 
           await this.$axios.post("/api/apis", apiData, { showSpinner: false });
-          this.$emit("refresh-sidebar", this.itemId);
           this.hasChanges = false; // 저장 완료 후 상태 초기화
+          this.$emit("refresh-sidebar", this.itemId);
+          this.$emit("input-modified", this.hasChanges);
           this.apiId = "";
           this.itemId = "";
           console.log("저장 완료");
@@ -1032,8 +1097,41 @@ export default {
       }
     },
     markChanges() {
-      this.hasChanges = true;
-      this.triggerAutoSave();
+      if (
+        this.isInitializing ||
+        this.isReloading ||
+        this.projectAuth === "read"
+      )
+        return; // 초기화, 데이터 로드, 권한이 읽기면 무시
+        
+      const currentState = {
+        id: this.apiId,
+        itemId: this.itemId,
+        name: this.apiName || "TempAPI",
+        method: this.method,
+        url: this.url,
+        headers: this.sortAndStringify(this.headers),
+        queryParameters: this.sortAndStringify(this.queryParameters),
+        formParameters: this.sortAndStringify(this.formParameters),
+        file: this.file,
+        selectedBodyType: this.selectedBodyType,
+        selectedEnvironment: this.selectedEnvironment,
+      };
+
+      // 객체를 문자열로 변환하여 비교
+      const currentStateString = JSON.stringify(currentState);
+      const initialStateString = JSON.stringify(this.initialState);
+
+      this.hasChanges = currentStateString !== initialStateString;
+
+      if (this.hasChanges) {
+        this.triggerAutoSave(); // 변경 시 자동 저장 실행
+      }
+
+      this.$emit("input-modified", {
+        hasChanges: this.hasChanges,
+        currentState,
+      }); // 두 값 전달
     },
     loadEnvironment() {
       if (this.selectedEnvironment) {
@@ -1041,6 +1139,60 @@ export default {
         console.log("Loading environment:", this.selectedEnvironment);
       } else {
         console.warn("No environment selected!");
+      }
+    },
+    async reloadApi() {
+      this.fileConflict = false;
+      this.isReloading = true;
+      this.hasChanges = false;
+
+      try {
+        const response = await this.$axios.get(`/api/apis/${this.itemId}`);
+        if (response.data) {
+          // API 데이터 다시 로드
+          const apiData = response.data.api;
+
+          this.apiName = apiData.name || "";
+          this.method = apiData.method || "GET";
+          this.url = apiData.url || ""; // url 기본값 설정
+
+          // JSON 파싱
+          try {
+            this.headers = apiData.headers
+              ? JSON.parse(apiData.headers)
+              : [{ key: "", value: "" }];
+          } catch (e) {
+            console.error("Headers JSON 파싱 실패:", e);
+            this.headers = [{ key: "", value: "" }];
+          }
+
+          try {
+            this.queryParameters = apiData.queryParameters
+              ? JSON.parse(apiData.queryParameters)
+              : [{ key: "", value: "" }];
+          } catch (e) {
+            console.error("Query Parameters JSON 파싱 실패:", e);
+            this.queryParameters = [{ key: "", value: "" }];
+          }
+
+          try {
+            this.formParameters = apiData.formParameters
+              ? JSON.parse(apiData.formParameters)
+              : [{ key: "", type: "text", value: "" }];
+          } catch (e) {
+            console.error("Form Parameters JSON 파싱 실패:", e);
+            this.formParameters = [{ key: "", type: "text", value: "" }];
+          }
+
+          this.file = apiData.file || null;
+          this.selectedBodyType = apiData.selectedBodyType || "text";
+          this.selectedEnvironment = apiData.selectedEnvironment || null;
+        }
+      } catch (error) {
+        console.error("API 로드 실패:", error);
+        alert("파일을 다시 로드하는 중 오류가 발생했습니다.");
+      } finally {
+        this.isReloading = false;
       }
     },
     updateUrl() {
@@ -1062,7 +1214,7 @@ export default {
     updateSavedProject(newApis) {
       this.$emit("refresh-sidebar", newApis.data.itemId);
       this.buildApiPath(newApis.itemId);
-      
+
       this.showSaveModal = false;
     },
     resolveTemplateVariables(template) {
@@ -1290,6 +1442,8 @@ export default {
   },
   mounted() {
     this.fetchLoginUserInfo();
+    this.saveInitialState(); // 초기 상태 저장
+    this.isInitializing = false; // 초기화 완료 플래그 설정
     this.selectedSite = this.propSelectedSite;
     this.selectedEnvironment = this.propSelectedEnvironment;
     this.fetchEnvironmentVariables();
@@ -1335,6 +1489,7 @@ export default {
     },
     apiData() {
       return {
+        id: this.apiId,
         name: this.apiName,
         method: this.method,
         url: this.url,
@@ -1348,10 +1503,30 @@ export default {
     },
   },
   watch: {
-    apiName: "markChanges",
-    method: "markChanges",
-    selectedBodyType: "markChanges",
-    selectedEnvironment: "markChanges",
+    apiName: {
+      handler() {
+        this.markChanges();
+        console.log("apiName: " + this.hasChanges);
+      },
+    },
+    method: {
+      handler() {
+        this.markChanges();
+        console.log("method: " + this.hasChanges);
+      },
+    },
+    selectedBodyType: {
+      handler() {
+        this.markChanges();
+        console.log("selectedBodyType: " + this.hasChanges);
+      },
+    },
+    selectedEnvironment: {
+      handler() {
+        this.markChanges();
+        console.log("selectedEnvironment: " + this.hasChanges);
+      },
+    },
     headers: {
       deep: true, // 배열/객체 내부 변경 감지
       handler: "markChanges",
@@ -1377,6 +1552,7 @@ export default {
     url: {
       handler(newUrl) {
         // triggerAutoSave 호출
+        console.log("url watch");
         this.markChanges();
 
         // Query Parameters 업데이트
@@ -1429,8 +1605,15 @@ export default {
         }
       },
     },
+    propFileConflict: {
+      handler(newValue) {
+        this.fileConflict = newValue;
+      },
+    },
     tempApi: {
+      immediate: true,
       async handler(newTempApi) {
+        this.isInitializing = true; // 초기화 시작
         if (newTempApi) {
           this.apiId = newTempApi.id;
           this.itemId = newTempApi.itemId;
@@ -1454,9 +1637,10 @@ export default {
             headers: {},
             body: "",
           };
+          this.saveInitialState(); // 초기 상태 저장
         }
+        this.isInitializing = false;
       },
-      immediate: true, // 초기에도 실행
     },
     updatedTempApi: {
       async handler(newTempApi) {
@@ -1477,12 +1661,6 @@ export default {
             { key: "", type: "text", value: "" },
           ];
           this.selectedBodyType = newTempApi.selectedBodyType || "text";
-          this.response = newTempApi.response || {
-            statusCode: null,
-            statusMessage: "",
-            headers: {},
-            body: "",
-          };
         }
       },
     },
@@ -1522,6 +1700,11 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.change-warning {
+  color: brown;
+  font-weight: bold;
 }
 
 .request-section,

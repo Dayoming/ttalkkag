@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -84,7 +86,9 @@ public class ProjectService {
         newFolder.setCreateAt(LocalDateTime.now().toString());
         newFolder.setItemOrder(nextItemOrder);
 
-        notificationService.notifyProjectParticipants(newFolder.getProjectId(), "add folder");
+        Long projectId = newFolder.getProjectId();
+
+        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
 
         projectMapper.insertProjectItem(newFolder);
     }
@@ -121,8 +125,11 @@ public class ProjectService {
 
     public ProjectItems updateProjectItemName(ProjectItems projectItems) {
         projectMapper.updateProjectItemName(projectItems);
-        ProjectItems updatedProjectItem = projectMapper.getProjectItemsById(projectItems.getId());
-        notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update itemName");
+
+        Long projectId = projectItems.getProjectId();;
+
+        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
+
         // 업데이트된 객체 조회
         return projectMapper.getProjectItemsById(projectItems.getId());
     }
@@ -134,13 +141,17 @@ public class ProjectService {
 
         projectMapper.updateParentId(projectItems);
         ProjectItems updatedProjectItem = projectMapper.getItemByItemId(projectItems.getId());
-        notificationService.notifyProjectParticipants(updatedProjectItem.getProjectId(), "update parentId");
+
+        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
     }
 
     public void deleteItemById(Long itemId) {
         ProjectItems item = projectMapper.getItemByItemId(itemId);
         projectMapper.deleteByItemId(itemId);
-        notificationService.notifyProjectParticipants(item.getProjectId(), "delete folder");
+
+        Long projectId = item.getProjectId();
+
+        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
     }
 
     @Transactional
@@ -151,10 +162,11 @@ public class ProjectService {
 
         // 2. 드래그된 요소 업데이트
         projectMapper.updateItemOrder(draggedItemId, targetOrder, targetParentId);
-
-        // 3. 알림 전송 (선택)
         ProjectItems updatedItem = projectMapper.getItemByItemId(draggedItemId);
-        notificationService.notifyProjectParticipants(updatedItem.getProjectId(), "update parentId");
+
+        // 3. 알림 전송
+        Long projectId = updatedItem.getProjectId();;
+        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
     }
 
 
@@ -162,35 +174,60 @@ public class ProjectService {
         return projectMapper.getItemByItemId(itemId);
     }
 
-    public String generateInviteCode(Long projectId) {
+    public String generateInviteCode(Long projectId, String userEmail) {
         // 초대 코드 생성
         String inviteCode = UUID.randomUUID().toString().substring(0, 6); // 8자리 코드 생성
 
-        // 초대 코드 저장 (5분 유효 기간 설정)
+        // 초대 코드 저장 (1시간 유효 기간 설정)
         InviteCode code = new InviteCode();
         code.setProjectId(projectId);
+        code.setUserEmail(userEmail);
         code.setCode(inviteCode);
-        code.setExpiryTime(LocalDateTime.now().plusMinutes(5));
-
-        if (projectMapper.getInviteCodeByProjectId(projectId) != null) {
-            projectMapper.updateInviteCode(code);
-            return inviteCode;
-        }
+        code.setExpiryTime(LocalDateTime.now().plusHours(1));
 
         projectMapper.insertInviteCode(code);
         return inviteCode;
     }
 
-    public Long validateInviteCode(String inviteCode) {
-        // 초대 코드 유효성 확인
+    public Map<String, Object> validateInviteCode(String inviteCode, String loginEmail) {
+        Map<String, Object> response = new HashMap<>();
+
+        // 초대 코드 유효성 확인 - 사용 가능 여부가 true인 것들 중에서 코드가 같은 record 찾기
         InviteCode code = projectMapper.findByCode(inviteCode);
 
-
-        if (code == null || code.isExpired()) {
-            throw new IllegalArgumentException("유효하지 않은 코드입니다. 다시 확인해 주세요.");
+        // 코드가 없거나, 유효 시간이 지났거나, 사용 불가능한 코드인 경우
+        if (code == null || code.isExpired() || !code.isAvailability()) {
+            response.put("errorMessage", "유효하지 않은 코드입니다. 다시 확인해 주세요.");
+            return response;
         }
 
-        return code.getProjectId();
+        // 받는 사람 userId
+        Long userId = userMapper.findByEmail(code.getUserEmail()).getId();
+        // 현재 로그인한 userId
+        Long loginUserId = userMapper.findByEmail(loginEmail).getId();
+        // 초대하는 projectId
+        Long projectId = code.getProjectId();
+        // 초대받는 사람 객체
+        ProjectParticipants participant = projectMapper.getParticipantByProjectIdAndUserId(projectId, userId);
+
+        // 만약 이미 참여한 프로젝트인 경우
+        if (participant != null) {
+            response.put("errorMessage", "이미 참여한 프로젝트입니다. 다시 확인해 주세요.");
+            return response;
+        }
+
+        // 내 프로젝트인 경우
+        if (projectMapper.getProjectByProjectId(projectId).getUserId() == loginUserId) {
+            response.put("errorMessage", "자신의 프로젝트에는 참여할 수 없습니다.");
+            return response;
+        }
+
+        code.setAvailability(false);
+        projectMapper.updateInviteCode(code);
+
+        response.put("projectId", code.getProjectId());
+
+        return response;
     }
 
     public ProjectParticipants addParticipant(String userEmail, Long projectId) {
@@ -216,10 +253,8 @@ public class ProjectService {
         }
 
         // 알림 전송
-        notificationService.notifyProjectParticipants(
-                projectId,
-                "new participant"
-        );
+        sendProjectMessage(projectId, "NEW_PARTICIPANT");
+
         return projectMapper.getParticipantsById(participant.getId());
     }
 
@@ -229,14 +264,45 @@ public class ProjectService {
 
     public void updateParticipants(Long projectId, List<ProjectParticipants> participants) {
         for (ProjectParticipants participant : participants) {
-            System.out.println(participant);
             projectMapper.updateParticipant(projectId, participant);
             // 각 참가자에게 WebSocket 메시지 전송
-            notificationService.notifyProjectParticipantsUserId(projectId, participant.getUserId(), "update auth");
+            notificationService.notifyProjectParticipants(participant.getUserId(), projectId, "UPDATE_AUTH");
         }
     }
 
     public ProjectParticipants getParticipantByProjectIdAndUserId(Long projectId, Long userId) {
         return projectMapper.getParticipantByProjectIdAndUserId(projectId, userId);
+    }
+
+    public void removeParticipant(Long projectId, Long participantId) {
+        ProjectParticipants participant = projectMapper.getParticipantsById(participantId);
+        // 강퇴당한 유저
+        User user = userMapper.findById(participant.getUserId());
+        Project project = projectMapper.getProjectByProjectId(projectId);
+        projectMapper.removeParticipant(projectId, participantId);
+        System.out.println("userId: " + user.getId() + ", projectId: " + projectId);
+        notificationService.notifyProjectParticipants(user.getId(), projectId,
+                project.getName() + " 프로젝트에서 강퇴당했습니다.");
+    }
+
+    public void exitParticipant(Long projectId, String userEmail) {
+        // 나가는 유저
+        User user = userMapper.findByEmail(userEmail);
+        ProjectParticipants participants = projectMapper.getParticipantByProjectIdAndUserId(projectId, user.getId());
+        projectMapper.removeParticipant(projectId, participants.getId());
+        sendProjectMessage(projectId, "EXIT_PROJECT");
+    }
+
+    private void sendProjectMessage(Long projectId, String message) {
+        List<ProjectParticipants> participants = projectMapper.getParticipantsByProjectId(projectId);
+
+        for (ProjectParticipants participant : participants) {
+            notificationService.notifyProjectParticipants(participant.getUserId(), projectId, message);
+        }
+
+        Project project = projectMapper.getProjectByProjectId(projectId);
+        Long ownerId = project.getUserId();
+
+        notificationService.notifyProjectParticipants(ownerId, projectId, message);
     }
 }

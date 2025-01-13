@@ -1,19 +1,26 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.ProxyRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.apache.coyote.Response;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/test")
 public class TestController {
+
+    private final RestTemplate restTemplate;
+
+    public TestController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     // 100번대 테스트 (컨티뉴 응답)
     @GetMapping("/100")
     public ResponseEntity<String> test100() {
@@ -45,6 +52,32 @@ public class TestController {
     @GetMapping("/500")
     public ResponseEntity<String> test500() {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("500 INTERNAL SERVER ERROR");
+    }
+
+    @PostMapping
+    public ResponseEntity<?> echoRequest(HttpEntity<Map<String, Object>> httpEntity) {
+        try {
+            // Body 데이터 추출
+            Map<String, Object> body = httpEntity.getBody();
+
+            // Headers 데이터 추출
+            HttpHeaders headers = httpEntity.getHeaders();
+
+            // 출력 (디버깅용)
+            System.out.println("Body: " + body);
+            System.out.println("Headers: " + headers);
+
+            // 응답 데이터 구성
+            Map<String, Object> response = new HashMap<>();
+            response.put("body", body);
+            response.put("headers", headers);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to process entity: " + e.getMessage()));
+        }
     }
 
     // 파일 업로드 테스트

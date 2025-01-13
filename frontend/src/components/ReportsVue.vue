@@ -12,6 +12,7 @@
           <option value="ALL">ALL</option>
           <option value="Site">Site</option>
           <option value="Projects">Projects</option>
+          <option value="User">User</option>
         </select>
 
         <!-- 동적 필터: Site -->
@@ -67,6 +68,21 @@
             :value="project"
           >
             {{ project }}
+          </option>
+        </select>
+
+        <!-- 동적 필터: User -->
+        <select
+          class="form-select w-25"
+          v-if="selectedFilterType === 'User'"
+          v-model="selectedUser"
+          @change="filterLogs"
+        >
+          <option v-if="uniqueUser.length > 0" disabled hidden value="">
+            유저를 선택해 주세요.
+          </option>
+          <option v-for="user in uniqueUser" :key="user" :value="user">
+            {{ user }}
           </option>
         </select>
       </div>
@@ -165,6 +181,7 @@ export default {
       selectedProject: "",
       selectedSite: "",
       selectedEnvironment: "",
+      selectedUser: "",
       selectedTimeUnit: "day",
       selectedErrorRange: "4XX",
       selectedErrorDetails: [],
@@ -189,6 +206,9 @@ export default {
     uniqueProjects() {
       // 중복 제거 후 Project 목록 생성
       return [...new Set(this.logs.map((log) => log.projectName))];
+    },
+    uniqueUser() {
+      return [...new Set(this.logs.map((log) => log.requestUserEmail))];
     },
     successFailureData() {
       const successCount = this.filteredLogs.filter(
@@ -256,6 +276,7 @@ export default {
       this.selectedSite = "";
       this.selectedEnvironment = "";
       this.selectedProject = "";
+      this.selectedUser = "";
     },
     handleSiteChange() {
       // Site 선택 시 환경 초기화
@@ -276,7 +297,12 @@ export default {
         this.filteredLogs = this.logs.filter(
           (log) => log.projectName === this.selectedProject
         );
+      } else if (this.selectedFilterType === "User") {
+        this.filteredLogs = this.logs.filter(
+          (log) => log.requestUserEmail === this.selectedUser
+        );
       }
+      this.renderCharts();
     },
     async updateFilteredHistoryData() {
       if (this.selectedFilterType === "ALL") {
@@ -293,6 +319,11 @@ export default {
             log.siteName === this.selectedSite &&
             (this.selectedEnvironment === "" ||
               log.environmentName === this.selectedEnvironment)
+        );
+        this.renderCharts();
+      } else if (this.selectedFilterType === "User") {
+        this.filteredLogs = this.logs.filter(
+          (log) => log.requestUserEmail === this.selectedUser
         );
         this.renderCharts();
       }

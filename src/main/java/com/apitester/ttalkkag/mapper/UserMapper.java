@@ -11,4 +11,5 @@ public interface UserMapper {
     void insertSocialUser(User user);
     void settingUser(User user);
     void renewVerified(User user);
+    void settingUserAutoSaveUse(Long userId, Boolean autoSaveUse);
 }

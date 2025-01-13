@@ -45,6 +45,29 @@
           <option value="new-project">New Project...</option>
         </select>
 
+        <b-button id="popover-target-1" class="project-info">
+          <i class="bi bi-info-circle-fill"></i>
+        </b-button>
+
+        <b-popover target="popover-target-1" triggers="hover" placement="top">
+          <template #title
+            ><span style="font-size: small">프로젝트 정보</span></template
+          >
+          <p><b>Owner:</b><br />{{ projectOwner }}</p>
+          <p><b>My Authority:</b><br />{{ projectAuth }}</p>
+          <p><b>참여자:</b><br /></p>
+          <ul style="margin: 0; padding: 0">
+            <li
+              v-for="participant in participants"
+              :key="participant.id"
+              :value="participant"
+              class="participant-list"
+            >
+              {{ participant.email }}
+            </li>
+          </ul>
+        </b-popover>
+
         <!-- 사이트 선택 드롭다운 -->
         <select
           v-model="selectedSite"
@@ -65,14 +88,18 @@
           v-model="selectedEnvironment"
           @change="confirmSelection"
         >
-          <option v-if="environments.length === 0" value="null" disabled selected>
+          <option
+            v-if="environments.length === 0"
+            value="null"
+            disabled
+            selected
+          >
             환경이 없습니다.
           </option>
           <option
             v-for="environment in environments"
             :key="environment.id"
             :value="environment"
-            @change="confirmSelection"
           >
             {{ environment.name }}
           </option>
@@ -85,7 +112,11 @@
             type="button"
             data-bs-toggle="dropdown"
           >
-            <img src="../../assets/icon/profile-default-icon.png" />
+            <img
+              :src="profileImageUrl"
+              class="profile-img"
+              alt="사용자 프로필"
+            />
             <span class="d-none d-lg-inline">{{ email }}</span>
             <!-- 이메일 숨김 조건 -->
           </button>
@@ -103,7 +134,7 @@
                 class="dropdown-item"
                 href="#"
                 @click="showSettingsModal = true"
-                ><i class="bi bi-gear"></i> Setting</a
+                ><i class="bi bi-gear"></i>Setting</a
               >
             </li>
             <li>
@@ -136,7 +167,7 @@
   </CommonModal>
   <SettingModal
     v-if="showSettingsModal"
-    @modal-setting-confirm="this.$emit('modal-setting-confirm')"
+    @modal-setting-confirm="handleModalSettingConfirm"
     @close="closeSettingsModal"
   />
   <!-- 초대 코드 입력 모달 -->
@@ -148,7 +179,7 @@
           <button
             type="button"
             class="btn-close"
-            @click="this.showInputCodeModal = false"
+            @click="closeInputCodeModal"
           ></button>
         </div>
         <div class="modal-body">
@@ -161,6 +192,7 @@
             type="text"
             class="form-control"
             placeholder="초대 코드를 입력하세요."
+            @keyup.enter="validateInviteCode"
           />
         </div>
         <div class="modal-footer">
@@ -185,15 +217,20 @@ export default {
   name: "NavHeader",
   components: { CommonModal, SettingModal },
   props: {
+    projectOwner: String,
+    projectAuth: String,
     propProjects: Array,
     propSites: Array,
     propEnvironments: Array,
     propSelectedProject: Object,
+    participantsList: Array,
+    participants: Array,
   },
   data() {
     return {
       email: "", // 유저 이메일
       loginUserId: "", // 현재 로그인한 유저 id
+      profileImageUrl: null,
       loginVerified: false, // 최초 로그인 여부
       projects: [], // 유저 프로젝트 목록
       sites: [], // 프로젝트 하위 사이트 목록
@@ -201,7 +238,6 @@ export default {
       selectedProject: "", // 선택 프로젝트
       selectedSite: null, // 선택 사이트
       selectedEnvironment: null, // 선택 환경
-      stompClient: null,
       showNewProjectModal: false, // 새 프로젝트 모달 표시 상태
       showSettingsModal: false, // 설정 모달 표시 상태
       showInputCodeModal: false, // 초대 코드 입력 모달 표시 상태
@@ -244,8 +280,17 @@ export default {
     this.fetchProjects();
   },
   methods: {
+    closeInputCodeModal() {
+      this.inviteCode = "";
+      this.errorMessage = "";
+      this.showInputCodeModal = false;
+    },
     closeSettingsModal() {
       this.showSettingsModal = false; // 모달 닫기 처리
+    },
+    handleModalSettingConfirm() {
+      this.fetchLoginUserInfo();
+      this.$emit("modal-setting-confirm");
     },
     async fetchUserEmail() {
       try {
@@ -268,7 +313,20 @@ export default {
     async fetchLoginUserInfo() {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
+        const socialProvider = response.data.user.socialProvider;
         this.loginUserId = response.data.user.id;
+
+        // 프로필 이미지 경로 설정
+        if (socialProvider === "kakao" || socialProvider === "google") {
+          this.profileImageUrl = response.data.user.profileImage
+            ? response.data.user.profileImage
+            : `${process.env.VUE_APP_SERVER_IP}/uploads/profiles/profile-default-icon.png`;
+        } else {
+          this.profileImageUrl = response.data.user.profileImage
+            ? `${process.env.VUE_APP_SERVER_IP}${response.data.user.profileImage}`
+            : `${process.env.VUE_APP_SERVER_IP}/uploads/profiles/profile-default-icon.png`;
+        }
+
         if (!response.data.user.verified) {
           this.showSettingsModal = true;
           await this.$axios.post("/api/user/renewVerified", {
@@ -350,7 +408,7 @@ export default {
       // 선택된 사이트와 환경을 부모로 전달
       this.$emit("selected-environment", {
         site: this.selectedSite || null,
-        environmentId: this.selectedEnvironment || null
+        environmentId: this.selectedEnvironment || null,
       });
     },
     selectOtherProject() {
@@ -439,8 +497,28 @@ export default {
   padding: 0;
 }
 
+.profile-img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;
+}
+
 .project-select {
   width: 200px;
+}
+
+.project-info {
+  color: white;
+  margin-right: 10px;
+  cursor: pointer;
+  background-color: #00000000;
+  border: #00000000;
+}
+
+.project-info:hover {
+  background-color: #00000000;
 }
 
 .login-user-info {
@@ -452,11 +530,6 @@ export default {
 ul {
   font-size: small;
   text-align: center;
-}
-
-.login-user-info img {
-  width: 35px;
-  margin-right: 10px;
 }
 
 .login-user-info i {
@@ -486,5 +559,9 @@ ul {
 
 .participant-project {
   background-color: #e1e1e1;
+}
+
+.participant-list {
+  list-style: none;
 }
 </style>

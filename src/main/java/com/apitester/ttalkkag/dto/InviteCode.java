@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 public class InviteCode {
     private Long id;
     private Long projectId;
+    private String userEmail;
     private String code;
+    private boolean availability;
     private LocalDateTime expiryTime;
 
     public boolean isExpired() {

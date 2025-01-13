@@ -1,17 +1,14 @@
 package com.apitester.ttalkkag.controller;
 
+import com.apitester.ttalkkag.dto.ApiUsage;
 import com.apitester.ttalkkag.dto.Apis;
-import com.apitester.ttalkkag.dto.ProjectItems;
-import com.apitester.ttalkkag.dto.User;
 import com.apitester.ttalkkag.service.ApiService;
-import com.apitester.ttalkkag.service.NotificationService;
-import com.apitester.ttalkkag.service.ProjectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -45,11 +42,11 @@ public class ApiController {
     }
 
     @GetMapping("/usage/list/{projectId}")
-    public List<User> findUsersByProjectId(@PathVariable Long projectId) {
-        // 해당 API를 사용하는 사용자 목록 조회
-        List<User> users = apiService.getUsersUsageByProjectId(projectId);
-        return users;
+    public ResponseEntity<Map<Long, ApiUsage>> getApiUsageList(@PathVariable Long projectId) {
+        System.out.println(apiService.getUsersUsageByProjectId(projectId));
+        return ResponseEntity.ok(apiService.getUsersUsageByProjectId(projectId));
     }
+
 
     @PostMapping("/usage/{projectId}/{itemId}")
     public void updateUserApiUsage(@AuthenticationPrincipal String email, @PathVariable Long projectId, @PathVariable Long itemId) {
@@ -60,5 +57,12 @@ public class ApiController {
     public void deleteUserApiUsage(@PathVariable Long projectId, @PathVariable Long userId) {
         System.out.println("projectId: " + projectId + ", userId: " + userId);
         apiService.deleteUserApiUsage(projectId, userId);
+    }
+
+    // 추가: API 사용 데이터 초기화 (테스트 또는 디버깅용)
+    @DeleteMapping("/usage/reset/{projectId}")
+    public void resetApiUsage(@PathVariable Long projectId) {
+        apiService.resetApiUsage(projectId);
+        System.out.println("Reset API usage for projectId: " + projectId);
     }
 }

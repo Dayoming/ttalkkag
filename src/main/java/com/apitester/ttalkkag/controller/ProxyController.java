@@ -28,8 +28,6 @@ public class ProxyController {
                 request.getHeaders().forEach(headers::set);
             }
 
-            System.out.println("File: " + (file != null ? file.getOriginalFilename() : "No file"));
-
             HttpEntity<?> entity = new HttpEntity<>(request.getBody(), headers);
             ResponseEntity<String> response = restTemplate.exchange(
                     request.getUrl(),

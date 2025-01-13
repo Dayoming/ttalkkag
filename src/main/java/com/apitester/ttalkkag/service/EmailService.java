@@ -17,5 +17,13 @@ public class EmailService {
         message.setTo(email);
         mailSender.send(message);
     }
+
+    public void sendProjectInviteCode(String email, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setSubject("[딸깍] 프로젝트 초대 코드");
+        message.setText("프로젝트에 초대 받았습니다. 초대 코드는 다음과 같습니다: " + code);
+        message.setTo(email);
+        mailSender.send(message);
+    }
 }
 

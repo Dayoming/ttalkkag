@@ -77,6 +77,7 @@ public class AuthController {
         user.setAutoSaveTime(60);
         user.setAutoSaveTerm(5);
         user.setShowResponse(false);
+        user.setProfileImage("/uploads/profiles/profile-default-icon.png");
         userMapper.insertUser(user);
         verificationCodes.remove(email);
         response.put("message", "회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
@@ -132,6 +133,7 @@ public class AuthController {
 
         String email = (String) ((Map<String, Object>) userInfo.get("kakao_account")).get("email");
         String nickname = (String) ((Map<String, Object>) ((Map<String, Object>) userInfo.get("kakao_account")).get("profile")).get("nickname");
+        String profileImageUrl = (String) ((Map<String, Object>) ((Map<String, Object>) userInfo.get("kakao_account")).get("profile")).get("profile_image_url");
 
         // 3. 사용자 정보 저장 또는 조회
         User user = userMapper.findByEmail(email);
@@ -144,6 +146,7 @@ public class AuthController {
             user.setAutoSaveTerm(5);
             user.setShowResponse(false);
             user.setSocialProvider("kakao");
+            user.setProfileImage(profileImageUrl);
             userMapper.insertSocialUser(user); // 새 사용자 저장
         }
 
@@ -157,6 +160,8 @@ public class AuthController {
         response.put("nickname", nickname);
         response.put("email", email);
         response.put("verified", user.isVerified());
+        response.put("profileImageUrl", profileImageUrl);
+
         return response;
     }
 
@@ -171,9 +176,11 @@ public class AuthController {
 
             String email = (String) userInfo.get("email");
             String name = (String) userInfo.get("name");
+            String profileImageUrl = (String) userInfo.get("picture");
 
             // 3. 사용자 정보 저장 또는 조회
             User user = userMapper.findByEmail(email);
+
             if (user == null) {
                 user = new User();
                 user.setEmail(email);
@@ -183,6 +190,8 @@ public class AuthController {
                 user.setAutoSaveTerm(5);
                 user.setShowResponse(false);
                 user.setSocialProvider("google");
+                user.setProfileImage(profileImageUrl);
+                System.out.println(user);
                 userMapper.insertSocialUser(user); // 새 사용자 저장
             }
 
@@ -197,6 +206,7 @@ public class AuthController {
             response.put("name", name);
             response.put("email", email);
             response.put("verified", user.isVerified());
+            response.put("profileImageUrl", profileImageUrl);
 
             return response;
         } catch (Exception e) {

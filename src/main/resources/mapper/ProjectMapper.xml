@@ -3,7 +3,7 @@
 
 <mapper namespace="com.apitester.ttalkkag.mapper.ProjectMapper">
     <!-- 사용자별 프로젝트 조회 -->
-    <select id="getProjectsByUserId" resultType="com.apitester.ttalkkag.dto.Project">
+    <select id="getProjectsByUserId" resultType="Project">
         SELECT
             p.id AS id,
             p.user_id AS userId,
@@ -31,7 +31,7 @@
         <result property="permissionLevel" column="permissionLevel" />
     </resultMap>
 
-    <select id="getProjectByProjectId" resultType="com.apitester.ttalkkag.dto.Project">
+    <select id="getProjectByProjectId" resultType="Project">
         SELECT
         id AS id,
         name AS name,
@@ -73,6 +73,11 @@
             project_id = #{projectId} AND
             user_id = #{participant.userId};
     </update>
+
+    <delete id="removeParticipant">
+        DELETE FROM project_participants
+        WHERE id = #{participantId}
+    </delete>
 
 
     <select id="searchProjectItems" resultType="ProjectItems">
@@ -221,10 +226,12 @@
         SELECT
             id,
             project_id AS projectId,
+            user_email AS userEmail,
             code,
+            availability,
             expiry_time AS expiryTime
         FROM invite_code
-        WHERE code = #{code}
+        WHERE code = #{code} AND availability = true
     </select>
 
     <insert id="insertApi" parameterType="ProjectItems">
@@ -232,24 +239,23 @@
         VALUES (#{projectId}, #{parentId}, #{type}, #{name}, #{depth}, NOW());
     </insert>
 
-    <select id="getInviteCodeByProjectId" parameterType="Long">
-        SELECT * FROM invite_code WHERE project_id = #{projectId}
+    <select id="getInviteCodeByProjectId" parameterType="InviteCode">
+        SELECT * FROM invite_code WHERE project_id = #{projectId} AND user_email = #{userEmail}
     </select>
 
     <insert id="insertInviteCode" parameterType="InviteCode">
         INSERT INTO invite_code (
-            project_id, code, expiry_time
+            project_id, user_email, code, expiry_time
         )
             VALUES (
-            #{projectId}, #{code}, #{expiryTime}
+            #{projectId}, #{userEmail}, #{code}, #{expiryTime}
         );
     </insert>
 
     <update id="updateInviteCode" parameterType="InviteCode">
         UPDATE invite_code SET
-            code = #{code},
-            expiry_time = #{expiryTime}
-        WHERE project_id = #{projectId}
+            availability = #{availability}
+        WHERE id = #{id}
     </update>
 
 

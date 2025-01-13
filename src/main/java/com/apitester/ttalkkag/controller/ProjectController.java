@@ -1,9 +1,7 @@
 package com.apitester.ttalkkag.controller;
 
-import com.apitester.ttalkkag.dto.ItemOrderUpdateRequest;
-import com.apitester.ttalkkag.dto.Project;
-import com.apitester.ttalkkag.dto.ProjectItems;
-import com.apitester.ttalkkag.dto.ProjectParticipants;
+import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.service.EmailService;
 import com.apitester.ttalkkag.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +17,7 @@ import java.util.Map;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final EmailService emailService;
 
     // 사용자별 프로젝트 조회
     @GetMapping
@@ -64,30 +63,34 @@ public class ProjectController {
     }
 
     @PostMapping("/invite")
-    public Map<String, Object> generateInviteCode(@RequestBody Map<String, Long> requestBody) {
+    public Map<String, Object> generateInviteCode(@RequestBody InviteCode inviteCode) {
         Map<String, Object> response = new HashMap<>();
-        Long projectId = requestBody.get("projectId");
+        Long projectId = inviteCode.getProjectId();
+        String userEmail = inviteCode.getUserEmail();
         if (projectId == null) {
             response.put("errorMessage", "Invalid project ID");
             return response;
         }
 
-        String inviteCode = projectService.generateInviteCode(projectId);
-        response.put("code", inviteCode);
+        String createdInviteCode = projectService.generateInviteCode(projectId, userEmail);
+        emailService.sendProjectInviteCode(userEmail, createdInviteCode);
+        response.put("code", createdInviteCode);
         return response;
     }
 
     @PostMapping("/validate-invite")
     public Map<String, Object> validateInviteCode(@AuthenticationPrincipal String userEmail,
                                                   @RequestBody Map<String, String> requestBody) {
-        Map<String, Object> response = new HashMap<>();
         String inviteCode = requestBody.get("inviteCode");
         try {
-            Long projectId = projectService.validateInviteCode(inviteCode);
-            projectService.addParticipant(userEmail, projectId);
-            response.put("projectId", projectId);
+            Map<String, Object> response = projectService.validateInviteCode(inviteCode, userEmail);
+            if (response.get("projectId") != null) {
+                Long projectId = (Long) response.get("projectId");
+                projectService.addParticipant(userEmail, projectId);
+            }
             return response;
         } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new HashMap<>();
             response.put("errorMessage", "초대 코드를 확인할 수 없습니다. 다시 시도해주세요.");
             e.printStackTrace();
             return response;
@@ -182,6 +185,18 @@ public class ProjectController {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "권한이 업데이트 되었습니다.");
         return response;
+    }
+
+    // 특정 프로젝트 참여자 삭제
+    @DeleteMapping("/{projectId}/participants/{participantId}")
+    public void removeParticipant(@PathVariable Long projectId, @PathVariable Long participantId) {
+        projectService.removeParticipant(projectId, participantId);
+    }
+
+    // 특정 프로젝트 참여자 삭제
+    @DeleteMapping("/{projectId}/participants")
+    public void exitParticipant(@PathVariable Long projectId, @AuthenticationPrincipal String userEmail) {
+        projectService.exitParticipant(projectId, userEmail);
     }
 
 }

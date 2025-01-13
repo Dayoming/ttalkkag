@@ -22,18 +22,19 @@
         <div class="table-responsive mt-4"></div>
       </div>
       <div class="sidebar-hierarchy">
-        <!-- 프로젝트 소유자, 권한 표시 영역 -->
-        <div class="mt-3">
-          <p><b>Owner:</b><br>{{ projectOwner }}</p>
-          <p><b>My Authority:</b><br>{{ projectAuth }}</p>
-        </div>
         <!-- 모든 폴더 열기/닫기 버튼 -->
         <div class="d-flex justify-content-end mb-2">
-          <button class="btn btn-dark mt-2 me-2 folder-toggle-btn" @click="toggleAllFolders(true)">
-            Open All Folders
+          <button
+            class="btn btn-dark mt-2 me-2 folder-toggle-btn"
+            @click="toggleAllFolders(true)"
+          >
+            <i class="bi bi-folder2-open"></i>
           </button>
-          <button class="btn btn-dark mt-2 folder-toggle-btn" @click="toggleAllFolders(false)">
-            Close All Folders
+          <button
+            class="btn btn-dark mt-2 folder-toggle-btn"
+            @click="toggleAllFolders(false)"
+          >
+            <i class="bi bi-folder"></i>
           </button>
         </div>
         <div class="table-responsive mt-2">
@@ -58,7 +59,7 @@
         </div>
       </div>
       <!-- 하단 고정된 메뉴 -->
-      <div class="border-top mt-auto">
+      <div class="border-top mt-auto fix-menu">
         <ul class="nav flex-column">
           <li class="nav-item">
             <router-link
@@ -380,6 +381,11 @@ export default {
 </script>
 
 <style scoped>
+.sidebar {
+  position: relative;
+  height: 100vh;
+}
+
 .nav-item a {
   color: black;
   padding: 10px;
@@ -415,5 +421,26 @@ export default {
 
 .folder-toggle-btn {
   font-size: small;
+}
+
+.table-responsive {
+  overflow: scroll;
+  height: 450px;
+}
+
+/* ( 크롬, 사파리, 오페라, 엣지 ) 동작 */
+.table-responsive:-webkit-scrollbar {
+  display: none;
+}
+
+.table-responsive {
+  -ms-overflow-style: none; /* 인터넷 익스플로러 */
+  scrollbar-width: none; /* 파이어폭스 */
+}
+
+.fix-menu {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
 }
 </style>

@@ -5,6 +5,10 @@
       :propSites="sites"
       :propEnvironments="environments"
       :propSelectedProject="selectedProject"
+      :projectOwner="projectOwner"
+      :projectAuth="projectAuth"
+      :participantsList="participantsList"
+      :participants="participants"
       :message="message"
       @logout="handleLogout"
       @project-selected="handleProjectSelected"
@@ -32,12 +36,12 @@
           @update-items="fetchItems"
           @api-selected="handleApiSelected"
         />
-        <main
-          class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents"
-        >
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-contents">
           <router-view
             :projects="projects"
             :projectAuth="projectAuth"
+            :propParticipants="participants"
+            :propFileConflict="fileConflict"
             :items="items"
             :propSites="sites"
             :propEnvironments="environments"
@@ -49,6 +53,8 @@
             :isSetting="isSetting"
             :message="message"
             :apiSelections="apiSelections"
+            :stompClient="stompClient"
+            @input-modified="updateModifiedStatus"
             @drop-item="handleDropOutside"
             @temp-save-api="saveTempApi"
             @delete-projects="deleteProjects"
@@ -59,6 +65,7 @@
             @edit-request="handleEditRequest"
             @re-request="handleReRequest"
             @api-selected="handleApiSelected"
+            @api-usage-message="handleApiUsageMessage"
             @item-selected="handleItemSelected"
             @refresh-sidebar="handleRefreshSidebar"
           />
@@ -72,6 +79,26 @@
             </div>
           </div>
         </main>
+      </div>
+    </div>
+    <!-- 알림 창 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div
+        v-for="(toast, index) in toasts"
+        :key="index"
+        class="toast show align-items-center text-white bg-dark border-0 mb-2"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body">{{ toast.message }}</div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            @click="removeToast(index)"
+          ></button>
+        </div>
       </div>
     </div>
   </template>
@@ -102,36 +129,39 @@ export default {
       selectedFileId: null,
       savedItemId: null,
       stompClient: null,
+      fileConflict: false,
       projects: [],
       sites: [],
       environments: [],
       items: [],
+      participants: [], // 프로젝트 주인 미포함 참가자 리스트
+      participantsList: [], // 프로젝트 주인 포함 참가자 리스트
+      toasts: [], // Toast 메시지 배열
       user: null,
       isSetting: false,
+      isModified: false, // API 파일 변경 여부
       message: "",
+      changeMessage: "", // API가 변경됐을 때 메시지
       projectAuth: null,
       projectOwner: null,
       currentApiSubscription: null, // 현재 구독 중인 API 경로
       updatedTempApi: null, // 다른 사용자가 수정한 Api 정보
+      currentStatusApi: null,
       apiSelections: {}, // 작업 중인 사용자 목록
     };
   },
   watch: {
     selectedProject: {
-      handler(newProject, oldProject) {
+      handler() {
         if (this.selectedProject === null) {
           return;
         }
 
-        if (oldProject && newProject.id !== oldProject.id) {
-          this.disconnect(); // 이전 프로젝트 연결 해제
-        }
-
         this.selectedTempApi = null;
 
-        this.disconnect();
-        this.connectWebSocket(this.selectedProject.id);
         this.fetchProjectAuthInfo();
+        this.fetchParticipants();
+        this.fetchParticipantsList();
       },
       immediate: true,
     },
@@ -141,20 +171,7 @@ export default {
           return; // WebSocket이 연결되지 않았거나 프로젝트가 선택되지 않은 경우
         }
 
-        // 기존 구독 해제
-        if (this.currentApiSubscription) {
-          this.stompClient.unsubscribe(this.currentApiSubscription);
-        }
-
-        // 새로운 구독 설정
         if (newApi && newApi.id) {
-          const newSubscription = `/topic/project/${this.selectedProject.id}/api/${newApi.id}`;
-          this.currentApiSubscription = newSubscription;
-
-          this.stompClient.subscribe(newSubscription, (message) => {
-            this.handleApiMessage(message.body);
-          });
-
           this.updateApiSelections();
         }
       },
@@ -183,7 +200,7 @@ export default {
     },
     async handleDropOutside(event) {
       if (this.projectAuth === "read") {
-        alert("폴더나 파일 이동 권한이 없습니다.");
+        this.addToast("폴더나 파일 이동 권한이 없습니다.");
         return;
       }
       const draggedItemId = event.dataTransfer.getData("draggedItemId");
@@ -197,15 +214,165 @@ export default {
         this.fetchItems(); // 갱신 요청
       } catch (error) {
         console.error("바깥 영역 드롭 중 오류 발생:", error);
-        alert("이동 중 오류가 발생했습니다.");
+        this.addToast("이동 중 오류가 발생했습니다.");
       }
     },
-    handleApiSelected(loadApi) {
+    async handleApiSelected(loadApi) {
+      if (this.isModified === true) {
+        const confirmed = confirm(
+          "변경사항이 저장되지 않았습니다. 저장하시겠습니까?"
+        );
+        if (confirmed) {
+          this.saveApiData(this.currentStatusApi); // 저장 로직
+          this.addToast("저장되었습니다.");
+          // 현재 프로젝트와 API의 사용자 정보 조회
+          const apiId = this.currentStatusApi?.itemId;
+
+          // `apiSelections`에서 현재 유저 제외
+          const otherUsers = this.apiSelections[apiId]?.filter(
+            (user) => user.email !== this.user.email
+          );
+
+          // 메시지 형식 정의
+          const notificationMessage = {
+            type: "API",
+            content: "API_UPDATE",
+            data: this.currentStatusApi, // 현재 API 데이터 전달
+          };
+
+          // 다른 사용자들에게 메시지 전송
+          if (otherUsers && otherUsers.length > 0) {
+            otherUsers.forEach((user) => {
+              this.stompClient.send(
+                `/topic/user/${user.id}`, // WebSocket 경로
+                {},
+                JSON.stringify(notificationMessage) // 메시지 전송
+              );
+            });
+          }
+        }
+      }
+      this.isModified = false; // 상태 초기화
+
       this.selectedTempApi = loadApi;
+
       this.$router.push({
         name: "ApiTest",
         params: { tempApi: this.selectedTempApi }, // 라우터에 데이터 전달
       });
+    },
+
+    handleApiUsageMessage(loadApi) {
+      this.addToast("저장되었습니다.");
+      // 현재 프로젝트와 API의 사용자 정보 조회
+      const apiId = this.loadApi?.itemId;
+
+      // `apiSelections`에서 현재 유저 제외
+      const otherUsers = this.apiSelections[apiId]?.filter(
+        (user) => user.email !== this.user.email
+      );
+
+      // 메시지 형식 정의
+      const notificationMessage = {
+        type: "API",
+        content: "API_UPDATE",
+        data: loadApi, // 현재 API 데이터 전달
+      };
+
+      console.log(otherUsers);
+
+      // 다른 사용자들에게 메시지 전송
+      if (otherUsers && otherUsers.length > 0) {
+        otherUsers.forEach((user) => {
+          this.stompClient.send(
+            `/topic/user/${user.id}`, // WebSocket 경로
+            {},
+            JSON.stringify(notificationMessage) // 메시지 전송
+          );
+        });
+      }
+    },
+
+    async saveApiData(selectApi) {
+      if (this.projectAuth === "read") return;
+      try {
+        // this.apiId가 있는 경우(이미 저장된 파일의 경우) 업데이트
+        if (selectApi.id !== null) {
+          const project = await this.$axios.patch(
+            "/api/projects/update/projectItemName",
+            {
+              id: selectApi.itemId,
+              projectId: Number(this.selectedProject.id),
+              parentId: null,
+              type: "api",
+              name: selectApi.name || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
+
+          const apiData = {
+            name: selectApi.name || "TempAPI",
+            itemId: Number(project.data.updatedItem.id),
+            method: selectApi.method,
+            url: selectApi.url,
+            headers: selectApi.headers,
+            queryParameters: selectApi.queryParameters,
+            formParameters: selectApi.formParameters,
+            file: selectApi.file,
+            selectedBodyType: selectApi.selectedBodyType,
+            selectedEnvironment: selectApi.selectedEnvironment,
+          };
+
+          await this.$axios.patch(
+            "/api/apis",
+            {
+              id: selectApi.id,
+              ...apiData,
+            },
+            { showSpinner: false }
+          );
+
+          this.handleRefreshSidebar(selectApi.itemId);
+          console.log("저장 완료");
+        } else {
+          // this.apiId가 없는 경우 추가
+          const project = await this.$axios.post(
+            "/api/projects/add-api",
+            {
+              projectId: Number(this.selectedProject.id),
+              parentId: null,
+              type: "api",
+              name: selectApi.name || "TempAPI",
+              depth: 1,
+            },
+            { showSpinner: false }
+          );
+
+          const apiData = {
+            name: selectApi.name || "TempAPI",
+            itemId: Number(project.data.id),
+            method: selectApi.method,
+            url: selectApi.url,
+            headers: selectApi.headers,
+            queryParameters: selectApi.queryParameters,
+            formParameters: selectApi.formParameters,
+            file: selectApi.file,
+            selectedBodyType: selectApi.selectedBodyType,
+            selectedEnvironment: selectApi.selectedEnvironment,
+          };
+
+          const savedApi = await this.$axios.post("/api/apis", apiData, {
+            showSpinner: false,
+          });
+
+          this.handleRefreshSidebar(selectApi.itemId);
+          console.log("API " + savedApi.data + "저장 완료");
+        }
+      } catch (error) {
+        console.log("Failed save projectItem: " + error);
+        alert("API 저장에 실패했습니다.");
+      }
     },
     handleItemSelected(selectedItem) {
       this.selectedItem = selectedItem;
@@ -218,8 +385,13 @@ export default {
       }
     },
     handleSelectedEnvironment(data) {
-      this.selectedSite = data.site;
-      this.selectedEnvironment = data.environmentId;
+      if (data) {
+        this.selectedSite = data.site;
+        this.selectedEnvironment = data.environmentId;
+      } else {
+        this.selectedSite = null;
+        this.selectedEnvironment = null;
+      }
     },
     async handleLogout() {
       if (confirm("로그아웃 하시겠습니까?")) {
@@ -246,29 +418,18 @@ export default {
         this.projectAuth = null;
         this.projectOwner = null;
         this.apiSelections = {};
+
         this.disconnect();
+
         // localStorage 초기화
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("userEmail");
 
-        alert("로그아웃 되었습니다.");
+        this.addToast("로그아웃 되었습니다.");
 
         // 로그인 화면으로 리다이렉트
         this.$router.push("/login");
-      }
-    },
-    handleApiMessage(messageBody) {
-      try {
-        const apiData = JSON.parse(messageBody); // 메시지 파싱
-
-        // selectedTempApi에 반영
-        this.updatedTempApi = {
-          ...this.selectedTempApi, // 기존 데이터 유지
-          ...apiData, // 새로운 데이터 덮어쓰기
-        };
-      } catch (error) {
-        console.error("Failed to parse API message:", error);
       }
     },
     // API를 임시 저장
@@ -293,6 +454,8 @@ export default {
         const response = await this.$axios.get("/api/projects");
         this.projects = response.data;
 
+        console.log(response.data);
+
         // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.projects.length > 0) {
           const selectedProject = selectedProjectId
@@ -306,6 +469,9 @@ export default {
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
+
+      this.fetchParticipants();
+      this.fetchParticipantsList();
     },
     async loadUser() {
       try {
@@ -325,6 +491,83 @@ export default {
         this.expandAll(this.items);
       } catch (error) {
         console.log("Failed load items: " + error);
+      }
+    },
+    async fetchParticipants() {
+      try {
+        const response = await this.$axios.get(
+          `/api/projects/${this.selectedProject.id}/participants`,
+          { showSpinner: false }
+        );
+
+        const participants = response.data;
+
+        // 각 userId로 이메일 조회 및 병합
+        const updatedParticipants = await Promise.all(
+          participants.map(async (participant) => {
+            try {
+              const emailResponse = await this.$axios.get(
+                `/api/user/findById/${participant.userId}`,
+                { showSpinner: false }
+              );
+              return {
+                ...participant, // 기존 데이터 복사
+                email: emailResponse.data.user.email, // 이메일 추가
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch email for userId ${participant.userId}: `,
+                error
+              );
+              return participant; // 이메일을 가져오지 못한 경우 기존 데이터 유지
+            }
+          })
+        );
+
+        this.participants = updatedParticipants; // 업데이트된 데이터를 저장
+      } catch (error) {
+        console.error("Failed to fetch participants: ", error);
+      }
+    },
+    async fetchParticipantsList() {
+      try {
+        const response = await this.$axios.get(
+          `/api/projects/${this.selectedProject.id}/participants`,
+          { showSpinner: false }
+        );
+
+        const ownerResponse = await this.$axios.get(
+          `/api/projects/find/${this.selectedProject.id}`,
+          { showSpinner: false }
+        );
+
+        const participants = [...response.data, ownerResponse.data];
+
+        // 각 userId로 이메일 조회 및 병합
+        const updatedParticipants = await Promise.all(
+          participants.map(async (participant) => {
+            try {
+              const emailResponse = await this.$axios.get(
+                `/api/user/findById/${participant.userId}`,
+                { showSpinner: false }
+              );
+              return {
+                ...participant, // 기존 데이터 복사
+                email: emailResponse.data.user.email, // 이메일 추가
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch email for userId ${participant.userId}: `,
+                error
+              );
+              return participant; // 이메일을 가져오지 못한 경우 기존 데이터 유지
+            }
+          })
+        );
+
+        this.participantsList = updatedParticipants; // 업데이트된 데이터를 저장
+      } catch (error) {
+        console.error("Failed to fetch participantsList: ", error);
       }
     },
     async fetchSites() {
@@ -378,7 +621,7 @@ export default {
           { showSpinner: false }
         );
 
-        this.apiSelections = this.groupUsersByApi(response.data);
+        this.apiSelections = await this.mapUsersByApi(response.data);
       } catch (error) {
         console.error("Failed update Api Selection: " + error);
       }
@@ -409,6 +652,12 @@ export default {
         }
       });
     },
+    updateModifiedStatus({ hasChanges, currentState }) {
+      this.isModified = hasChanges;
+      this.currentStatusApi = currentState;
+      console.log("Has Changes: ", hasChanges);
+      console.log("Current State: ", currentState);
+    },
     async updateProjects() {
       try {
         const response = await this.$axios.get("/api/projects");
@@ -422,39 +671,94 @@ export default {
       const itemId = this.selectedTempApi.itemId;
 
       try {
-        this.$axios.post(`/api/apis/usage/${projectId}/${itemId}`);
+        // 현재 API 사용 설정 업데이트
+        await this.$axios.post(`/api/apis/usage/${projectId}/${itemId}`);
+
+        // 프로젝트 내 모든 API 사용자 목록 조회
         const response = await this.$axios.get(
           `/api/apis/usage/list/${projectId}`,
-          { showSpinner: false }
+          {
+            showSpinner: false,
+          }
         );
 
-        this.apiSelections = this.groupUsersByApi(response.data);
+        console.log("Updated API Usage:", response.data);
+
+        // 데이터 처리 및 UI 업데이트
+        this.apiSelections = this.mapUsersByApi(response.data);
       } catch (error) {
-        console.error("Failed update Api Selection: " + error);
+        console.error("Failed to update API Selection:", error);
       }
     },
-    groupUsersByApi(usageGroup) {
+
+    async updateAutoSaveForParticipants(autoSaveStatus) {
+      try {
+        // 프로젝트의 모든 참여자 중 Owner를 제외
+        const participantsToUpdate = this.participants.filter(
+          (participant) => participant.email !== this.projectOwner
+        );
+
+        // 각 참여자의 자동 저장 권한을 업데이트
+        for (const participant of participantsToUpdate) {
+          await this.$axios.patch(`/api/user/setting/${participant.userId}`, {
+            autoSaveUse: autoSaveStatus,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to update auto-save for participants:", error);
+        this.addToast("자동 저장 권한 변경 중 오류가 발생했습니다.");
+      }
+    },
+
+    async updateAutoSaveForThisUser(autoSaveStatus) {
+      try {
+        console.log("This user: " + this.user);
+        // 현재 참여자의 자동 저장 권한을 업데이트
+        await this.$axios.patch(`/api/user/setting/${this.user.id}`, {
+          autoSaveUse: autoSaveStatus,
+        });
+      } catch (error) {
+        console.error("Failed to update auto-save for participants:", error);
+        this.addToast("자동 저장 권한 변경 중 오류가 발생했습니다.");
+      }
+    },
+
+    mapUsersByApi(apiUsageMap) {
       const groupedUsers = {};
 
-      Object.values(usageGroup).forEach((user) => {
-        const itemId = user.apiUsage.itemId;
+      // apiUsageMap: { userId: { itemId, email, profileImageUrl }, ... }
+      Object.entries(apiUsageMap).forEach(([userId, usageInfo]) => {
+        const { itemId, email, profileImageUrl } = usageInfo;
 
         if (!groupedUsers[itemId]) {
           groupedUsers[itemId] = [];
         }
 
+        // 카카오나 구글 프로필 경로인지 확인 후 처리
+        const finalProfileImageUrl = profileImageUrl?.startsWith("http")
+          ? profileImageUrl // 카카오/구글 프로필 URL
+          : `${process.env.VUE_APP_SERVER_IP}${
+              profileImageUrl || "/uploads/profiles/profile-default-icon.png"
+            }`; // 로컬 프로필 경로 또는 기본 이미지 경로
+
         groupedUsers[itemId].push({
-          id: user.id,
-          email: user.email,
-          autoSaveUse: user.autoSaveUse,
-          autoSaveTime: user.autoSaveTime,
-          autoSaveTerm: user.autoSaveTerm,
-          showResponse: user.showResponse,
-          verified: user.verified,
+          id: Number(userId),
+          email,
+          profileImageUrl: finalProfileImageUrl,
         });
       });
 
       return groupedUsers;
+    },
+    // 사용자 이메일 가져오기
+    async getUserEmail(userId) {
+      const userResponse = await this.$axios.get(
+        `/api/user/findById/${userId}`,
+        { showSpinner: false }
+      );
+      const userEmail = userResponse.data.user.email;
+
+      return userResponse ? userEmail : "Unknown User";
     },
     deleteProjects() {
       // projects 배열에서 삭제된 프로젝트 제거
@@ -467,70 +771,104 @@ export default {
         console.log(error);
       }
     },
-    connectWebSocket(projectId) {
+    connectWebSocket(userId) {
       if (this.user === null) {
         this.loadUser();
       }
+
       const socket = new SockJS("http://localhost:8081/ws");
       this.stompClient = Stomp.over(socket);
 
-      this.stompClient.connect({}, (frame) => {
-        this.stompClient.subscribe(
-          `/topic/project/${projectId}`,
-          async (message) => {
-            console.log(frame);
-            if (message.body === "api save") {
-              this.handleRefreshSidebar();
-            }
+      this.stompClient.connect({}, () => {
+        this.stompClient.subscribe(`/topic/user/${userId}`, async (message) => {
+          const parsedMessage = JSON.parse(message.body);
 
-            if (
-              message.body === "add folder" ||
-              message.body === "delete folder"
-            ) {
-              this.fetchItems();
-            }
+          switch (parsedMessage.type) {
+            case "PROJECT":
+              // 폴더 추가/삭제, 파일 추가/삭제, 순서 변경, 이름 변경
+              if (parsedMessage.content === "UPDATE_PROJECT_ITEM") {
+                this.fetchItems();
+              }
 
-            if (message.body === "new participant") {
-              // 현재 로그인한 사용자가 자동 저장을 off로 설정했다면 on으로 변경
-              if (this.user.autoSaveUse === false) {
-                alert(
-                  "프로젝트에 초대된 사람이 있습니다. 자동 저장을 ON으로 변경합니다. 자동 저장 간격은 사용자 정보 > Settings 에서 변경할 수 있습니다."
-                );
-                try {
-                  const response = await this.$axios.put("/api/user/setting", {
-                    autoSaveUse: true,
-                  });
-                  console.log(response);
-                } catch (error) {
-                  console.log("User Setting Failed: " + error);
+              if (parsedMessage.content === "API_SELECT") {
+                await this.fetchApiSelection();
+
+                // 현재 선택된 API ID 확인
+                const selectedApiId = this.selectedTempApi?.itemId;
+                console.log("selectedApiId: " + selectedApiId);
+
+                console.log(this.apiSelections[selectedApiId]);
+
+                // 해당 API를 사용 중인 유저가 있는지 검사
+                const isApiInUse =
+                  selectedApiId &&
+                  this.apiSelections[selectedApiId] &&
+                  this.apiSelections[selectedApiId].length > 1;
+
+                // 해당 API를 사용 중인 유저가 있고,
+                // 현재 로그인한 유저가 프로젝트 주인이라면 다른 참가자들 자동 저장 OFF
+                if (isApiInUse && this.user.email === this.projectOwner) {
+                  this.updateAutoSaveForParticipants(false);
                 }
               }
-            }
 
-            if (
-              message.body === "update parentId" ||
-              message.body === "update itemName"
-            ) {
-              await this.fetchItems();
-            }
+              // API 저장
+              if (parsedMessage.content === "API_SAVE") {
+                this.handleRefreshSidebar();
+              }
 
-            if (message.body === "api select") {
-              await this.fetchApiSelection();
-            }
+              // 새 참여자
+              if (parsedMessage.content === "NEW_PARTICIPANT") {
+                this.fetchParticipants();
+                this.fetchParticipantsList();
+              }
+
+              // 프로젝트 나가기
+              if (parsedMessage.content === "EXIT_PROJECT") {
+                this.addToast(message.body);
+                await this.fetchParticipants();
+              }
+
+              // 권한 변경
+              if (parsedMessage.content === "UPDATE_AUTH") {
+                this.addToast("권한이 변경되었습니다.");
+                this.fetchProjectAuthInfo();
+              }
+
+              // 프로젝트 강퇴
+              if (parsedMessage.content === "SEND_OUT_PARTICIPANT") {
+                this.addToast(message.body);
+                this.fetchProjects();
+              }
+              break;
+            case "API":
+              // 프로젝트 주인 입장
+              if (parsedMessage.content === "ENTER_OWNER") {
+                this.addToast(
+                  "프로젝트 Owner가 입장했습니다. 자동 저장 권한이 비활성화 되었습니다."
+                );
+              }
+
+              if (parsedMessage.content === "API_UPDATE") {
+                this.fileConflict = true;
+              }
+
+              break;
+            default:
+              console.log("알 수 없는 메시지 타입:", parsedMessage);
           }
-        );
-
-        this.stompClient.subscribe(
-          `/topic/project/${projectId}/${this.user.id}`,
-          (message) => {
-            console.log(frame);
-            if (message.body === "update auth") {
-              alert("권한이 변경되었습니다.");
-              this.fetchProjectAuthInfo();
-            }
-          }
-        );
+        });
       });
+    },
+    addToast(message) {
+      this.toasts.push({ message });
+      setTimeout(() => {
+        this.toasts.shift();
+        console.log(this.toasts);
+      }, 5000); // 5초 후 자동 삭제
+    },
+    removeToast(index) {
+      this.toasts.splice(index, 1);
     },
     async disconnect() {
       if (this.stompClient && this.stompClient.connected) {
@@ -552,13 +890,14 @@ export default {
       event.returnValue = ""; // 브라우저에서 기본 확인 메시지 표시
     },
   },
-  mounted() {
+  async mounted() {
+    await this.loadUser();
     this.fetchProjects();
     this.fetchApiSelection();
     this.fetchItems();
     this.fetchSites();
     this.fetchEnvironments();
-    this.loadUser();
+    this.connectWebSocket(this.user.id);
     window.addEventListener("beforeunload", this.handleUnload);
   },
   beforeUnmount() {
@@ -579,6 +918,19 @@ main {
 
 .main-contents {
   height: 100vh;
+}
+
+.toast-container {
+  z-index: 1055; /* 알림이 다른 요소 위에 나타나도록 설정 */
+}
+
+.toast {
+  transition: opacity 1s ease, transform 1s ease;
+}
+
+.toast.fade-out {
+  opacity: 0;
+  transform: translateY(20px);
 }
 
 .spinner-backdrop {

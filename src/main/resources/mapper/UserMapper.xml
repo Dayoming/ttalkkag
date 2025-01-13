@@ -12,7 +12,9 @@
             auto_save_term as autoSaveTerm,
             auto_save_path as autoSavePath,
             show_response as showResponse,
-            verified as verified
+            verified as verified,
+            social_provider as socialProvider,
+            profile_image as profileImage
         FROM users WHERE email = #{email}
     </select>
 
@@ -26,7 +28,9 @@
             auto_save_term as autoSaveTerm,
             auto_save_path as autoSavePath,
             show_response as showResponse,
-            verified as verified
+            verified as verified,
+            social_provider as socialProvider,
+            profile_image as profileImage
         FROM users WHERE id = #{id}
     </select>
 
@@ -44,10 +48,10 @@
         INSERT INTO users (
             email, verified, auto_save_use,
             auto_save_time, auto_save_term, auto_save_path,
-            show_response, social_provider)
+            show_response, social_provider, profile_image)
         VALUES (#{email}, #{verified}, #{autoSaveUse},
                 #{autoSaveTime}, #{autoSaveTerm}, #{autoSavePath},
-                #{showResponse}, #{socialProvider})
+                #{showResponse}, #{socialProvider}, #{profileImage})
     </insert>
 
     <update id="renewVerified" parameterType="User">
@@ -62,8 +66,21 @@
             auto_save_time = #{autoSaveTime},
             auto_save_term = #{autoSaveTerm},
             auto_save_path = #{autoSavePath},
-            show_response = #{showResponse}
+            show_response = #{showResponse},
+            profile_image = #{profileImage}
         WHERE id = #{id}
+    </update>
+
+    <update id="settingUserAutoSaveUse">
+        UPDATE users SET
+            auto_save_use = #{autoSaveUse}
+        WHERE id = #{userId}
+    </update>
+
+    <update id="uploadUserProfileImage">
+        UPDATE users SET
+            profile_image = #{profileImage}
+        WHERE id = #{userId}
     </update>
 
 </mapper>

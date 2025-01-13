@@ -13,7 +13,7 @@
           <option
             v-for="project in localProjects"
             :key="project.id"
-            :value="project.name"
+            :value="project"
           >
             {{ project.name }}
           </option>
@@ -98,7 +98,7 @@
       <button
         v-if="isMyProject"
         class="btn btn-dark me-2"
-        @click="generateInviteCode"
+        @click="showInviteCodeModal = true"
       >
         프로젝트 초대
       </button>
@@ -109,6 +109,13 @@
       >
         참여자 관리
       </button>
+      <button
+        v-if="!isMyProject"
+        class="btn btn-dark"
+        @click="exitParticipant"
+      >
+        나가기
+      </button>
     </div>
 
     <!-- 모든 폴더 열기/닫기 버튼 -->
@@ -117,13 +124,13 @@
         class="btn btn-dark mt-2 me-2 folder-toggle-btn"
         @click="toggleAllFolders(true)"
       >
-        Open All Folders
+        Open
       </button>
       <button
         class="btn btn-dark mt-2 folder-toggle-btn"
         @click="toggleAllFolders(false)"
       >
-        Close All Folders
+        Close
       </button>
     </div>
     <!-- 테이블 -->
@@ -145,6 +152,7 @@
             :selected-file-id="selectedFileId"
             :projectAuth="projectAuth"
             :apiSelections="apiSelections"
+            :profileImageUrl="profileImageUrl"
             @selection-change="handleSelectionChange"
             @toggle-folder="toggleFolder"
             @update-items="$emit('update-items')"
@@ -168,18 +176,24 @@
         </div>
         <div class="modal-body">
           <p class="mb-4">
-            초대 코드를 프로젝트에 초대하고자 하는 사용자에게 공유하세요. <br />
-            초대 코드는 <strong>5분 동안</strong> 유효합니다.
+            프로젝트에 초대하고자 하는 사용자의 이메일을 입력해 주세요. <br />
+            초대코드의 유효시간은 <strong>1시간</strong>입니다.
           </p>
-          <div class="display-4 fw-bold">{{ inviteCode }}</div>
+          <input
+            type="text"
+            class="form-control"
+            v-model="inviteUserEmail"
+            placeholder="이메일을 입력하세요."
+            @keyup.enter="generateInviteCode"
+          />
         </div>
         <div class="modal-footer justify-content-center">
           <button
             class="btn btn-dark w-100"
             type="button"
-            @click="copyInviteCode"
+            @click="generateInviteCode"
           >
-            복사
+            초대코드 전송
           </button>
         </div>
       </div>
@@ -210,12 +224,12 @@
               class="d-flex align-items-center mb-3"
             >
               <img
-                src="../assets/icon/profile-default-icon.png"
+                src="../assets/profiles/profile-default-icon.png"
                 class="rounded-circle me-2"
                 width="40"
                 height="40"
               />
-              <div>
+              <div class="participants-info">
                 <p class="mb-0">{{ participant.email }}</p>
                 <div>
                   <label>
@@ -235,6 +249,15 @@
                     수정
                   </label>
                 </div>
+              </div>
+              <div class="remove-btn-div">
+                <button
+                  class="btn btn-danger"
+                  @click="removeParticipant(participant)"
+                  style="margin-left: 200px"
+                >
+                  강퇴
+                </button>
               </div>
             </div>
           </template>
@@ -264,7 +287,6 @@
 </template>
 
 <script>
-import useClipboard from "vue-clipboard3";
 import CommonModal from "./layouts/CommonModal.vue";
 import RecursiveFolderItem from "./RecursiveFolderItem.vue";
 
@@ -280,6 +302,7 @@ export default {
     "items",
     "projectAuth",
     "apiSelections",
+    "propParticipants",
   ],
   data() {
     return {
@@ -287,6 +310,7 @@ export default {
       localItems: [],
       localApi: [],
       updateKey: 0,
+      profileImageUrl: "../assets/profiles/profile-defualt-icon.png",
       newProjectName: null,
       showNewProjectModal: false,
       localSelectedProject: "",
@@ -296,9 +320,9 @@ export default {
       selectedFileId: null,
       showInviteCodeModal: false,
       showManageParticipantsModal: false,
-      inviteCode: "",
       userId: null,
       isMyProject: false,
+      inviteUserEmail: "",
       participants: null,
     };
   },
@@ -315,12 +339,12 @@ export default {
         if (this.localProjects.length > 0) {
           const selectProject = selectedProject
             ? this.localProjects.find(
-                (project) => project.name === selectedProject.name
+                (project) => project.id === selectedProject.id
               )
             : this.localProjects[0];
 
           if (selectProject) {
-            this.localSelectedProject = selectProject.name;
+            this.localSelectedProject = selectProject;
           }
         }
 
@@ -333,13 +357,14 @@ export default {
       try {
         const response = await this.$axios.get("/api/user/findUserByEmail");
         this.userId = response.data.user.id;
+        this.profileImageUrl = response.data.user.profileImage;
       } catch (error) {
         console.log("load User Id Failed: " + error);
       }
     },
     async fetchItems() {
       const selectedProject = this.localProjects.find(
-        (project) => project.name === this.localSelectedProject
+        (project) => project.id === this.localSelectedProject.id
       );
 
       if (!selectedProject) {
@@ -398,7 +423,7 @@ export default {
     },
     async fetchFilteredItems() {
       const selectedProject = this.localProjects.find(
-        (project) => project.name === this.localSelectedProject
+        (project) => project.id === this.localSelectedProject.id
       );
 
       if (!selectedProject) {
@@ -572,7 +597,7 @@ export default {
     async saveParticipants() {
       try {
         const selectedProject = this.localProjects.find(
-          (project) => project.name === this.localSelectedProject
+          (project) => project.id === this.localSelectedProject.id
         );
 
         await this.$axios.post(
@@ -624,7 +649,7 @@ export default {
         });
         this.$emit("update-projects", response.data);
         this.fetchProjects(response.data);
-        this.localSelectedProject = response.data.name;
+        this.localSelectedProject = response.data;
         this.showNewProjectModal = false;
         this.newProjectName = "";
       } catch (error) {
@@ -639,7 +664,7 @@ export default {
       }
 
       const selectedProject = this.localProjects.find(
-        (project) => project.name === this.localSelectedProject
+        (project) => project.id === this.localSelectedProject.id
       );
 
       try {
@@ -655,7 +680,7 @@ export default {
       }
     },
     async deleteProject() {
-      if (this.selectedProject.name === this.localSelectedProject) {
+      if (this.selectedProject.id === this.localSelectedProject.id) {
         alert(
           "현재 사용하고 있는 프로젝트는 삭제할 수 없습니다. 사용 중인 프로젝트를 변경한 후 다시 시도해 주세요."
         );
@@ -667,9 +692,11 @@ export default {
         return;
       }
 
-      if (confirm(`${this.localSelectedProject}을(를) 삭제하시겠습니까?`)) {
+      if (
+        confirm(`${this.localSelectedProject.name}을(를) 삭제하시겠습니까?`)
+      ) {
         const selectedProject = this.localProjects.find(
-          (project) => project.name === this.localSelectedProject
+          (project) => project.id === this.localSelectedProject.id
         );
         if (selectedProject) {
           try {
@@ -686,6 +713,45 @@ export default {
         }
       }
     },
+    async removeParticipant(participant) {
+      if (!confirm(`${participant.email} 님을 강퇴하시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        // API 요청: 유저 강퇴
+        await this.$axios.delete(
+          `/api/projects/${this.localSelectedProject.id}/participants/${participant.id}`
+        );
+
+        // participants 리스트에서 제거
+        this.participants = this.participants.filter(
+          (p) => p.id !== participant.id
+        );
+      } catch (error) {
+        console.error("Failed to remove participant:", error);
+        alert("강퇴 중 오류가 발생했습니다.");
+      }
+    },
+    async exitParticipant() {
+      if (!confirm(`${this.localSelectedProject.name}을(를) 나가시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        // API 요청: 프로젝트 탈퇴
+        await this.$axios.delete(
+          `/api/projects/${this.localSelectedProject.id}/participants`
+        );
+
+        this.$emit("update-projects");
+        this.localSelectedProject = this.localProjects[0];
+        alert("탈퇴가 완료되었습니다.");
+      } catch (error) {
+        console.error("Failed to remove participant:", error);
+        alert("강퇴 중 오류가 발생했습니다.");
+      }
+    },
     handleSelectionChange(selectedItem) {
       this.$emit("item-selected", selectedItem);
     },
@@ -698,28 +764,21 @@ export default {
     async generateInviteCode() {
       try {
         const selectedProject = this.localProjects.find(
-          (project) => project.name === this.localSelectedProject
+          (project) => project.id === this.localSelectedProject.id
         );
 
-        const response = await this.$axios.post("/api/projects/invite", {
+        await this.$axios.post("/api/projects/invite", {
           projectId: selectedProject.id,
+          userEmail: this.inviteUserEmail,
         });
 
-        this.inviteCode = response.data.code;
-
-        // 모달 창 열기
-        this.showInviteCodeModal = true;
+        alert("초대가 완료되었습니다.");
+        this.inviteUserEmail = "";
+        this.showInviteCodeModal = false;
       } catch (error) {
         console.error("Failed to generate invite code:", error);
         alert("초대 코드를 생성하는 중 오류가 발생했습니다.");
       }
-    },
-    async copyInviteCode() {
-      const { toClipboard } = useClipboard();
-      // 초대 코드 복사
-      await toClipboard(this.inviteCode);
-      alert("초대 코드가 복사되었습니다.");
-      this.showInviteCodeModal = false;
     },
     async manageParticipants() {
       this.showManageParticipantsModal = true;
@@ -759,6 +818,11 @@ export default {
       },
       immediate: false,
     },
+    propParticipants: {
+      handler(newParticipants) {
+        this.participants = [...newParticipants];
+      },
+    },
   },
 };
 </script>
@@ -797,6 +861,15 @@ export default {
 
 .table-responsive {
   padding: 20px;
+  overflow: scroll;
+  height: 450px;
+  -ms-overflow-style: none; /* 인터넷 익스플로러 */
+  scrollbar-width: none; /* 파이어폭스 */
+}
+
+/* ( 크롬, 사파리, 오페라, 엣지 ) 동작 */
+.table-responsive:-webkit-scrollbar {
+  display: none;
 }
 
 .table .folder-children {

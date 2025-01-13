@@ -13,6 +13,9 @@
           <option disabled value="" v-if="sites.length === 0">
             사이트를 만들어 주세요.
           </option>
+          <option disabled hidden value="" v-if="sites.length > 0">
+            사이트를 선택해 주세요.
+          </option>
           <option v-for="site in sites" :key="site.id" :value="site">
             {{ site.name }}
           </option>
@@ -34,6 +37,9 @@
           >
             <option disabled value="" v-if="environments.length === 0">
               환경을 만들어 주세요.
+            </option>
+            <option disabled hidden value="" v-if="environments.length > 0">
+              환경을 선택해 주세요.
             </option>
             <option
               v-for="environment in environments"
@@ -194,7 +200,8 @@
   <!-- 삭제 옵션 선택 Modal -->
   <div
     v-if="showDeleteEnvironment"
-    class="modal fade show d-block" tabindex="-1"
+    class="modal fade show d-block"
+    tabindex="-1"
   >
     <div class="modal-dialog">
       <div class="modal-content">
@@ -301,6 +308,7 @@ export default {
         }
 
         this.fetchEnvironments();
+
       } catch (error) {
         console.error("사이트 목록을 가져오는 중 오류 발생:", error);
       }
@@ -308,15 +316,18 @@ export default {
     async fetchEnvironments(selectedEnvironmentId = null) {
       try {
         this.selectedEnvironment = "";
+        this.variables = [];
         const response = await this.$axios.get(
           `/api/environments/${this.selectedSite.id}`
         );
         this.environments = response.data; // 환경 목록 저장
 
-        // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
+        // 특정 환경 선택하거나 기본적으로 첫 번째 환경 선택
         if (this.environments.length > 0) {
           const selectEnvironment = selectedEnvironmentId
-            ? this.environments.find((environment) => environment.id === selectedEnvironmentId)
+            ? this.environments.find(
+                (environment) => environment.id === selectedEnvironmentId
+              )
             : this.environments[0];
 
           if (selectEnvironment) {
@@ -324,6 +335,7 @@ export default {
           }
         }
 
+        this.fetchVariables();
       } catch (error) {
         console.error("Failed to fetch environments:", error);
       }
@@ -666,6 +678,8 @@ export default {
     selectedProject: {
       handler(newProject) {
         if (newProject) {
+          this.selectedSite = "";
+          this.selectedEnvironment = "";
           this.fetchSites(); // 프로젝트 변경 시 사이트 목록 새로 로드
         }
       },

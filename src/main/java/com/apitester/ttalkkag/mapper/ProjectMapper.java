@@ -37,4 +37,5 @@ public interface ProjectMapper {
     ProjectItems getItemByItemId(Long itemId);
     void incrementItemOrder(Long targetParentId, Integer targetOrder, Long projectId);
     void updateItemOrder(Long draggedItemId, Integer targetOrder, Long targetParentId);
+    void removeParticipant(Long projectId, Long participantId);
 }
