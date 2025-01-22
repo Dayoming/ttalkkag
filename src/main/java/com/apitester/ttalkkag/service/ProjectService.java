@@ -280,7 +280,6 @@ public class ProjectService {
         User user = userMapper.findById(participant.getUserId());
         Project project = projectMapper.getProjectByProjectId(projectId);
         projectMapper.removeParticipant(projectId, participantId);
-        System.out.println("userId: " + user.getId() + ", projectId: " + projectId);
         notificationService.notifyProjectParticipants(user.getId(), projectId,
                 project.getName() + " 프로젝트에서 강퇴당했습니다.");
     }

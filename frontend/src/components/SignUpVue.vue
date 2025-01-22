@@ -145,6 +145,8 @@ export default {
       if (this.password !== this.confirmPassword) {
         this.errorMessage =
           "비밀번호가 일치하지 않습니다.\n다시 입력해 주세요.";
+        this.password = "";
+        this.confirmPassword = "";
         return;
       }
 
@@ -156,13 +158,13 @@ export default {
         })
         .then((response) => {
           if (response.data.errorMessage) {
-            alert(response.data.errorMessage);
+            this.errorMessage = response.data.errorMessage;
             return;
+          } else {
+            alert(response.data.message);
+            this.$router.push("/login");
           }
-          alert(response.data.message);
         });
-
-        this.$router.push("/login");
     },
   },
 };

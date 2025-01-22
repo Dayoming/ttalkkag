@@ -71,7 +71,6 @@ public class EnvironmentController {
 
     @DeleteMapping("/variables/{id}")
     public void deleteVariable(@PathVariable Long id) {
-        System.out.println(id);
         environmentService.deleteVariable(id);
     }
 

@@ -425,6 +425,7 @@ export default {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("userEmail");
+        localStorage.removeItem("profileImageUrl");
 
         this.addToast("로그아웃 되었습니다.");
 
@@ -897,7 +898,9 @@ export default {
     this.fetchItems();
     this.fetchSites();
     this.fetchEnvironments();
-    this.connectWebSocket(this.user.id);
+    if (this.user !== null) {
+      this.connectWebSocket(this.user.id);
+    }
     window.addEventListener("beforeunload", this.handleUnload);
   },
   beforeUnmount() {

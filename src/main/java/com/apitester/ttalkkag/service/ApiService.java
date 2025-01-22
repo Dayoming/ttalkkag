@@ -85,7 +85,6 @@ public class ApiService {
                 user.getProfileImage() // 사용자 프로필 사진 URL
         ));
 
-        System.out.println(apiUsageMap);
         sendProjectMessage(projectId, "API_SELECT");
     }
 

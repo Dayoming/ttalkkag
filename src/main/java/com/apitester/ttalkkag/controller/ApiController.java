@@ -43,7 +43,6 @@ public class ApiController {
 
     @GetMapping("/usage/list/{projectId}")
     public ResponseEntity<Map<Long, ApiUsage>> getApiUsageList(@PathVariable Long projectId) {
-        System.out.println(apiService.getUsersUsageByProjectId(projectId));
         return ResponseEntity.ok(apiService.getUsersUsageByProjectId(projectId));
     }
 
@@ -55,7 +54,6 @@ public class ApiController {
 
     @DeleteMapping("/usage/out/{projectId}/{userId}")
     public void deleteUserApiUsage(@PathVariable Long projectId, @PathVariable Long userId) {
-        System.out.println("projectId: " + projectId + ", userId: " + userId);
         apiService.deleteUserApiUsage(projectId, userId);
     }
 
@@ -63,6 +61,5 @@ public class ApiController {
     @DeleteMapping("/usage/reset/{projectId}")
     public void resetApiUsage(@PathVariable Long projectId) {
         apiService.resetApiUsage(projectId);
-        System.out.println("Reset API usage for projectId: " + projectId);
     }
 }

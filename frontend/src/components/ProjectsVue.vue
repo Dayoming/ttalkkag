@@ -383,7 +383,7 @@ export default {
               try {
                 const apiResponse = await this.$axios.get(
                   `/api/apis/${item.id}`
-                );
+                , { showSpinner: false });
                 return {
                   ...item,
                   apiId: apiResponse.data.api.id,
@@ -441,7 +441,7 @@ export default {
               method:
                 this.selectedMethod === "api" ? this.selectedMethod : null,
             },
-          }
+          }, { showSpinner: false }
         );
 
         const updatedItems = await Promise.all(
@@ -450,7 +450,7 @@ export default {
               try {
                 const apiResponse = await this.$axios.get(
                   `/api/apis/${item.id}`
-                );
+                , { showSpinner: false });
                 return {
                   ...item,
                   apiId: apiResponse.data.api.id,
@@ -564,7 +564,7 @@ export default {
     async fetchParticipants(projectId) {
       try {
         const response = await this.$axios.get(
-          `/api/projects/${projectId}/participants`
+          `/api/projects/${projectId}/participants`, { showSpinner: false }
         );
         const participants = response.data;
 
@@ -573,7 +573,7 @@ export default {
           participants.map(async (participant) => {
             try {
               const emailResponse = await this.$axios.get(
-                `/api/user/findById/${participant.userId}`
+                `/api/user/findById/${participant.userId}`, { showSpinner: false }
               );
               return {
                 ...participant, // 기존 데이터 복사

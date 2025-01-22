@@ -13,6 +13,7 @@
               type="text"
               class="form-control input-api-name"
               placeholder="API Name"
+              maxlength="50"
               style="margin-bottom: 10px"
             />
             <span v-if="fileConflict" class="change-warning">
@@ -28,7 +29,7 @@
               class="btn btn-dark me-2"
               @click.prevent="openSaveModal"
             >
-              새로 저장
+              저장
             </button>
             <a href="#" class="request-add" @click="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>

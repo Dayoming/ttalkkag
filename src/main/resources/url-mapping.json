@@ -1,0 +1,260 @@
+[
+  {
+    "url": "/api/auth/send-code",
+    "funcId": "FN00001",
+    "method": "POST",
+    "mid": "P00001"
+  },
+  {
+    "url": "/api/auth/register",
+    "funcId": "FN00002",
+    "method": "POST",
+    "mid": "P00001"
+  },
+  {
+    "url": "/api/auth/login",
+    "funcId": "FN00003",
+    "method": "POST",
+    "mid": "P00002"
+  },
+  {
+    "url": "/api/auth/oauth/kakao",
+    "funcId": "FN00004",
+    "method": "GET",
+    "mid": "P00002"
+  },
+  {
+    "url": "/api/auth/oauth/google",
+    "funcId": "FN00005",
+    "method": "GET",
+    "mid": "P00002"
+  },
+  {
+    "url": "/api/projects",
+    "funcId": "FN00006",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/find/{projectId}",
+    "funcId": "FN00007",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/",
+    "funcId": "FN00008",
+    "method": "POST",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/find/{projectId}",
+    "funcId": "FN00009",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/environments/sites/{siteId}",
+    "funcId": "FN00010",
+    "method": "GET",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments/{siteId}",
+    "funcId": "FN00011",
+    "method": "GET",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments/{siteId}",
+    "funcId": "FN00012",
+    "method": "GET",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/user/findUserByEmail",
+    "funcId": "FN00013",
+    "method": "GET",
+    "mid": "P00003"
+  },
+  {
+    "url": "/api/projects/validate-invite",
+    "funcId": "FN00014",
+    "method": "POST",
+    "mid": "P00004"
+  },
+  {
+    "url": "/api/user/setting",
+    "funcId": "FN00015",
+    "method": "PATCH",
+    "mid": "P00003"
+  },
+  {
+    "url": "/api/projects/{projectId}",
+    "funcId": "FN00016",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/apis/usage/list/{projectId}",
+    "funcId": "FN00017",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/items/{parentId}",
+    "funcId": "FN00018",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/apis/{itemId}",
+    "funcId": "FN00019",
+    "method": "GET",
+    "mid": "P03003"
+  },
+  {
+    "url": "/api/projects/update/projectItemName",
+    "funcId": "FN00020",
+    "method": "PATCH",
+    "mid": "P01003"
+  },
+  {
+    "url": "/api/projects/update/parentId",
+    "funcId": "FN00021",
+    "method": "PATCH",
+    "mid": "P01004"
+  },
+  {
+    "url": "/api/projects/update/itemOrder",
+    "funcId": "FN00022",
+    "method": "PATCH",
+    "mid": "P01002"
+  },
+  {
+    "url": "/api/dataset/getAllDatasetsWithVariables/{projectId}",
+    "funcId": "FN00023",
+    "method": "GET",
+    "mid": "P03102"
+  },
+  {
+    "url": "/api/proxy",
+    "funcId": "FN00024",
+    "method": "POST",
+    "mid": "P02002"
+  },
+  {
+    "url": "/api/projects/items",
+    "funcId": "FN00025",
+    "method": "GET",
+    "mid": "P03002"
+  },
+  {
+    "url": "/api/apis",
+    "funcId": "FN00025",
+    "method": "POST",
+    "mid": "P03002"
+  },
+  {
+    "url": "/api/history",
+    "funcId": "FN00025",
+    "method": "POST",
+    "mid": "P03002"
+  },
+  {
+    "url": "/api/projects/add-folder",
+    "funcId": "FN00026",
+    "method": "POST",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/{projectId}",
+    "funcId": "FN00027",
+    "method": "DELETE",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/search/{projectId}",
+    "funcId": "FN00028",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/items/{itemId}",
+    "funcId": "FN00029",
+    "method": "DELETE",
+    "mid": "P03102"
+  },
+  {
+    "url": "/api/projects/invite",
+    "funcId": "FN00030",
+    "method": "POST",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/{projectId}/participants",
+    "funcId": "FN00031",
+    "method": "GET",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/{projectId}/participants",
+    "funcId": "FN00032",
+    "method": "POST",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/projects/{projectId}/participants",
+    "funcId": "FN00033",
+    "method": "DELETE",
+    "mid": "P03004"
+  },
+  {
+    "url": "/api/environments/site",
+    "funcId": "FN00034",
+    "method": "POST",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments/sites/{id}",
+    "funcId": "FN00035",
+    "method": "DELETE",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments",
+    "funcId": "FN00036",
+    "method": "POST",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments/{id}",
+    "funcId": "FN00037",
+    "method": "DELETE",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/environments/variables/{id}",
+    "funcId": "FN00038",
+    "method": "DELETE",
+    "mid": "P03005"
+  },
+  {
+    "url": "/api/history",
+    "funcId": "FN00039",
+    "method": "GET",
+    "mid": "P03101"
+  },
+  {
+    "url": "/api/dataset/addDataset",
+    "funcId": "FN00040",
+    "method": "POST",
+    "mid": "P03102"
+  },
+  {
+    "url": "/api/dataset/delete/{id}",
+    "funcId": "FN00041",
+    "method": "DELETE",
+    "mid": "P03102"
+  }
+]

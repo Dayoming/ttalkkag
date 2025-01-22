@@ -22,7 +22,6 @@ public class HistoryController {
 
     @GetMapping
     public List<ApiHistory> getHistories(@AuthenticationPrincipal String userEmail) {
-        System.out.println(historyService.getAllHistories(userEmail));
         return historyService.getAllHistories(userEmail);
     }
 

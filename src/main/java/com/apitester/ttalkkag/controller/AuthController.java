@@ -105,11 +105,9 @@ public class AuthController {
 
         // 액세스 토큰 발급
         String accessToken = jwtTokenUtil.generateToken(email);
-        System.out.println(accessToken);
 
         // 리프레시 토큰 발급
         String refreshToken = jwtTokenUtil.generateRefreshToken(email);
-        System.out.println(refreshToken);
 
         response.put("accessToken", accessToken);
         response.put("refreshToken", refreshToken);
@@ -191,7 +189,6 @@ public class AuthController {
                 user.setShowResponse(false);
                 user.setSocialProvider("google");
                 user.setProfileImage(profileImageUrl);
-                System.out.println(user);
                 userMapper.insertSocialUser(user); // 새 사용자 저장
             }
 

@@ -58,7 +58,6 @@ public class UserController {
 
     @PatchMapping("/setting/{userId}")
     public void settingUserAutoSaveUse(@PathVariable Long userId, @RequestBody Map<String, Boolean> body) {
-        System.out.println(userId + ", " + body.get("autoSaveUse"));
         userService.settingUserAutoSaveUse(userId, body.get("autoSaveUse"));
         notificationService.notifyUser(userId, new NotificationMessage("API", "ENTER_OWNER", null));
     }

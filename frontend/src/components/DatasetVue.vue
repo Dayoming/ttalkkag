@@ -403,14 +403,17 @@ export default {
           }
         });
 
+        
         // 서버로 데이터 전송
-        await this.$axios.post("/api/dataset/addDataset", {
+        const rn = await this.$axios.post("/api/dataset/addDataset", {
           projectId: this.selectedProject.id,
           name: payload.datasetName,
           description: payload.description,
           variables: parsedData,
         });
 
+        console.log(rn);
+        
         alert("데이터가 성공적으로 저장되었습니다.");
         this.codeInput = ""; // 입력 필드 초기화
         this.fetchDatasets();
