@@ -127,20 +127,24 @@ public class LoggingFilter implements Filter {
 
     private void logEnd(String logKey, String responseTime, ContentCachingResponseWrapper response) {
         int statusCode = response.getStatus(); // HTTP 상태 코드
-
         String responseBody = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
 
+        // 상태 코드 기반 ResultCode 설정
         ResultCode resultCode = ResultCode.fromHttpStatus(statusCode);
-
-        if (responseBody.equals("")) {
-            resultCode = ResultCode.NO_CONTENT;
+        if (responseBody.isEmpty() && statusCode == 204) {
+            resultCode = ResultCode.NO_CONTENT; // 빈 응답 처리
         }
 
-        tlo.setResultCode(resultCode.getCode()); // ResultCode의 코드 값 설정
+        tlo.setResultCode(resultCode.getCode()); // Tlo의 RESULT_CODE 설정
 
+        // 성공 또는 실패 여부 결정
+        String statusMessage = (statusCode >= 200 && statusCode < 300) ? "성공" : "실패";
+
+        // TLO 로그 기록
         TLO_LOGGER.info(tlo.toString());
 
-        CALL_LOGGER.info(String.format("[%s][RESPONSE] [%s] %s", logKey, responseTime, responseBody));
+        // CALL 로그 기록 (응답 본문 및 성공/실패 메시지 포함)
+        CALL_LOGGER.info(String.format("[%s][RESPONSE] [%s] %d %s %s", logKey, responseTime, statusCode, statusMessage, responseBody));
         CALL_LOGGER.info(String.format("[%s]==   END CALL LOG    ==================================================", logKey));
     }
 
