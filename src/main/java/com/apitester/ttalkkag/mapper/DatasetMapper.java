@@ -11,6 +11,7 @@ public interface DatasetMapper {
     List<Dataset> findAllDatasets(Long projectId);
     List<DatasetVariable> findVariablesByDatasetId(Long id);
     List<Dataset> searchDatasets(String query);
+    List<Dataset> findDatasetsByProjectId(Long projectId);
     Dataset findDatasetById(Long id);
     void insertDataset(Dataset dataset);
     void deleteDataset(Long id);

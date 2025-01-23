@@ -10,6 +10,18 @@
         FROM environment WHERE site_id = #{siteId}
     </select>
 
+    <select id="getEnvironmentById" resultType="Environment">
+        SELECT id, site_id AS siteId, name
+        FROM environment
+        WHERE id = #{id}
+    </select>
+
+    <select id="getEnvironmentsBySiteId" resultType="Environment">
+        SELECT id, site_id AS siteId, name
+        FROM environment
+        WHERE site_id = #{siteId}
+    </select>
+
     <select id="getSitesByProjectId" parameterType="Long" resultType="Site">
         SELECT
             id AS id,
@@ -37,12 +49,6 @@
         INSERT INTO environment (site_id, name)
         VALUES (#{siteId}, #{name})
     </insert>
-
-    <select id="getEnvironmentById" resultType="Environment">
-        SELECT id, site_id AS siteId, name
-        FROM environment
-        WHERE id = #{id}
-    </select>
 
     <delete id="deleteEnvironment">
         DELETE FROM environment WHERE id = #{id}

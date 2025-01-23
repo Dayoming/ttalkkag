@@ -10,6 +10,7 @@ import java.util.List;
 public interface EnvironmentMapper {
     List<Site> getSitesByProjectId(Long projectId);
     List<Environment> getEnvironments(Long siteId);
+    List<Environment> getEnvironmentsBySiteId(Long siteId);
     Environment getEnvironmentById(Long id);
     Site getSiteById(Long id);
     void insertEnvironment(Environment environment);

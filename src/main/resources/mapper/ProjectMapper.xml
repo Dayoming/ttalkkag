@@ -79,6 +79,11 @@
         WHERE id = #{participantId}
     </delete>
 
+    <delete id="deleteParticipantByProjectId">
+        DELETE FROM project_participants
+        WHERE project_id = #{projectId}
+    </delete>
+
 
     <select id="searchProjectItems" resultType="ProjectItems">
         WITH RECURSIVE project_hierarchy AS (
@@ -258,6 +263,9 @@
         WHERE id = #{id}
     </update>
 
+    <delete id="deleteInviteCode">
+        DELETE FROM invite_code WHERE project_id = #{projectId}
+    </delete>
 
     <select id="findByProjectId" parameterType="long" resultType="ProjectItems">
         SELECT
@@ -289,6 +297,21 @@
         ORDER BY parent_id, item_order
     </select>
 
+    <select id="getProjectItemsByProjectId" parameterType="long" resultType="ProjectItems">
+        SELECT
+        id AS id,
+        project_id AS projectId,
+        parent_id AS parentId,
+        type AS type,
+        name AS name,
+        depth AS depth,
+        item_order AS itemOrder,
+        create_at AS createAt
+        FROM project_items
+        WHERE project_id = #{projectId}
+        ORDER BY parent_id, item_order
+    </select>
+
     <select id="findByParentId" parameterType="long" resultType="ProjectItems">
         SELECT
             id AS id,
@@ -307,6 +330,11 @@
     <!-- 항목 삭제 -->
     <delete id="deleteByItemId">
         DELETE FROM project_items WHERE id = #{id}
+    </delete>
+
+    <!--  itemId에 해당하는 API 삭제  -->
+    <delete id="deleteApiByItemId">
+        DELETE FROM apis WHERE item_id = #{itemId}
     </delete>
 
     <update id="updateProjectItemName" parameterType="ProjectItems">

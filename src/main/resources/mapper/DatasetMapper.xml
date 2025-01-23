@@ -26,6 +26,18 @@
         WHERE id = #{id}
     </select>
 
+    <!-- 데이터셋 ProjectId로 조회 -->
+    <select id="findDatasetsByProjectId" resultMap="DatasetResultMap">
+        SELECT
+        id,
+        project_id AS projectId,
+        name,
+        description,
+        created_at
+        FROM dataset
+        WHERE project_id = #{projectId}
+    </select>
+
     <!-- 데이터셋 삽입 -->
     <insert id="insertDataset" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO dataset (name, project_id, description, created_at)

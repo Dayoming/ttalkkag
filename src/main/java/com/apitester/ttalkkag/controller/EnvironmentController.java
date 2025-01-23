@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,13 +45,39 @@ public class EnvironmentController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteEnvironment(@PathVariable Long id) {
-        environmentService.deleteEnvironment(id);
+    public Map<String, Object> deleteEnvironment(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            environmentService.deleteVariableByEnvironmentId(id);
+            environmentService.deleteEnvironment(id);
+            response.put("message", "환경 삭제 성공");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "환경 삭제 실패");
+        }
+        return response;
     }
 
     @DeleteMapping("/sites/{id}")
-    public void deleteSite(@PathVariable Long id) {
-        environmentService.deleteSite(id);
+    public Map<String, Object> deleteSite(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            List<Environment> environments = environmentService.getEnvironmentsBySiteId(id);
+
+            // 하위 환경 변수, 환경 삭제
+            for (Environment environment : environments) {
+                environmentService.deleteVariableByEnvironmentId(environment.getId());
+                environmentService.deleteEnvironment(environment.getId());
+            }
+
+            // 사이트 삭제
+            environmentService.deleteSite(id);
+            response.put("message", "사이트 삭제 성공");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "사이트 삭제 실패");
+        }
+        return response;
     }
 
     @GetMapping("/variables/{environmentId}")

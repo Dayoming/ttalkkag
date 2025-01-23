@@ -82,10 +82,18 @@ public class DatasetService {
         }
     }
 
+    // 데이터셋 삭제
     public Map<String, Object> deleteDataset(Long id) {
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Dataset이 정상적으로 삭제되었습니다.");
-        datasetMapper.deleteDataset(id);
+        try {
+            // 해당 데이터셋에 존재하는 변수들 먼저 삭제
+            datasetVariableMapper.deleteVariableByDatasetId(id);
+            // 삭제 완료되면 데이터셋 삭제
+            datasetMapper.deleteDataset(id);
+            response.put("message", "Dataset이 정상적으로 삭제되었습니다.");
+        } catch (Exception e) {
+            response.put("errorMessage", "Dataset 삭제 중 오류가 발생했습니다.");
+        }
         return response;
     }
 

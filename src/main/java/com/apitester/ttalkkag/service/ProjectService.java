@@ -1,8 +1,7 @@
 package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.dto.*;
-import com.apitester.ttalkkag.mapper.ProjectMapper;
-import com.apitester.ttalkkag.mapper.UserMapper;
+import com.apitester.ttalkkag.mapper.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
@@ -15,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -22,6 +22,10 @@ import java.util.UUID;
 public class ProjectService {
 
     private final ProjectMapper projectMapper;
+    private final EnvironmentMapper environmentMapper;
+    private final EnvironmentVariableMapper environmentVariableMapper;
+    private final DatasetMapper datasetMapper;
+    private final DatasetVariableMapper datasetVariableMapper;
     private final UserMapper userMapper;
     private final NotificationService notificationService;
 
@@ -49,16 +53,62 @@ public class ProjectService {
     }
 
     // 프로젝트 삭제
+    @Transactional
     public void deleteProject(Long projectId) {
+        // 초대코드 삭제
+        projectMapper.deleteInviteCode(projectId);
+
+        // 참여자 목록 삭제
+        projectMapper.deleteParticipantByProjectId(projectId);
+
+        // 데이터셋 삭제
+        List<Dataset> datasets = datasetMapper.findDatasetsByProjectId(projectId);
+        for (Dataset dataset : datasets) {
+            datasetVariableMapper.deleteVariableByDatasetId(dataset.getId());
+            datasetMapper.deleteDataset(dataset.getId());
+        }
+
+        // 사이트 및 환경 삭제
+        List<Site> sites = environmentMapper.getSitesByProjectId(projectId);
+        for (Site site : sites) {
+            List<Environment> environments = environmentMapper.getEnvironments(site.getId());
+            for (Environment environment : environments) {
+                environmentVariableMapper.deleteVariableByEnvironmentId(environment.getId());
+                environmentMapper.deleteEnvironment(environment.getId());
+            }
+            environmentMapper.deleteSite(site.getId());
+        }
+
+        // projectItems, apis 삭제
+        List<ProjectItems> projectItems = projectMapper.getProjectItemsByProjectId(projectId);
+        for (ProjectItems projectItem : projectItems) {
+            if (projectItem.getType().equals("api")) {
+                projectMapper.deleteApiByItemId(projectItem.getId());
+            }
+            projectMapper.deleteByItemId(projectItem.getId());
+        }
+
+        // 프로젝트 삭제
         projectMapper.deleteProject(projectId);
     }
 
     // 폴더 선택 삭제
     @Transactional
-    public void deleteItems(List<Long> itemIds) {
-        for (Long itemId : itemIds) {
-            deleteItemRecursively(itemId);
+    public void deleteFolderItem(Long itemId) {
+        // 하위 항목 검색
+        List<ProjectItems> childItems = projectMapper.findByParentId(itemId);
+        List<Long> itemIds = childItems.stream()
+                .map(ProjectItems::getId) // ProjectItems 객체에서 getId() 값을 추출
+                .toList(); // 추출된 값들을 List<Long>으로 변환
+
+        for (Long id : itemIds) {
+            projectMapper.deleteApiByItemId(id);
+            deleteItemRecursively(id);
         }
+
+        // 현재 항목 삭제
+        projectMapper.deleteByItemId(itemId);
+
     }
 
     private void deleteItemRecursively(Long itemId) {
@@ -67,6 +117,7 @@ public class ProjectService {
 
         // 하위 항목 삭제
         for (ProjectItems child : childItems) {
+            projectMapper.deleteApiByItemId(child.getId());
             deleteItemRecursively(child.getId());
         }
 
@@ -147,6 +198,9 @@ public class ProjectService {
 
     public void deleteItemById(Long itemId) {
         ProjectItems item = projectMapper.getItemByItemId(itemId);
+
+        // 하위 API 삭제
+        projectMapper.deleteApiByItemId(itemId);
         projectMapper.deleteByItemId(itemId);
 
         Long projectId = item.getProjectId();

@@ -48,8 +48,16 @@ public class ProjectController {
 
     // 프로젝트 삭제
     @DeleteMapping("/{projectId}")
-    public void deleteProject(@PathVariable Long projectId) {
-        projectService.deleteProject(projectId);
+    public Map<String, Object> deleteProject(@PathVariable Long projectId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            projectService.deleteProject(projectId);
+            response.put("message", "프로젝트 삭제 성공");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "프로젝트 삭제 실패");
+        }
+        return response;
     }
 
     @PostMapping("/add-folder")
@@ -145,14 +153,32 @@ public class ProjectController {
         return projectService.getItemByItemId(itemId);
     }
 
-    @DeleteMapping("/items")
-    public void deleteItems(@RequestBody List<Long> itemIds) {
-        projectService.deleteItems(itemIds);
+    // 폴더 삭제
+    @DeleteMapping("/items/folder/{itemId}")
+    public Map<String, Object> deleteFolderItem(@PathVariable Long itemId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            projectService.deleteFolderItem(itemId);
+            response.put("message", "폴더 삭제 성공");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "폴더 삭제 실패");
+        }
+        return response;
     }
 
+    // API 파일 삭제
     @DeleteMapping("/items/{itemId}")
-    public void deleteItemById(@PathVariable Long itemId) {
-        projectService.deleteItemById(itemId);
+    public Map<String, Object> deleteItemById(@PathVariable Long itemId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            projectService.deleteItemById(itemId);
+            response.put("message", "API 삭제 성공");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "API 삭제 실패");
+        }
+        return response;
     }
 
     // API 저장

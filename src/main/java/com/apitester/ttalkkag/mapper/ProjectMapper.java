@@ -17,6 +17,7 @@ public interface ProjectMapper {
     List<ProjectItems> searchProjectItems(Long projectId, String query, String type, String method);
     Project getProjectByProjectId(Long projectId);
     ProjectItems getProjectItemsById(Long id);
+    List<ProjectItems> getProjectItemsByProjectId(Long projectId);
     InviteCode getInviteCodeByProjectId(Long projectId);
     InviteCode findByCode(String code);
     ProjectParticipants getParticipantsById(Long id);
@@ -26,6 +27,9 @@ public interface ProjectMapper {
     void insertApi(ProjectItems item);
     void deleteProject(Long id);
     void deleteByItemId(Long itemId);
+    void deleteApiByItemId(Long itemId);
+    void deleteInviteCode(Long projectId);
+    void deleteParticipantByProjectId(Long projectId);
     void insertProjectItem(ProjectItems items);
     void insertInviteCode(InviteCode code);
     void insertParticipant(ProjectParticipants participant);

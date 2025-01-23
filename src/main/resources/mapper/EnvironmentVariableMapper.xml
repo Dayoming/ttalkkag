@@ -21,6 +21,10 @@
         DELETE FROM environment_variable WHERE id = #{id}
     </delete>
 
+    <delete id="deleteVariableByEnvironmentId">
+        DELETE FROM environment_variable WHERE environment_id = #{environmentId}
+    </delete>
+
     <delete id="deleteVariableByKey">
         DELETE FROM environment_variable WHERE key = #{key}
     </delete>

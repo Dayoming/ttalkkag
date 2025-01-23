@@ -55,6 +55,10 @@ public class EnvironmentService {
         return environmentMapper.getEnvironments(siteId);
     }
 
+    public List<Environment> getEnvironmentsBySiteId(Long siteId) {
+        return environmentMapper.getEnvironmentsBySiteId(siteId);
+    }
+
     public Site createSite(Site site) {
         environmentMapper.createSite(site);
         return environmentMapper.getSiteById(site.getId());
@@ -66,6 +70,10 @@ public class EnvironmentService {
 
     public void deleteVariableByKey(String key) {
         variableMapper.deleteVariableByKey(key);
+    }
+
+    public void deleteVariableByEnvironmentId(Long environmentId) {
+        variableMapper.deleteVariableByEnvironmentId(environmentId);
     }
 
     public Environment getEnvironmentById(Long id) {
