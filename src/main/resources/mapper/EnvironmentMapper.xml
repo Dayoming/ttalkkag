@@ -54,7 +54,22 @@
         DELETE FROM environment WHERE id = #{id}
     </delete>
 
+    <delete id="deleteEnvironmentsByProjectId">
+        DELETE e FROM environment e
+        JOIN site s ON e.site_id = s.id
+        WHERE s.project_id = #{projectId}
+    </delete>
+
+    <delete id="deleteEnvironmentsBySiteId">
+        DELETE e FROM environment e
+        WHERE e.site_id = #{siteId}
+    </delete>
+
     <delete id="deleteSite">
         DELETE FROM site WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteSitesByProjectId">
+        DELETE FROM site WHERE project_id = #{projectId}
     </delete>
 </mapper>

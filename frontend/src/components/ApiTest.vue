@@ -681,7 +681,12 @@ export default {
 
       try {
         const response = await this.$axios.get(
-          `/api/environments/variables/${environmentId}`
+          `/api/environments/variables/${environmentId}`,
+          {
+            headers: {
+              MID: "P02002", // 헤더에 MID 추가
+            },
+          }
         );
         // 환경 변수를 키-값으로 변환
         this.environmentVariables = response.data.reduce((acc, variable) => {
@@ -965,7 +970,12 @@ export default {
               name: this.apiName || "TempAPI",
               depth: 1,
             },
-            { showSpinner: false }
+            { showSpinner: false },
+            {
+              headers: {
+                MID: "P03002",
+              },
+            }
           );
 
           const apiData = {
@@ -1064,7 +1074,12 @@ export default {
               name: this.apiName || "TempAPI",
               depth: 1,
             },
-            { showSpinner: false }
+            { showSpinner: false },
+            {
+              headers: {
+                MID: "P03002",
+              },
+            }
           );
 
           const apiData = {
@@ -1104,7 +1119,7 @@ export default {
         this.projectAuth === "read"
       )
         return; // 초기화, 데이터 로드, 권한이 읽기면 무시
-        
+
       const currentState = {
         id: this.apiId,
         itemId: this.itemId,
@@ -1384,7 +1399,12 @@ export default {
           // 현재 ID로 API 호출하여 parent_id와 name 가져오기
           const response = await this.$axios.get(
             `/api/projects/item/${itemId}`,
-            { showSpinner: false }
+            { showSpinner: false },
+            {
+              headers: {
+                MID: "P03003",
+              },
+            }
           );
           const item = response.data;
 

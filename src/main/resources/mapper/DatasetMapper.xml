@@ -49,6 +49,10 @@
         DELETE FROM dataset WHERE id = #{id}
     </delete>
 
+    <delete id="deleteDatasetsByProjectId">
+        DELETE FROM dataset WHERE project_id = #{projectId}
+    </delete>
+
     <!-- 데이터셋 수정 -->
     <update id="updateDataset" parameterType="Dataset">
         UPDATE dataset

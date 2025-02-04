@@ -15,5 +15,6 @@ public interface DatasetMapper {
     Dataset findDatasetById(Long id);
     void insertDataset(Dataset dataset);
     void deleteDataset(Long id);
+    void deleteDatasetsByProjectId(Long projectId);
     void updateDataset(Dataset dataset);
 }

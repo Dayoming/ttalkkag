@@ -10,4 +10,5 @@ public interface DatasetVariableMapper {
     void insertVariable(DatasetVariable variable);
     void deleteVariable(Long id);
     void deleteVariableByDatasetId(Long id);
+    void deleteVariableByProjectId(Long projectId);
 }

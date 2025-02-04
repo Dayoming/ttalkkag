@@ -18,4 +18,11 @@
         DELETE FROM dataset_variable
         WHERE dataset_id = #{datasetId}
     </delete>
+
+    <!--  프로젝트 ID로 데이터셋 변수 삭제  -->
+    <delete id="deleteVariableByProjectId" parameterType="long">
+        DELETE dv FROM dataset_variable dv
+        JOIN dataset d ON dv.dataset_id = d.id
+        WHERE d.project_id = #{projectId}
+    </delete>
 </mapper>

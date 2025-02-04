@@ -3,21 +3,25 @@ package com.apitester.ttalkkag.service;
 import com.apitester.ttalkkag.dto.*;
 import com.apitester.ttalkkag.mapper.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+/**
+ * 프로젝트 관리 서비스
+ *
+ * @author 정다영
+ * @date 2025-02-01
+ * @description 프로젝트 생성, 조회, 삭제 및 프로젝트 내 항목 관리 기능을 제공하는 서비스 클래스.
+ */
+@Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class ProjectService {
 
@@ -29,210 +33,339 @@ public class ProjectService {
     private final UserMapper userMapper;
     private final NotificationService notificationService;
 
-    // 사용자별 프로젝트 조회
+    /**
+     * 사용자의 프로젝트 목록 조회
+     *
+     * @param userEmail 사용자 이메일
+     * @return 사용자가 속한 프로젝트 리스트
+     */
     public List<Project> getProjectsByUserId(String userEmail) {
         Long userId = userMapper.findByEmail(userEmail).getId();
         return projectMapper.getProjectsByUserId(userId);
     }
 
-    // 하위 폴더 조회
+    /**
+     * 특정 폴더 내 하위 항목 조회
+     *
+     * @param parentId 부모 폴더 ID
+     * @return 하위 프로젝트 항목 리스트
+     */
     public List<ProjectItems> getItemsByParentId(Long parentId) {
         return projectMapper.findByParentId(parentId);
     }
 
-    // 프로젝트 생성
+    /**
+     * 새 프로젝트 생성
+     *
+     * @param name      프로젝트 이름
+     * @param userEmail 사용자 이메일
+     * @return 생성된 프로젝트 객체
+     */
+    @Transactional
     public Project createProject(String name, String userEmail) {
         Long userId = userMapper.findByEmail(userEmail).getId();
         Project project = new Project();
         project.setName(name);
         project.setUserId(userId);
         projectMapper.insertProject(project);
-
-        // 생성된 ID로 Project 객체 조회
+        log.info("새 프로젝트 생성: {} (User ID: {})", name, userId);
         return projectMapper.getProjectByProjectId(project.getId());
     }
 
-    // 프로젝트 삭제
+    /**
+     * 프로젝트 삭제 (연관 데이터 포함)
+     *
+     * @param projectId 삭제할 프로젝트 ID
+     */
     @Transactional
     public void deleteProject(Long projectId) {
-        // 초대코드 삭제
-        projectMapper.deleteInviteCode(projectId);
-
-        // 참여자 목록 삭제
-        projectMapper.deleteParticipantByProjectId(projectId);
-
-        // 데이터셋 삭제
-        List<Dataset> datasets = datasetMapper.findDatasetsByProjectId(projectId);
-        for (Dataset dataset : datasets) {
-            datasetVariableMapper.deleteVariableByDatasetId(dataset.getId());
-            datasetMapper.deleteDataset(dataset.getId());
+        try {
+            projectMapper.deleteInviteCode(projectId);
+            projectMapper.deleteParticipantByProjectId(projectId);
+            datasetVariableMapper.deleteVariableByProjectId(projectId);
+            datasetMapper.deleteDatasetsByProjectId(projectId);
+            environmentVariableMapper.deleteVariablesByProjectId(projectId);
+            environmentMapper.deleteEnvironmentsByProjectId(projectId);
+            environmentMapper.deleteSitesByProjectId(projectId);
+            projectMapper.deleteApisByProjectId(projectId);
+            projectMapper.deleteProjectItemsByProjectId(projectId);
+            projectMapper.deleteProject(projectId);
+            log.info("프로젝트 삭제 완료: {}", projectId);
+        } catch (Exception e) {
+            log.error("프로젝트 삭제 실패 (ID={}): {}", projectId, e.getMessage());
+            throw new RuntimeException("프로젝트 삭제 중 오류 발생", e);
         }
-
-        // 사이트 및 환경 삭제
-        List<Site> sites = environmentMapper.getSitesByProjectId(projectId);
-        for (Site site : sites) {
-            List<Environment> environments = environmentMapper.getEnvironments(site.getId());
-            for (Environment environment : environments) {
-                environmentVariableMapper.deleteVariableByEnvironmentId(environment.getId());
-                environmentMapper.deleteEnvironment(environment.getId());
-            }
-            environmentMapper.deleteSite(site.getId());
-        }
-
-        // projectItems, apis 삭제
-        List<ProjectItems> projectItems = projectMapper.getProjectItemsByProjectId(projectId);
-        for (ProjectItems projectItem : projectItems) {
-            if (projectItem.getType().equals("api")) {
-                projectMapper.deleteApiByItemId(projectItem.getId());
-            }
-            projectMapper.deleteByItemId(projectItem.getId());
-        }
-
-        // 프로젝트 삭제
-        projectMapper.deleteProject(projectId);
     }
 
-    // 폴더 선택 삭제
+    /**
+     * 폴더 항목 삭제 (하위 항목 포함)
+     *
+     * @param itemId 삭제할 폴더 ID
+     */
     @Transactional
     public void deleteFolderItem(Long itemId) {
-        // 하위 항목 검색
-        List<ProjectItems> childItems = projectMapper.findByParentId(itemId);
-        List<Long> itemIds = childItems.stream()
-                .map(ProjectItems::getId) // ProjectItems 객체에서 getId() 값을 추출
-                .toList(); // 추출된 값들을 List<Long>으로 변환
+        try {
+            // 하위 항목 검색
+            List<ProjectItems> childItems = projectMapper.findByParentId(itemId);
+            List<Long> itemIds = childItems.stream()
+                    .map(ProjectItems::getId) // ProjectItems 객체에서 getId() 값을 추출
+                    .toList(); // 추출된 값들을 List<Long>으로 변환
 
-        for (Long id : itemIds) {
-            projectMapper.deleteApiByItemId(id);
-            deleteItemRecursively(id);
+            for (Long id : itemIds) {
+                projectMapper.deleteApiByItemId(id);
+                deleteItemRecursively(id);
+            }
+
+            // 현재 항목 삭제
+            projectMapper.deleteByItemId(itemId);
+            log.info("폴더 삭제 완료: {}", itemId);
+
+            ProjectItems item = projectMapper.getItemByItemId(itemId);
+
+            sendProjectMessage(item.getProjectId(), "UPDATE_PROJECT_ITEM");
+
+        } catch (Exception e) {
+            log.error("폴더 삭제 실패 (ID={}): {}", itemId, e.getMessage());
+            throw new RuntimeException("폴더 삭제 중 오류 발생", e);
         }
-
-        // 현재 항목 삭제
-        projectMapper.deleteByItemId(itemId);
-
     }
 
+    /**
+     * 프로젝트 내 특정 항목 및 하위 항목을 재귀적으로 삭제
+     *
+     * @param itemId 삭제할 항목 ID
+     */
+    @Transactional
     private void deleteItemRecursively(Long itemId) {
-        // 하위 항목 검색
-        List<ProjectItems> childItems = projectMapper.findByParentId(itemId);
+        try {
+            // 하위 항목 검색
+            List<ProjectItems> childItems = projectMapper.findByParentId(itemId);
 
-        // 하위 항목 삭제
-        for (ProjectItems child : childItems) {
-            projectMapper.deleteApiByItemId(child.getId());
-            deleteItemRecursively(child.getId());
+            // 하위 항목 삭제
+            for (ProjectItems child : childItems) {
+                projectMapper.deleteApiByItemId(child.getId());
+                deleteItemRecursively(child.getId());
+            }
+
+            // 현재 항목 삭제
+            projectMapper.deleteByItemId(itemId);
+            log.info("항목 삭제 완료 (Item ID: {})", itemId);
+        } catch (Exception e) {
+            log.error("항목 삭제 실패 (Item ID={}): {}", itemId, e.getMessage());
+            throw new RuntimeException("항목 삭제 중 오류 발생", e);
         }
-
-        // 현재 항목 삭제
-        projectMapper.deleteByItemId(itemId);
     }
 
+    /**
+     * 새 폴더 추가
+     *
+     * @param projectItems 생성할 폴더 정보
+     */
+    @Transactional
     public void addFolder(ProjectItems projectItems) {
-        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
+        try {
+            Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
 
-        ProjectItems newFolder = new ProjectItems();
-        newFolder.setProjectId(projectItems.getProjectId());
-        newFolder.setParentId(projectItems.getParentId());
-        newFolder.setType("folder");
-        newFolder.setName(projectItems.getName());
-        newFolder.setDepth(projectItems.getDepth());
-        newFolder.setCreateAt(LocalDateTime.now().toString());
-        newFolder.setItemOrder(nextItemOrder);
+            ProjectItems newFolder = new ProjectItems();
+            newFolder.setProjectId(projectItems.getProjectId());
+            newFolder.setParentId(projectItems.getParentId());
+            newFolder.setType("folder");
+            newFolder.setName(projectItems.getName());
+            newFolder.setDepth(projectItems.getDepth());
+            newFolder.setCreateAt(LocalDateTime.now().toString());
+            newFolder.setItemOrder(nextItemOrder);
 
-        Long projectId = newFolder.getProjectId();
+            projectMapper.insertProjectItem(newFolder);
+            sendProjectMessage(newFolder.getProjectId(), "UPDATE_PROJECT_ITEM");
 
-        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
-
-        projectMapper.insertProjectItem(newFolder);
+            log.info("새 폴더 추가 완료: {} (Project ID: {})", newFolder.getName(), newFolder.getProjectId());
+        } catch (Exception e) {
+            log.error("폴더 추가 실패: {}", e.getMessage());
+            throw new RuntimeException("폴더 추가 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트 내 API 항목 추가
+     *
+     * @param projectItems API 항목 정보
+     * @return 생성된 API 항목 객체
+     */
+    @Transactional
     public ProjectItems addProjectItemApi(ProjectItems projectItems) {
-        Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
-        ProjectItems newApi = new ProjectItems();
-        newApi.setProjectId(projectItems.getProjectId());
-        newApi.setParentId(projectItems.getParentId());
-        newApi.setType("api");
-        newApi.setName(projectItems.getName());
-        newApi.setDepth(projectItems.getDepth());
-        newApi.setCreateAt(LocalDateTime.now().toString());
-        newApi.setItemOrder(nextItemOrder);
-        projectMapper.insertProjectItem(newApi);
-        return projectMapper.getProjectItemsById(newApi.getId());
+        try {
+            Integer nextItemOrder = projectMapper.getNextItemOrder(projectItems.getProjectId(), projectItems.getParentId());
+
+            ProjectItems newApi = new ProjectItems();
+            newApi.setProjectId(projectItems.getProjectId());
+            newApi.setParentId(projectItems.getParentId());
+            newApi.setType("api");
+            newApi.setName(projectItems.getName());
+            newApi.setDepth(projectItems.getDepth());
+            newApi.setCreateAt(LocalDateTime.now().toString());
+            newApi.setItemOrder(nextItemOrder);
+
+            projectMapper.insertProjectItem(newApi);
+            log.info("새 API 항목 추가 완료: {} (Project ID: {})", newApi.getName(), newApi.getProjectId());
+
+            return projectMapper.getProjectItemsById(newApi.getId());
+        } catch (Exception e) {
+            log.error("API 항목 추가 실패: {}", e.getMessage());
+            throw new RuntimeException("API 항목 추가 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트 ID로 프로젝트 항목 조회
+     *
+     * @param projectId 프로젝트 ID
+     * @return 프로젝트 항목 리스트
+     */
     public List<ProjectItems> getProjectItemsByProjectId(Long projectId) {
         return projectMapper.findByProjectId(projectId);
     }
 
+    /**
+     * 프로젝트 내 API 저장
+     *
+     * @param item 저장할 API 항목
+     */
+    @Transactional
     public void saveApi(ProjectItems item) {
-        projectMapper.insertApi(item);
+        try {
+            projectMapper.insertApi(item);
+            log.info("API 저장 완료: {} (Project ID: {})", item.getName(), item.getProjectId());
+        } catch (Exception e) {
+            log.error("API 저장 실패: {}", e.getMessage());
+            throw new RuntimeException("API 저장 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트 항목 검색
+     *
+     * @param projectId 프로젝트 ID
+     * @param query 검색어
+     * @param type 항목 유형
+     * @param method 검색 방법
+     * @return 검색된 프로젝트 항목 리스트
+     */
     public List<ProjectItems> searchProjectItems(Long projectId, String query, String type, String method) {
         return projectMapper.searchProjectItems(projectId, query, type, method);
     }
 
+    /**
+     * 프로젝트 ID로 프로젝트 조회
+     *
+     * @param projectId 프로젝트 ID
+     * @return 조회된 프로젝트 객체
+     */
     public Project getProjectByProjectId(Long projectId) {
         return projectMapper.getProjectByProjectId(projectId);
     }
 
+    /**
+     * 프로젝트 항목 이름 업데이트
+     *
+     * @param projectItems 업데이트할 프로젝트 항목
+     * @return 업데이트된 프로젝트 항목 객체
+     */
+    @Transactional
     public ProjectItems updateProjectItemName(ProjectItems projectItems) {
-        projectMapper.updateProjectItemName(projectItems);
-
-        Long projectId = projectItems.getProjectId();;
-
-        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
-
-        // 업데이트된 객체 조회
-        return projectMapper.getProjectItemsById(projectItems.getId());
+        try {
+            projectMapper.updateProjectItemName(projectItems);
+            sendProjectMessage(projectItems.getProjectId(), "UPDATE_PROJECT_ITEM");
+            return projectMapper.getProjectItemsById(projectItems.getId());
+        } catch (Exception e) {
+            log.error("프로젝트 항목 이름 업데이트 실패: {}", e.getMessage());
+            throw new RuntimeException("프로젝트 항목 이름 업데이트 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트 항목 이동 (부모 ID 변경)
+     *
+     * @param projectItems 이동할 항목 정보
+     */
+    @Transactional
     public void updateParentId(ProjectItems projectItems) {
-        Long projectId = projectMapper.getItemByItemId(projectItems.getId()).getProjectId();
-        Integer itemOrder = projectMapper.getNextItemOrder(projectId, projectItems.getParentId());
-        projectItems.setItemOrder(itemOrder);
+        try {
+            Long projectId = projectMapper.getItemByItemId(projectItems.getId()).getProjectId();
+            Integer itemOrder = projectMapper.getNextItemOrder(projectId, projectItems.getParentId());
+            projectItems.setItemOrder(itemOrder);
 
-        projectMapper.updateParentId(projectItems);
-        ProjectItems updatedProjectItem = projectMapper.getItemByItemId(projectItems.getId());
+            projectMapper.updateParentId(projectItems);
+            sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
 
-        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
+            log.info("프로젝트 항목 이동 완료: {} (Project ID: {})", projectItems.getName(), projectId);
+        } catch (Exception e) {
+            log.error("프로젝트 항목 이동 실패: {}", e.getMessage());
+            throw new RuntimeException("프로젝트 항목 이동 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트 항목 삭제
+     *
+     * @param itemId 삭제할 항목 ID
+     */
+    @Transactional
     public void deleteItemById(Long itemId) {
-        ProjectItems item = projectMapper.getItemByItemId(itemId);
+        try {
+            ProjectItems item = projectMapper.getItemByItemId(itemId);
+            projectMapper.deleteApiByItemId(itemId);
+            projectMapper.deleteByItemId(itemId);
 
-        // 하위 API 삭제
-        projectMapper.deleteApiByItemId(itemId);
-        projectMapper.deleteByItemId(itemId);
-
-        Long projectId = item.getProjectId();
-
-        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
+            sendProjectMessage(item.getProjectId(), "UPDATE_PROJECT_ITEM");
+            log.info("프로젝트 항목 삭제 완료 (Item ID: {})", itemId);
+        } catch (Exception e) {
+            log.error("프로젝트 항목 삭제 실패 (Item ID={}): {}", itemId, e.getMessage());
+            throw new RuntimeException("프로젝트 항목 삭제 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 항목 순서 업데이트 (드래그 앤 드롭)
+     *
+     * @param draggedItemId  이동할 항목 ID
+     * @param targetParentId 목표 부모 ID
+     * @param targetOrder    목표 순서
+     */
     @Transactional
     public void updateItemOrder(Long draggedItemId, Long targetParentId, Integer targetOrder) {
-        // 1. 대상 parent_id와 item_order 업데이트
-        ProjectItems item = projectMapper.getItemByItemId(draggedItemId);
-        projectMapper.incrementItemOrder(targetParentId, targetOrder, item.getProjectId());
+        try {
+            ProjectItems item = projectMapper.getItemByItemId(draggedItemId);
+            projectMapper.incrementItemOrder(targetParentId, targetOrder, item.getProjectId());
+            projectMapper.updateItemOrder(draggedItemId, targetOrder, targetParentId);
 
-        // 2. 드래그된 요소 업데이트
-        projectMapper.updateItemOrder(draggedItemId, targetOrder, targetParentId);
-        ProjectItems updatedItem = projectMapper.getItemByItemId(draggedItemId);
-
-        // 3. 알림 전송
-        Long projectId = updatedItem.getProjectId();;
-        sendProjectMessage(projectId, "UPDATE_PROJECT_ITEM");
+            sendProjectMessage(item.getProjectId(), "UPDATE_PROJECT_ITEM");
+            log.info("항목 순서 업데이트 완료 (Item ID: {}, Parent ID: {}, Order: {})", draggedItemId, targetParentId, targetOrder);
+        } catch (Exception e) {
+            log.error("항목 순서 업데이트 실패: {}", e.getMessage());
+            throw new RuntimeException("항목 순서 업데이트 중 오류 발생", e);
+        }
     }
 
 
+    /**
+     * 항목 ID로 항목 조회
+     *
+     * @param itemId 항목 ID
+     * @return 조회된 항목 객체
+     */
     public ProjectItems getItemByItemId(Long itemId) {
         return projectMapper.getItemByItemId(itemId);
     }
 
+    /**
+     * 프로젝트 초대 코드 생성
+     *
+     * @param projectId 프로젝트 ID
+     * @param userEmail 사용자 이메일
+     * @return 생성된 초대 코드
+     */
     public String generateInviteCode(Long projectId, String userEmail) {
-        // 초대 코드 생성
-        String inviteCode = UUID.randomUUID().toString().substring(0, 6); // 8자리 코드 생성
-
-        // 초대 코드 저장 (1시간 유효 기간 설정)
+        String inviteCode = UUID.randomUUID().toString().substring(0, 6);
         InviteCode code = new InviteCode();
         code.setProjectId(projectId);
         code.setUserEmail(userEmail);
@@ -240,110 +373,150 @@ public class ProjectService {
         code.setExpiryTime(LocalDateTime.now().plusHours(1));
 
         projectMapper.insertInviteCode(code);
+        log.info("초대 코드 생성 (Project ID={}, Code={})", projectId, inviteCode);
         return inviteCode;
     }
 
+    /**
+     * 초대 코드 검증
+     *
+     * @param inviteCode 입력된 초대 코드
+     * @param loginEmail 현재 로그인한 사용자 이메일
+     * @return 유효성 검증 결과 (Map 형태)
+     */
     public Map<String, Object> validateInviteCode(String inviteCode, String loginEmail) {
         Map<String, Object> response = new HashMap<>();
-
-        // 초대 코드 유효성 확인 - 사용 가능 여부가 true인 것들 중에서 코드가 같은 record 찾기
         InviteCode code = projectMapper.findByCode(inviteCode);
 
-        // 코드가 없거나, 유효 시간이 지났거나, 사용 불가능한 코드인 경우
         if (code == null || code.isExpired() || !code.isAvailability()) {
-            response.put("errorMessage", "유효하지 않은 코드입니다. 다시 확인해 주세요.");
+            response.put("errorMessage", "유효하지 않은 코드입니다.");
+            log.warn("초대 코드 검증 실패: {}", inviteCode);
             return response;
         }
 
-        // 받는 사람 userId
         Long userId = userMapper.findByEmail(code.getUserEmail()).getId();
-        // 현재 로그인한 userId
         Long loginUserId = userMapper.findByEmail(loginEmail).getId();
-        // 초대하는 projectId
         Long projectId = code.getProjectId();
-        // 초대받는 사람 객체
-        ProjectParticipants participant = projectMapper.getParticipantByProjectIdAndUserId(projectId, userId);
 
-        // 만약 이미 참여한 프로젝트인 경우
-        if (participant != null) {
-            response.put("errorMessage", "이미 참여한 프로젝트입니다. 다시 확인해 주세요.");
+        if (projectMapper.getParticipantByProjectIdAndUserId(projectId, userId) != null) {
+            response.put("errorMessage", "이미 참여한 프로젝트입니다.");
             return response;
         }
 
-        // 내 프로젝트인 경우
-        if (projectMapper.getProjectByProjectId(projectId).getUserId() == loginUserId) {
+        if (projectMapper.getProjectByProjectId(projectId).getUserId().equals(loginUserId)) {
             response.put("errorMessage", "자신의 프로젝트에는 참여할 수 없습니다.");
             return response;
         }
 
         code.setAvailability(false);
         projectMapper.updateInviteCode(code);
-
-        response.put("projectId", code.getProjectId());
-
+        response.put("projectId", projectId);
         return response;
     }
 
+    /**
+     * 프로젝트에 참여자 추가
+     *
+     * @param userEmail 사용자 이메일
+     * @param projectId 프로젝트 ID
+     * @return 추가된 프로젝트 참여자 객체
+     */
+    @Transactional
     public ProjectParticipants addParticipant(String userEmail, Long projectId) {
-        // 현재 로그인한 사용자
         User user = userMapper.findByEmail(userEmail);
-
-        // 프로젝트 이름
         String projectName = projectMapper.getProjectByProjectId(projectId).getName();
 
-        // 프로젝트 참여자 추가
         ProjectParticipants participant = new ProjectParticipants();
         participant.setProjectId(projectId);
         participant.setName(projectName);
         participant.setUserId(user.getId());
-        participant.setRole("participant"); // 소유자, 참여자 구분
-        participant.setPermissionLevel("read"); // 기본 권한: 읽기 전용
+        participant.setRole("participant");
+        participant.setPermissionLevel("read");
+
         projectMapper.insertParticipant(participant);
-
-        // 자동 저장을 사용하지 않고 있다면 사용으로 변경
-        if (!user.isAutoSaveUse()) {
-            user.setAutoSaveUse(true);
-            userMapper.settingUser(user);
-        }
-
-        // 알림 전송
         sendProjectMessage(projectId, "NEW_PARTICIPANT");
-
+        log.info("프로젝트 참가자 추가 (User={}, Project={})", userEmail, projectId);
         return projectMapper.getParticipantsById(participant.getId());
     }
 
+    /**
+     * 프로젝트 참여자 목록 조회
+     *
+     * @param projectId 프로젝트 ID
+     * @return 프로젝트 참여자 리스트
+     */
     public List<ProjectParticipants> getParticipantsByProjectId(Long projectId) {
         return projectMapper.getParticipantsByProjectId(projectId);
     }
 
+    /**
+     * 프로젝트 참여자 정보 업데이트
+     *
+     * @param projectId 프로젝트 ID
+     * @param participants 업데이트할 참여자 리스트
+     */
+    @Transactional
     public void updateParticipants(Long projectId, List<ProjectParticipants> participants) {
         for (ProjectParticipants participant : participants) {
             projectMapper.updateParticipant(projectId, participant);
-            // 각 참가자에게 WebSocket 메시지 전송
             notificationService.notifyProjectParticipants(participant.getUserId(), projectId, "UPDATE_AUTH");
         }
+        log.info("프로젝트 참가자 정보 업데이트 완료 (Project ID: {})", projectId);
     }
 
+    /**
+     * 특정 사용자와 프로젝트의 참여 정보 조회
+     *
+     * @param projectId 프로젝트 ID
+     * @param userId 사용자 ID
+     * @return 프로젝트 참여자 객체
+     */
     public ProjectParticipants getParticipantByProjectIdAndUserId(Long projectId, Long userId) {
         return projectMapper.getParticipantByProjectIdAndUserId(projectId, userId);
     }
 
+    /**
+     * 프로젝트 참여자 제거
+     *
+     * @param projectId 프로젝트 ID
+     * @param participantId 제거할 참여자 ID
+     */
+    @Transactional
     public void removeParticipant(Long projectId, Long participantId) {
-        ProjectParticipants participant = projectMapper.getParticipantsById(participantId);
-        // 강퇴당한 유저
-        User user = userMapper.findById(participant.getUserId());
-        Project project = projectMapper.getProjectByProjectId(projectId);
-        projectMapper.removeParticipant(projectId, participantId);
-        notificationService.notifyProjectParticipants(user.getId(), projectId,
-                project.getName() + " 프로젝트에서 강퇴당했습니다.");
+        try {
+            ProjectParticipants participant = projectMapper.getParticipantsById(participantId);
+            User user = userMapper.findById(participant.getUserId());
+            Project project = projectMapper.getProjectByProjectId(projectId);
+
+            projectMapper.removeParticipant(projectId, participantId);
+            notificationService.notifyProjectParticipants(user.getId(), projectId,
+                    project.getName() + " 프로젝트에서 강퇴당했습니다.");
+            log.info("프로젝트 참가자 제거 완료 (User ID={}, Project ID={})", user.getId(), projectId);
+        } catch (Exception e) {
+            log.error("프로젝트 참가자 제거 실패: {}", e.getMessage());
+            throw new RuntimeException("프로젝트 참가자 제거 중 오류 발생", e);
+        }
     }
 
+    /**
+     * 프로젝트에서 참가자 탈퇴
+     *
+     * @param projectId 프로젝트 ID
+     * @param userEmail 탈퇴할 사용자 이메일
+     */
+    @Transactional
     public void exitParticipant(Long projectId, String userEmail) {
-        // 나가는 유저
-        User user = userMapper.findByEmail(userEmail);
-        ProjectParticipants participants = projectMapper.getParticipantByProjectIdAndUserId(projectId, user.getId());
-        projectMapper.removeParticipant(projectId, participants.getId());
-        sendProjectMessage(projectId, "EXIT_PROJECT");
+        try {
+            User user = userMapper.findByEmail(userEmail);
+            ProjectParticipants participant = projectMapper.getParticipantByProjectIdAndUserId(projectId, user.getId());
+            projectMapper.removeParticipant(projectId, participant.getId());
+
+            sendProjectMessage(projectId, "EXIT_PROJECT");
+            log.info("사용자 프로젝트 탈퇴 완료 (User={}, Project ID={})", userEmail, projectId);
+        } catch (Exception e) {
+            log.error("프로젝트 탈퇴 실패: {}", e.getMessage());
+            throw new RuntimeException("프로젝트 탈퇴 중 오류 발생", e);
+        }
     }
 
     private void sendProjectMessage(Long projectId, String message) {

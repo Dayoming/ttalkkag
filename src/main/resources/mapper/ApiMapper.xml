@@ -76,56 +76,5 @@
             create_at = #{createAt}
         WHERE id = #{id}
     </update>
-    <!-- 사용자 이전 API 사용 기록 삭제 -->
-    <delete id="deleteUsageByUserId">
-        DELETE FROM api_usage WHERE user_id = #{userId}
-    </delete>
-
-    <!-- 새로운 API 사용 기록 추가 -->
-    <insert id="insertUsage">
-        INSERT INTO api_usage (user_id, project_id, item_id)
-        VALUES (#{userId}, #{projectId}, #{itemId})
-    </insert>
-
-    <!-- 특정 API를 사용하는 사용자 목록 조회 -->
-    <select id="findUsersByProjectId" resultMap="UserApiUsageResultMap">
-        SELECT
-            u.id AS userId,
-            u.email,
-            u.password,
-            u.auto_save_use AS autoSaveUse,
-            u.auto_save_time AS autoSaveTime,
-            u.auto_save_term AS autoSaveTerm,
-            u.auto_save_path AS autoSavePath,
-            u.show_response AS showResponse,
-            u.verified,
-            u.social_provider AS socialProvider,
-            au.item_id AS itemId,
-            au.project_id AS projectId
-        FROM users u
-        INNER JOIN api_usage au ON u.id = au.user_id
-        WHERE au.project_id = #{projectId}
-    </select>
-
-    <resultMap id="UserApiUsageResultMap" type="User">
-        <!-- User 필드 매핑 -->
-        <id property="id" column="userId" />
-        <result property="email" column="email" />
-        <result property="password" column="password" />
-        <result property="autoSaveUse" column="autoSaveUse" />
-        <result property="autoSaveTime" column="autoSaveTime" />
-        <result property="autoSaveTerm" column="autoSaveTerm" />
-        <result property="autoSavePath" column="autoSavePath" />
-        <result property="showResponse" column="showResponse" />
-        <result property="verified" column="verified" />
-        <result property="socialProvider" column="socialProvider" />
-
-        <!-- ApiUsage 필드 매핑 -->
-        <association property="apiUsage" javaType="ApiUsage">
-            <result property="itemId" column="itemId" />
-            <result property="projectId" column="projectId" />
-        </association>
-    </resultMap>
-
 </mapper>
 

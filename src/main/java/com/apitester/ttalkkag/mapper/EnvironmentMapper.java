@@ -16,6 +16,8 @@ public interface EnvironmentMapper {
     void insertEnvironment(Environment environment);
     void createSite(Site site);
     void deleteEnvironment(Long id);
+    void deleteEnvironmentsByProjectId(Long projectId);
+    void deleteEnvironmentsBySiteId(Long siteId);
     void deleteSite(Long id);
-
+    void deleteSitesByProjectId(Long projectId);
 }

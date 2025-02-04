@@ -2,11 +2,9 @@ package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.Environment;
 import com.apitester.ttalkkag.dto.EnvironmentVariable;
-import com.apitester.ttalkkag.dto.ProjectItems;
 import com.apitester.ttalkkag.dto.Site;
 import com.apitester.ttalkkag.service.EnvironmentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -17,6 +15,7 @@ import java.util.Map;
 @RequestMapping("/api/environments")
 @RequiredArgsConstructor
 public class EnvironmentController {
+
     private final EnvironmentService environmentService;
 
     @GetMapping("/sites/{projectId}")
@@ -48,7 +47,6 @@ public class EnvironmentController {
     public Map<String, Object> deleteEnvironment(@PathVariable Long id) {
         Map<String, Object> response = new HashMap<>();
         try {
-            environmentService.deleteVariableByEnvironmentId(id);
             environmentService.deleteEnvironment(id);
             response.put("message", "환경 삭제 성공");
         } catch (Exception e) {
@@ -62,16 +60,8 @@ public class EnvironmentController {
     public Map<String, Object> deleteSite(@PathVariable Long id) {
         Map<String, Object> response = new HashMap<>();
         try {
-            List<Environment> environments = environmentService.getEnvironmentsBySiteId(id);
-
-            // 하위 환경 변수, 환경 삭제
-            for (Environment environment : environments) {
-                environmentService.deleteVariableByEnvironmentId(environment.getId());
-                environmentService.deleteEnvironment(environment.getId());
-            }
-
-            // 사이트 삭제
-            environmentService.deleteSite(id);
+            // 사이트 및 환경 삭제
+            environmentService.deleteSiteAndEnvironments(id);
             response.put("message", "사이트 삭제 성공");
         } catch (Exception e) {
             e.printStackTrace();

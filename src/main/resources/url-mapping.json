@@ -42,7 +42,7 @@
     "mid": "P03004"
   },
   {
-    "url": "/api/projects/",
+    "url": "/api/projects",
     "funcId": "FN00008",
     "method": "POST",
     "mid": "P03004"
@@ -76,6 +76,12 @@
     "funcId": "FN00013",
     "method": "GET",
     "mid": "P00003"
+  },
+  {
+    "url": "/api/user/findById/{userId}",
+    "funcId": "FN00009",
+    "method": "GET",
+    "mid": "P00005"
   },
   {
     "url": "/api/projects/validate-invite",

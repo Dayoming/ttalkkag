@@ -343,7 +343,12 @@ export default {
     async fetchVariables() {
       if (this.selectedEnvironment) {
         const response = await this.$axios.get(
-          `/api/environments/variables/${this.selectedEnvironment.id}`
+          `/api/environments/variables/${this.selectedEnvironment.id}`,
+          {
+            headers: {
+              MID: "P03005"
+            }
+          }
         );
         this.variables = response.data;
       }

@@ -12,7 +12,4 @@ public interface ApiMapper {
     Apis loadApi(Long itemId);
     Apis findById(Long id);
     void updateApi(Apis apis);
-    void deleteUsageByUserId(Long userId);
-    void insertUsage(Long projectId, Long userId, Long itemId);
-    List<User> findUsersByProjectId(Long projectId);
 }

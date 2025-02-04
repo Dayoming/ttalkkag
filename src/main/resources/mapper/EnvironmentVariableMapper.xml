@@ -25,6 +25,20 @@
         DELETE FROM environment_variable WHERE environment_id = #{environmentId}
     </delete>
 
+    <!-- 환경 변수 삭제 -->
+    <delete id="deleteVariablesByProjectId">
+        DELETE ev FROM environment_variable ev
+        JOIN environment e ON ev.environment_id = e.id
+        JOIN site s ON e.site_id = s.id
+        WHERE s.project_id = #{projectId}
+    </delete>
+
+    <delete id="deleteVariablesBySiteId">
+        DELETE ev FROM environment_variable ev
+        JOIN environment e ON ev.environment_id = e.id
+        WHERE e.site_id = #{siteId}
+    </delete>
+
     <delete id="deleteVariableByKey">
         DELETE FROM environment_variable WHERE key = #{key}
     </delete>

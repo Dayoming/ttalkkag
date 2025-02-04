@@ -13,4 +13,6 @@ public interface EnvironmentVariableMapper {
     void deleteVariable(Long id);
     void deleteVariableByEnvironmentId(Long environmentId);
     void deleteVariableByKey(String key);
+    void deleteVariablesByProjectId(Long projectId);
+    void deleteVariablesBySiteId(Long siteId);
 }

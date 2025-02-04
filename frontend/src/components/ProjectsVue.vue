@@ -109,11 +109,7 @@
       >
         참여자 관리
       </button>
-      <button
-        v-if="!isMyProject"
-        class="btn btn-dark"
-        @click="exitParticipant"
-      >
+      <button v-if="!isMyProject" class="btn btn-dark" @click="exitParticipant">
         나가기
       </button>
     </div>
@@ -382,8 +378,9 @@ export default {
             if (item.type === "api") {
               try {
                 const apiResponse = await this.$axios.get(
-                  `/api/apis/${item.id}`
-                , { showSpinner: false });
+                  `/api/apis/${item.id}`,
+                  { showSpinner: false }
+                );
                 return {
                   ...item,
                   apiId: apiResponse.data.api.id,
@@ -441,7 +438,8 @@ export default {
               method:
                 this.selectedMethod === "api" ? this.selectedMethod : null,
             },
-          }, { showSpinner: false }
+          },
+          { showSpinner: false }
         );
 
         const updatedItems = await Promise.all(
@@ -449,8 +447,9 @@ export default {
             if (item.type === "api") {
               try {
                 const apiResponse = await this.$axios.get(
-                  `/api/apis/${item.id}`
-                , { showSpinner: false });
+                  `/api/apis/${item.id}`,
+                  { showSpinner: false }
+                );
                 return {
                   ...item,
                   apiId: apiResponse.data.api.id,
@@ -564,7 +563,8 @@ export default {
     async fetchParticipants(projectId) {
       try {
         const response = await this.$axios.get(
-          `/api/projects/${projectId}/participants`, { showSpinner: false }
+          `/api/projects/${projectId}/participants`,
+          { showSpinner: false }
         );
         const participants = response.data;
 
@@ -573,7 +573,13 @@ export default {
           participants.map(async (participant) => {
             try {
               const emailResponse = await this.$axios.get(
-                `/api/user/findById/${participant.userId}`, { showSpinner: false }
+                `/api/user/findById/${participant.userId}`,
+                { showSpinner: false },
+                {
+                  headers: {
+                    MID: "P03004",
+                  },
+                }
               );
               return {
                 ...participant, // 기존 데이터 복사

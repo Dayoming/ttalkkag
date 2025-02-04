@@ -19,7 +19,7 @@ spring:
       minimum-idle: '5'
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
   mail:
     host: smtp.gmail.com
     port: 587

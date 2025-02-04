@@ -332,9 +332,19 @@
         DELETE FROM project_items WHERE id = #{id}
     </delete>
 
+    <delete id="deleteProjectItemsByProjectId">
+        DELETE FROM project_items WHERE project_id = #{projectId}
+    </delete>
+
     <!--  itemId에 해당하는 API 삭제  -->
     <delete id="deleteApiByItemId">
         DELETE FROM apis WHERE item_id = #{itemId}
+    </delete>
+
+    <delete id="deleteApisByProjectId">
+        DELETE apis FROM apis
+        JOIN project_items pi ON apis.item_id = pi.id
+        WHERE pi.project_id = #{projectId} AND pi.type = 'api'
     </delete>
 
     <update id="updateProjectItemName" parameterType="ProjectItems">

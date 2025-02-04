@@ -346,7 +346,12 @@ export default {
               name: selectApi.name || "TempAPI",
               depth: 1,
             },
-            { showSpinner: false }
+            { showSpinner: false },
+            {
+              headers: {
+                MID: "P03002",
+              },
+            }
           );
 
           const apiData = {
@@ -509,7 +514,12 @@ export default {
             try {
               const emailResponse = await this.$axios.get(
                 `/api/user/findById/${participant.userId}`,
-                { showSpinner: false }
+                { showSpinner: false },
+                {
+                  headers: {
+                    MID: "P00004",
+                  },
+                }
               );
               return {
                 ...participant, // 기존 데이터 복사
@@ -550,7 +560,12 @@ export default {
             try {
               const emailResponse = await this.$axios.get(
                 `/api/user/findById/${participant.userId}`,
-                { showSpinner: false }
+                { showSpinner: false },
+                {
+                  headers: {
+                    MID: "P00004",
+                  },
+                }
               );
               return {
                 ...participant, // 기존 데이터 복사
@@ -598,7 +613,12 @@ export default {
           `/api/projects/find/${this.selectedProject.id}`
         );
         const projectOwner = await this.$axios.get(
-          `/api/user/findById/${projectResponse.data.userId}`
+          `/api/user/findById/${projectResponse.data.userId}`,
+          {
+            headers: {
+              MID: "P00005",
+            },
+          }
         );
         this.projectOwner = projectOwner.data.user.email;
 
@@ -619,7 +639,12 @@ export default {
       try {
         const response = await this.$axios.get(
           `/api/apis/usage/list/${this.selectedProject.id}`,
-          { showSpinner: false }
+          { showSpinner: false },
+          {
+            headers: {
+              MID: "P00004",
+            },
+          }
         );
 
         this.apiSelections = await this.mapUsersByApi(response.data);
@@ -673,13 +698,22 @@ export default {
 
       try {
         // 현재 API 사용 설정 업데이트
-        await this.$axios.post(`/api/apis/usage/${projectId}/${itemId}`);
+        await this.$axios.post(`/api/apis/usage/${projectId}/${itemId}`, {
+          headers: {
+            MID: "P00004",
+          },
+        });
 
         // 프로젝트 내 모든 API 사용자 목록 조회
         const response = await this.$axios.get(
           `/api/apis/usage/list/${projectId}`,
           {
             showSpinner: false,
+          },
+          {
+            headers: {
+              MID: "P00004",
+            },
           }
         );
 
@@ -755,7 +789,12 @@ export default {
     async getUserEmail(userId) {
       const userResponse = await this.$axios.get(
         `/api/user/findById/${userId}`,
-        { showSpinner: false }
+        { showSpinner: false },
+        {
+          headers: {
+            MID: "P00002", // 헤더에 MID 추가
+          },
+        }
       );
       const userEmail = userResponse.data.user.email;
 
@@ -767,7 +806,11 @@ export default {
     },
     async deleteMyApiSelection(userId, projectId) {
       try {
-        await this.$axios.delete(`/api/apis/usage/out/${projectId}/${userId}`);
+        await this.$axios.delete(`/api/apis/usage/out/${projectId}/${userId}`, {
+          headers: {
+            MID: "P00004",
+          },
+        });
       } catch (error) {
         console.log(error);
       }

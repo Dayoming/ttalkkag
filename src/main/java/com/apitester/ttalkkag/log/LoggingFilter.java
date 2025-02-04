@@ -17,6 +17,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * HTTP 요청/응답 로깅 필터
+ *
+ * @author 정다영
+ * @date 2025-02-01
+ * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스.
+ *              요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
+ */
 @Component
 public class LoggingFilter implements Filter {
 
@@ -31,11 +39,25 @@ public class LoggingFilter implements Filter {
     private String logKey = "";
     private Tlo tlo;
 
+    /**
+     * LoggingFilter 생성자
+     *
+     * @param urlMappingResolver URL과 기능 ID 매핑을 위한 Resolver
+     */
     @Autowired
     public LoggingFilter(UrlMappingResolver urlMappingResolver) {
         this.urlMappingResolver = urlMappingResolver;
     }
 
+    /**
+     * HTTP 요청 및 응답을 로깅하는 필터 메서드
+     *
+     * @param request  요청 객체
+     * @param response 응답 객체
+     * @param chain    필터 체인
+     * @throws IOException      입출력 예외
+     * @throws ServletException 서블릿 예외
+     */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -81,11 +103,18 @@ public class LoggingFilter implements Filter {
         }
     }
 
+    /**
+     * 요청 정보를 기반으로 TLO 객체 생성
+     *
+     * @param request HTTP 요청 객체
+     */
     private void createTlo(ContentCachingRequestWrapper request) {
         tlo = new Tlo();
         String clientIp = request.getRemoteAddr();
         String seqId = generateLogKey();
         String logTime = LocalDateTime.now().format(formatter);
+        // 요청 헤더에서 MID 읽기
+        String midFromHeader = request.getHeader("MID");
 
         // TLO LOG
         tlo.setSeqId(seqId);
@@ -105,9 +134,16 @@ public class LoggingFilter implements Filter {
         tlo.setLogKey(logKey); // Seq ID와 동일하게 사용
         tlo.setChannelType("IN"); // 고정 값
         tlo.setUrl(request.getRequestURI()); // 요청 URI
-        tlo.setMid("");
+        tlo.setMid(midFromHeader != null ? midFromHeader : ""); // 헤더에서 MID 설정
     }
 
+    /**
+     * 요청 시작 로그 기록
+     *
+     * @param logKey  요청 식별 키
+     * @param requestTime 요청 시간
+     * @param request HTTP 요청 객체
+     */
     private void logStart(String logKey, String requestTime, ContentCachingRequestWrapper request) {
         // CALL LOG
         CALL_LOGGER.info(String.format("[%s]==   START CALL LOG  ==================================================", logKey));
@@ -125,6 +161,13 @@ public class LoggingFilter implements Filter {
         CALL_LOGGER.info(String.format("[%s]     [HTTP BODY] %s", logKey, requestBody));
     }
 
+    /**
+     * 요청 종료 로그 기록
+     *
+     * @param logKey       요청 식별 키
+     * @param responseTime 응답 시간
+     * @param response     HTTP 응답 객체
+     */
     private void logEnd(String logKey, String responseTime, ContentCachingResponseWrapper response) {
         int statusCode = response.getStatus(); // HTTP 상태 코드
         String responseBody = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
@@ -148,6 +191,12 @@ public class LoggingFilter implements Filter {
         CALL_LOGGER.info(String.format("[%s]==   END CALL LOG    ==================================================", logKey));
     }
 
+    /**
+     * WebSocket 요청 여부 확인
+     *
+     * @param request HTTP 요청 객체
+     * @return WebSocket 요청 여부 (true/false)
+     */
     private boolean isWebSocketRequest(HttpServletRequest request) {
         String connectionHeader = request.getHeader("Connection");
         String upgradeHeader = request.getHeader("Upgrade");
@@ -155,6 +204,11 @@ public class LoggingFilter implements Filter {
                 && upgradeHeader != null && upgradeHeader.equalsIgnoreCase("websocket");
     }
 
+    /**
+     * 로그 키 생성 (YYYYMMDDHHMMSSSSS + 랜덤 8자리 문자열)
+     *
+     * @return 로그 키 문자열
+     */
     private String generateLogKey() {
         // 랜덤 4자리 문자열 생성
         String randomPart1 = generateRandomString(4);
@@ -206,5 +260,4 @@ public class LoggingFilter implements Filter {
         }
         return OBJECT_MAPPER.writeValueAsString(headers);
     }
-
 }

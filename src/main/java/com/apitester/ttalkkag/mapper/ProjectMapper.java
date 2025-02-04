@@ -27,7 +27,9 @@ public interface ProjectMapper {
     void insertApi(ProjectItems item);
     void deleteProject(Long id);
     void deleteByItemId(Long itemId);
+    void deleteProjectItemsByProjectId(Long projectId);
     void deleteApiByItemId(Long itemId);
+    void deleteApisByProjectId(Long projectId);
     void deleteInviteCode(Long projectId);
     void deleteParticipantByProjectId(Long projectId);
     void insertProjectItem(ProjectItems items);

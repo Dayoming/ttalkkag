@@ -66,7 +66,13 @@ axios.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post('/api/auth/refresh-token', { refreshToken });
+        const { data } = await axios.post('/api/auth/refresh-token', { refreshToken },
+          {
+            headers: {
+              'MID': 'P00002', // 헤더에 MID 추가
+            },
+          }
+        );
 
         // 새 액세스 토큰 저장
         localStorage.setItem('accessToken', data.accessToken);
