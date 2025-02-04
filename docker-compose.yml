@@ -61,7 +61,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.jenkins
     ports:
       - 8085:8080
       - 50000:50000
