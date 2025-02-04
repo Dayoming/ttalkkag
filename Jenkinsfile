@@ -8,7 +8,15 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'develop', url: 'http://slc.conv.site:13203/newbie/ttalkkag.git'
+                script {
+                    checkout([$class: 'GitSCM',
+                              branches: [[name: '*/develop']],
+                              userRemoteConfigs: [[
+                                  url: 'http://slc.conv.site:13203/newbie/ttalkkag.git',
+                                  credentialsId: '2144f85d-68a5-4934-a84f-d53ee3bfc8ba'  // GitLab Credentials 사용
+                              ]]
+                    ])
+                }
             }
         }
 
