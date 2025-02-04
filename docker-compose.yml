@@ -53,7 +53,6 @@ services:
     image: jenkins/jenkins:lts-jdk21
     container_name: jenkins
     build:
-      context: .
       dockerfile: Dockerfile
     environment:
       - TZ=Asis/Seoul
