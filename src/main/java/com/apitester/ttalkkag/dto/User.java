@@ -1,10 +1,13 @@
 package com.apitester.ttalkkag.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class User {
+    @NotNull
     private Long id;
+    @NotNull
     private String email;
     private String password;
     private boolean autoSaveUse; // 자동 저장 사용 여부

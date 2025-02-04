@@ -1,10 +1,13 @@
 package com.apitester.ttalkkag.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class ApiHistory {
+    @NotNull
     private Long id;
+    @NotNull
     private Long userId;
     private Long projectId;
     private Long environmentId;

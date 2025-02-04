@@ -4,7 +4,9 @@ import com.apitester.ttalkkag.dto.Environment;
 import com.apitester.ttalkkag.dto.EnvironmentVariable;
 import com.apitester.ttalkkag.dto.Site;
 import com.apitester.ttalkkag.service.EnvironmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/environments")
 @RequiredArgsConstructor
+@Validated
 public class EnvironmentController {
 
     private final EnvironmentService environmentService;
@@ -29,12 +32,12 @@ public class EnvironmentController {
     }
 
     @PostMapping("/site")
-    public Site createSite(@RequestBody Site site) {
+    public Site createSite(@Valid @RequestBody Site site) {
         return environmentService.createSite(site);
     }
 
     @PostMapping
-    public Environment createEnvironment(@RequestBody Environment environment) {
+    public Environment createEnvironment(@Valid @RequestBody Environment environment) {
         return environmentService.createEnvironment(environment);
     }
 
@@ -76,12 +79,12 @@ public class EnvironmentController {
     }
 
     @PostMapping("/variables")
-    public void createVariable(@RequestBody EnvironmentVariable variable) {
+    public void createVariable(@Valid @RequestBody EnvironmentVariable variable) {
         environmentService.createVariable(variable);
     }
 
     @PutMapping("/variables/{id}")
-    public void updateVariable(@PathVariable Long id, @RequestBody EnvironmentVariable variable) {
+    public void updateVariable(@PathVariable Long id, @Valid @RequestBody EnvironmentVariable variable) {
         variable.setId(id);
         environmentService.updateVariable(variable);
     }

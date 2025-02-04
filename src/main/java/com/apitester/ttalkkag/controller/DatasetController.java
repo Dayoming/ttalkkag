@@ -3,8 +3,12 @@ package com.apitester.ttalkkag.controller;
 import com.apitester.ttalkkag.dto.Dataset;
 import com.apitester.ttalkkag.dto.DatasetVariable;
 import com.apitester.ttalkkag.service.DatasetService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,12 +17,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/dataset")
 @RequiredArgsConstructor
+@Validated
 public class DatasetController {
 
     private final DatasetService datasetService;
 
     @GetMapping("/getAllDatasets")
-    public List<Dataset> getAllDatasets(@AuthenticationPrincipal String userEmail) {
+    public List<Dataset> getAllDatasets(@AuthenticationPrincipal @NotBlank String userEmail) {
         return datasetService.getAllDatasets(userEmail);
     }
 
@@ -33,7 +38,7 @@ public class DatasetController {
     }
 
     @PostMapping("/addDataset")
-    public Map<String, Object> addDataset(@RequestBody Dataset dataset) {
+    public Map<String, Object> addDataset(@Valid @RequestBody Dataset dataset) {
         return datasetService.addDataset(dataset);
     }
 
@@ -48,7 +53,7 @@ public class DatasetController {
     }
 
     @PutMapping("/update/{id}")
-    public Map<String, Object> updateDataset(@PathVariable Long id, @RequestBody Dataset dataset) {
+    public Map<String, Object> updateDataset(@PathVariable Long id, @Valid @RequestBody Dataset dataset) {
         return datasetService.updateDataset(id, dataset);
     }
 

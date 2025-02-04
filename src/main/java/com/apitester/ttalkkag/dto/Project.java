@@ -1,11 +1,15 @@
 package com.apitester.ttalkkag.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class Project {
+    @NotNull
     private Long id; // 프로젝트 ID
+    @NotNull
     private Long userId; // 소유자 ID
+    @NotNull
     private String name; // 프로젝트 이름
     private String createAt; // 생성일자
 

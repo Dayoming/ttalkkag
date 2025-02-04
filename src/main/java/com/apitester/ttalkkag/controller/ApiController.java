@@ -3,9 +3,11 @@ package com.apitester.ttalkkag.controller;
 import com.apitester.ttalkkag.dto.ApiUsage;
 import com.apitester.ttalkkag.dto.Apis;
 import com.apitester.ttalkkag.service.ApiService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -14,17 +16,18 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/apis")
 @RequiredArgsConstructor
+@Validated
 public class ApiController {
 
     private final ApiService apiService;
 
     @PostMapping
-    public Apis saveApi(@RequestBody Apis apis) {
+    public Apis saveApi(@Valid @RequestBody Apis apis) {
         return apiService.saveApi(apis);
     }
 
     @PatchMapping
-    public void updateApi(@RequestBody Apis apis) {
+    public void updateApi(@Valid @RequestBody Apis apis) {
         apiService.updateApi(apis);
     }
 

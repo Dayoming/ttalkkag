@@ -3,8 +3,11 @@ package com.apitester.ttalkkag.controller;
 import com.apitester.ttalkkag.dto.*;
 import com.apitester.ttalkkag.service.EmailService;
 import com.apitester.ttalkkag.service.ProjectService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -14,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
+@Validated
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -21,7 +25,7 @@ public class ProjectController {
 
     // 사용자별 프로젝트 조회
     @GetMapping
-    public List<Project> getUserProjects(@AuthenticationPrincipal String userEmail) {
+    public List<Project> getUserProjects(@AuthenticationPrincipal @NotBlank String userEmail) {
         return projectService.getProjectsByUserId(userEmail);
     }
 
@@ -32,7 +36,7 @@ public class ProjectController {
 
     @GetMapping("/search/{projectId}")
     public List<ProjectItems> searchProjectItems(
-            @PathVariable Long projectId,
+            @PathVariable @NotBlank Long projectId,
             @RequestParam String query,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String method
@@ -42,7 +46,8 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping
-    public Project createProject(@RequestBody Project project, @AuthenticationPrincipal String userEmail) {
+    public Project createProject(@Valid @RequestBody Project project,
+                                 @AuthenticationPrincipal @NotBlank String userEmail) {
         return projectService.createProject(project.getName(), userEmail);
     }
 

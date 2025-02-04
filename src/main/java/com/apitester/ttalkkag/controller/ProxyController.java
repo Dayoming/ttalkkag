@@ -1,7 +1,9 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.ProxyRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.*;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -11,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/proxy")
+@Validated
 public class ProxyController {
 
     private final RestTemplate restTemplate;
@@ -20,7 +23,7 @@ public class ProxyController {
     }
 
     @PostMapping
-    public ResponseEntity<?> proxyRequest(@RequestPart(value = "request") ProxyRequest request,
+    public ResponseEntity<?> proxyRequest(@Valid @RequestPart(value = "request") ProxyRequest request,
                                           @RequestPart(value = "file", required = false) MultipartFile file) {
         try {
             HttpHeaders headers = new HttpHeaders();
