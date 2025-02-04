@@ -23,7 +23,8 @@ pipeline {
         stage('Build & Test Backend') {
             steps {
                 script {
-                    sh 'gradlew build'
+                    sh 'chmod +x gradlew'
+                    sh './gradlew build'
                 }
             }
         }
