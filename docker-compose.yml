@@ -50,7 +50,6 @@ services:
       - backend
 
   jenkins:
-    image: jenkins/jenkins:lts-jdk21
     container_name: jenkins
     build:
       dockerfile: Dockerfile
