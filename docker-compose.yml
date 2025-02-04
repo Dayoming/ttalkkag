@@ -59,6 +59,9 @@ services:
     volumes:
       - ./jenkins/config:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - 8085:8080
       - 50000:50000
