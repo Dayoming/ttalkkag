@@ -52,6 +52,9 @@ services:
   jenkins:
     image: jenkins/jenkins:lts-jdk21
     container_name: jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - TZ=Asis/Seoul
     user: root
@@ -59,9 +62,6 @@ services:
     volumes:
       - ./jenkins/config:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-    build:
-      context: .
-      dockerfile: Dockerfile.jenkins
     ports:
       - 8085:8080
       - 50000:50000
