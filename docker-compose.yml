@@ -49,20 +49,20 @@ services:
     depends_on:
       - backend
 
-#  jenkins:
-#    container_name: jenkins
-#    build:
-#      dockerfile: Dockerfile
-#    environment:
-#      - TZ=Asis/Seoul
-#    user: root
-#    privileged: true
-#    volumes:
-#      - ./jenkins/config:/var/jenkins_home
-#      - /var/run/docker.sock:/var/run/docker.sock
-#    ports:
-#      - 8085:8080
-#      - 50000:50000
+  jenkins:
+    container_name: jenkins
+    build:
+      dockerfile: Dockerfile
+    environment:
+      - TZ=Asis/Seoul
+    user: root
+    privileged: true
+    volumes:
+      - ./jenkins/config:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8085:8080
+      - 50000:50000
 
 volumes:
   mariadb_data:
