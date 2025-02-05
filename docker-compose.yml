@@ -17,6 +17,7 @@ services:
 
   backend:
     build: .
+    image: openjdk:21-jdk
     container_name: springboot_container
     restart: always
     depends_on:
@@ -24,16 +25,6 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/ttalkkag
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 1234
-      SPRING_MAIL_USERNAME: dayomi19@gmail.com
-      SPRING_MAIL_PASSWORD: cmhn cmfy mfmv wapr
-      JWT_SECRET: LdqLV8d0ebKHnGek2HIOvmVtCaQHt914k7mTEZQYo33m2SUzvSVgWrBwzN2gnQ1rR0Joq90Lp9D7mFx0FLMQ1mwuV32ufB
-      JWT_EXPIRATION: 7200000
-      JWT_REFRESH_EXPIRATION: 1209600000
-      CORS_ALLOWED_ORIGIN: http://localhost:8080
-      FILE_UPLOAD_DIR: /uploads/profiles
       TZ: Asia/Seoul
 
   nginx:

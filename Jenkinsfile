@@ -25,6 +25,8 @@ pipeline {
                 script {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
+                    sh 'cd build/libs'
+                    sh 'java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=dev'
                 }
             }
         }
@@ -33,22 +35,7 @@ pipeline {
             steps {
                 script {
                     sh 'cd frontend && npm install && npm run build'
-                }
-            }
-        }
-
-        stage('Stop & Remove Existing Containers') {
-            steps {
-                script {
-                    sh 'docker-compose down || true'
-                }
-            }
-        }
-
-        stage('Build & Start Containers') {
-            steps {
-                script {
-                    sh 'docker-compose up -d'
+                    sh 'npm run serve'
                 }
             }
         }
