@@ -26,7 +26,7 @@ pipeline {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
                     sh 'cd build/libs'
-                    sh 'java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=dev'
+                    sh 'java -Dspring.profiles.active=dev -jar ttalkkag-0.0.1-SNAPSHOT.jar'
                 }
             }
         }
