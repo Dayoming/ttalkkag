@@ -5,9 +5,9 @@ import lombok.Data;
 
 @Data
 public class User {
-    @NotNull
+    @NotNull(message = "유저 ID는 필수입니다.")
     private Long id;
-    @NotNull
+    @NotNull(message = "유저 이메일은 필수입니다.")
     private String email;
     private String password;
     private boolean autoSaveUse; // 자동 저장 사용 여부

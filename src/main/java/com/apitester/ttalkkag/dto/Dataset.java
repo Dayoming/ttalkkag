@@ -7,9 +7,9 @@ import java.util.List;
 
 @Data
 public class Dataset {
-    @NotNull
+    @NotNull(message = "데이터셋 ID는 필수입니다.")
     private Long id;
-    @NotNull
+    @NotNull(message = "프로젝트 ID는 필수입니다.")
     private Long projectId;
     private String name;
     private String description;

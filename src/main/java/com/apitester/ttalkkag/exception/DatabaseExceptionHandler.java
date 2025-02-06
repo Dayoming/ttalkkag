@@ -1,4 +1,4 @@
-package com.apitester.ttalkkag.log;
+package com.apitester.ttalkkag.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,18 +32,5 @@ public class DatabaseExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public void handleSQLException(SQLException ex) {
         logger.error("DB 연결이 유실되었습니다: {}", ex.getMessage());
-    }
-
-    /**
-     * 일반 예외 처리
-     * 예상치 못한 서버 오류가 발생했을 때 처리
-     * 500 INTERNAL_SERVER_ERROR 상태 코드를 반환
-     *
-     * @param ex Exception 객체
-     */
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public void handleGeneralException(Exception ex) {
-        logger.error("예상치 못한 오류가 발생했습니다: {}", ex.getMessage());
     }
 }

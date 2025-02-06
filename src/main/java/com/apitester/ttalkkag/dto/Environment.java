@@ -5,9 +5,9 @@ import lombok.Data;
 
 @Data
 public class Environment {
-    @NotNull
+    @NotNull(message = "환경 ID는 필수입니다.")
     private Long id;
-    @NotNull
+    @NotNull(message = "사이트 ID는 필수입니다.")
     private Long siteId;
     private String name;
 }

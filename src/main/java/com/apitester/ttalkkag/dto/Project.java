@@ -5,11 +5,11 @@ import lombok.Data;
 
 @Data
 public class Project {
-    @NotNull
+    @NotNull(message = "프로젝트 ID는 필수입니다.")
     private Long id; // 프로젝트 ID
-    @NotNull
+    @NotNull(message = "소유자 ID는 필수입니다.")
     private Long userId; // 소유자 ID
-    @NotNull
+    @NotNull(message = "프로젝트 이름은 필수입니다.")
     private String name; // 프로젝트 이름
     private String createAt; // 생성일자
 

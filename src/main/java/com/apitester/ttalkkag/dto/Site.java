@@ -5,9 +5,9 @@ import lombok.Data;
 
 @Data
 public class Site {
-    @NotNull
+    @NotNull(message = "사이트 ID는 필수입니다.")
     private Long id;
-    @NotNull
+    @NotNull(message = "프로젝트 ID는 필수입니다.")
     private Long projectId;
     private String name;
     private String createAt;
