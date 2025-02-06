@@ -25,6 +25,9 @@ services:
       - "8081:8081"
     environment:
       TZ: Asia/Seoul
+    volumes:
+      - ./backend/build/libs/ttalkkag-0.0.1-SNAPSHOT.jar:/app.jar  # JAR 파일을 마운트
+    command: ["java", "-Dspring.profiles.active=dev", "-jar", "/app.jar"]
 
   nginx:
     image: nginx:latest

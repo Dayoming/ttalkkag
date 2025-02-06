@@ -20,33 +20,23 @@ pipeline {
             }
         }
 
-        stage('Build & Test Backend') {
+        stage('Build & Deploy Backend') {
             steps {
                 script {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
-
-                    // 백그라운드 실행
-                    sh 'nohup java -Dspring.profiles.active=dev -jar build/libs/ttalkkag-0.0.1-SNAPSHOT.jar > backend.log 2>&1 &'
-
-                    // 실행 후 3초 대기 (Spring Boot 초기화 시간 확보)
-                    sh 'sleep 3'
-
-                    // 실행 중인지 확인
-                    sh 'ps -ef | grep java'
+                    sh 'docker cp build/libs/ttalkkag-0.0.1-SNAPSHOT.jar springboot_container:/app/app.jar'
+                    sh 'docker restart springboot_container'
                 }
             }
         }
 
-        stage('Build Vue.js Frontend') {
+        stage('Build & Deploy Frontend') {
             steps {
                 script {
-                    sh 'cd frontend && npm install && npm run build'
-                    // Vue 서버도 백그라운드 실행
-                    sh 'nohup npm run serve > frontend.log 2>&1 &'
-
-                    // 실행 중인지 확인
-                    sh 'ps -ef | grep node'
+                   sh 'cd frontend && npm install && npm run build'
+                   sh 'docker cp frontend/dist/. vue_container:/usr/share/nginx/html'
+                   sh 'docker restart vue_container'
                 }
             }
         }
