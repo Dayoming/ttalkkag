@@ -28,6 +28,12 @@ public class GoogleOAuthService {
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String redirectUri;
 
+    @Value("${spring.security.oauth2.client.provider.google.token-uri}")
+    private String tokenUrl;
+
+    @Value("${spring.security.oauth2.client.provider.google.user-info-uri}")
+    private String userInfoUrl;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     /**
@@ -37,8 +43,6 @@ public class GoogleOAuthService {
      * @return 액세스 토큰 (Access Token)
      */
     public String getAccessToken(String code) {
-        String tokenUrl = "https://oauth2.googleapis.com/token";
-
         // HTTP 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -77,8 +81,6 @@ public class GoogleOAuthService {
      * @return 사용자 정보 (이메일, 이름 등)
      */
     public Map<String, Object> getUserInfo(String accessToken) {
-        String userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
-
         // HTTP 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);

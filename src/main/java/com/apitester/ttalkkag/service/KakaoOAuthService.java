@@ -23,6 +23,12 @@ public class KakaoOAuthService {
     private final String REDIRECT_URI;
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Value("${spring.security.oauth2.client.provider.kakao.token-uri}")
+    private String tokenUrl;
+
+    @Value("${spring.security.oauth2.client.provider.kakao.user-info-uri}")
+    private String userInfoUrl;
+
     /**
      * 카카오 OAuth2 서비스 생성자
      *
@@ -43,8 +49,6 @@ public class KakaoOAuthService {
      * @return 액세스 토큰 (Access Token)
      */
     public String getAccessToken(String code) {
-        String tokenUrl = "https://kauth.kakao.com/oauth/token";
-
         // 요청 바디 설정
         String requestBody = "grant_type=authorization_code"
                 + "&client_id=" + CLIENT_ID
@@ -89,8 +93,6 @@ public class KakaoOAuthService {
      * @return 사용자 정보 (이메일, 닉네임 등)
      */
     public Map<String, Object> getUserInfo(String accessToken) {
-        String userInfoUrl = "https://kapi.kakao.com/v2/user/me";
-
         // HTTP 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);

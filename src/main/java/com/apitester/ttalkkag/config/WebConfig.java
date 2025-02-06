@@ -1,5 +1,6 @@
 package com.apitester.ttalkkag.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -14,19 +15,29 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Value("${file.upload.dir}")
+    private String uploadDir;
+
     /**
      * 정적 리소스 핸들러 추가
      * <p>
      * "/uploads/profiles/**" URL 패턴으로 요청이 들어오면
-     * "C:/ttalkkag-dev/uploads/profiles/" 디렉터리에서 파일을 제공하도록 설정.
+     * 지정 디렉터리에서 파일을 제공하도록 설정.
      *
      * @param registry 리소스 핸들러 레지스트리
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String uploadDir = "file:///C:/ttalkkag-dev/uploads/profiles/";
+        String os = System.getProperty("os.name").toLowerCase();
+        String resourcePath;
+
+        if (os.contains("win")) {
+            resourcePath = "file:///" + uploadDir.replace("\\", "/") + "/";
+        } else {
+            resourcePath = "file:" + uploadDir + "/";
+        }
 
         registry.addResourceHandler("/uploads/profiles/**")
-                .addResourceLocations(uploadDir);
+                .addResourceLocations(resourcePath);
     }
 }

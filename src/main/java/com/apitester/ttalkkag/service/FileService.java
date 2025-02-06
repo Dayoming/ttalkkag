@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * 파일 관리 서비스
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 @Service
 public class FileService {
 
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("png", "jpg", "jpeg", "gif", "webp");
     private final String uploadDir;
 
     /**
@@ -41,8 +44,19 @@ public class FileService {
      */
     public String saveProfileImage(MultipartFile file, Long userId) {
         try {
+
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                throw new IllegalArgumentException("파일명이 유효하지 않습니다.");
+            }
+            String extension = getFileExtension(originalFilename);
+            if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
+                log.error("지원되지 않는 파일 확장자: {}", extension);
+                throw new IllegalArgumentException("지원되지 않는 파일 형식입니다. PNG, JPG, JPEG, GIF, WEBP만 가능합니다.");
+            }
+
             // 고유한 파일명 생성
-            String filename = "profile_" + userId + "_" + System.currentTimeMillis() + ".png";
+            String filename = "profile_" + userId + "_" + UUID.randomUUID() + "." + extension;
             Path filePath = Paths.get(uploadDir, filename);
 
             // 디렉토리가 존재하지 않으면 생성
@@ -60,5 +74,19 @@ public class FileService {
             log.error("Failed to save profile image for user {}: {}", userId, e.getMessage());
             throw new RuntimeException("Failed to save profile image", e);
         }
+    }
+
+    /**
+     * 파일 이름에서 확장자를 추출하는 메서드
+     *
+     * @param filename 원본 파일명
+     * @return 확장자 (예: png, jpg)
+     */
+    private String getFileExtension(String filename) {
+        int lastIndex = filename.lastIndexOf(".");
+        if (lastIndex == -1 || lastIndex == filename.length() - 1) {
+            throw new IllegalArgumentException("확장자가 없는 파일입니다.");
+        }
+        return filename.substring(lastIndex + 1);
     }
 }
