@@ -16,7 +16,6 @@ services:
       - ./db/init/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   backend:
-    build: .
     image: openjdk:21-jdk
     container_name: springboot_container
     restart: always
