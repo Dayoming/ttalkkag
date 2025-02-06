@@ -28,7 +28,6 @@ services:
 
   nginx:
     image: nginx:latest
-    build: ./frontend
     container_name: vue_container
     restart: always
     ports:
@@ -44,7 +43,7 @@ services:
     build:
       dockerfile: Dockerfile
     environment:
-      - TZ=Asis/Seoul
+      - TZ=Asia/Seoul
     user: root
     privileged: true
     volumes:
