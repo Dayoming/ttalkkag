@@ -26,7 +26,7 @@ services:
     environment:
       TZ: Asia/Seoul
     volumes:
-      - ./backend/build/libs/ttalkkag-0.0.1-SNAPSHOT.jar:app.jar  # JAR 파일을 마운트
+      - ./backend/build/libs/ttalkkag-0.0.1-SNAPSHOT.jar:/app.jar  # JAR 파일을 마운트
     command: ["java", "-Dspring.profiles.active=dev", "-jar", "app.jar"]
 
   nginx:
@@ -51,7 +51,8 @@ services:
     privileged: true
     volumes:
       - ./jenkins/config:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./backend/build/libs:/backend_build
+      - ./frontend/dist:/frontend_build
     ports:
       - 8085:8080
       - 50000:50000

@@ -20,23 +20,30 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy Backend') {
+        stage('Build & Test Backend') {
             steps {
                 script {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
-                    sh 'docker cp build/libs/ttalkkag-0.0.1-SNAPSHOT.jar springboot_container:app.jar'
-                    sh 'docker restart springboot_container'
+                    sh 'cp ./backend/build/libs/ttalkkag-0.0.1-SNAPSHOT.jar ./backend_build/' // 볼륨 경로로 복사
                 }
             }
         }
 
-        stage('Build & Deploy Frontend') {
+        stage('Build Vue.js Frontend') {
             steps {
                 script {
-                   sh 'cd frontend && npm install && npm run build'
-                   sh 'docker cp frontend/dist/. vue_container:/usr/share/nginx/html'
-                   sh 'docker restart vue_container'
+                    sh 'cd frontend && npm install && npm run build'
+                    sh 'cp -r ./frontend/dist/* ./frontend_build/' // 볼륨 경로로 복사
+                }
+            }
+        }
+
+        stage('Restart Containers') {
+            steps {
+                script {
+                    sh 'docker-compose restart backend'  // 백엔드 컨테이너만 재시작
+                    sh 'docker-compose restart nginx'    // 프론트엔드 컨테이너만 재시작
                 }
             }
         }
