@@ -25,7 +25,7 @@ pipeline {
                 script {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
-                    sh 'docker cp build/libs/ttalkkag-0.0.1-SNAPSHOT.jar springboot_container:/app/app.jar'
+                    sh 'docker cp build/libs/ttalkkag-0.0.1-SNAPSHOT.jar springboot_container:app.jar'
                     sh 'docker restart springboot_container'
                 }
             }
