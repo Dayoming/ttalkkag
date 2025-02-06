@@ -25,7 +25,15 @@ pipeline {
                 script {
                     sh 'chmod +x gradlew'
                     sh './gradlew build'
-                    sh 'java -Dspring.profiles.active=dev -jar build/libs/ttalkkag-0.0.1-SNAPSHOT.jar'
+
+                    // 백그라운드 실행
+                    sh 'nohup java -Dspring.profiles.active=dev -jar build/libs/ttalkkag-0.0.1-SNAPSHOT.jar > backend.log 2>&1 &'
+
+                    // 실행 후 3초 대기 (Spring Boot 초기화 시간 확보)
+                    sh 'sleep 3'
+
+                    // 실행 중인지 확인
+                    sh 'ps -ef | grep java'
                 }
             }
         }
@@ -34,7 +42,11 @@ pipeline {
             steps {
                 script {
                     sh 'cd frontend && npm install && npm run build'
-                    sh 'npm run serve'
+                    // Vue 서버도 백그라운드 실행
+                    sh 'nohup npm run serve > frontend.log 2>&1 &'
+
+                    // 실행 중인지 확인
+                    sh 'ps -ef | grep node'
                 }
             }
         }
