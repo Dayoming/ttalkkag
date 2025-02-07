@@ -81,12 +81,12 @@ jwt:
 
 file:
   upload:
-    dir: /var/www/ttalkkag/uploads/profiles
+    dir: /var/jenkins_home/workspace/ttalkkag/uploads/profiles
 
 url:
   mapping:
     file:
-      path: /var/www/ttalkkag/logs/url-mapping.json
+      path: /var/jenkins_home/workspace/ttalkkag/logs/url-mapping.json
 
 cors:
   allowed:

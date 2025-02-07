@@ -51,6 +51,7 @@ services:
     privileged: true
     volumes:
       - ./jenkins/config:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./backend_build:/backend_build
       - ./frontend_build:/frontend_build
     ports:
