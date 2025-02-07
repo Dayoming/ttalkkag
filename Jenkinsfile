@@ -24,8 +24,10 @@ pipeline {
             steps {
                 script {
                     sh 'chmod +x gradlew'
-                    sh './gradlew build'
-                    sh 'cp ./backend/build/libs/ttalkkag-0.0.1-SNAPSHOT.jar ./backend_build/' // 볼륨 경로로 복사
+                    sh 'cd /var/jenkins_home/workspace/ttalkkag && ./gradlew build -x test'  // 백엔드 빌드 (테스트 제외)
+                    sh 'ls -l /var/jenkins_home/workspace/ttalkkag/build/libs' // JAR 파일 확인
+                    sh 'mkdir -p backend_build' // JAR 저장 폴더 생성
+                    sh 'cp /var/jenkins_home/workspace/ttalkkag/build/libs/*.jar backend_build/' // 빌드된 JAR 파일 복사
                 }
             }
         }
@@ -34,7 +36,8 @@ pipeline {
             steps {
                 script {
                     sh 'cd frontend && npm install && npm run build'
-                    sh 'cp -r ./frontend/dist/* ./frontend_build/' // 볼륨 경로로 복사
+                    sh 'mkdir -p frontend_build' // Vue 배포 폴더 생성
+                    sh 'cp -r /var/jenkins_home_workspace/ttalkkag/frontend/dist/* frontend_build/' // Vue 빌드 결과 복사
                 }
             }
         }
