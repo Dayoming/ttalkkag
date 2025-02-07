@@ -51,6 +51,8 @@ services:
     privileged: true
     volumes:
       - ./jenkins/config:/var/jenkins_home
+      - ./backend_build:/backend_build
+      - ./frontend_build:/frontend_build
     ports:
       - 8085:8080
       - 50000:50000
