@@ -27,7 +27,7 @@ pipeline {
                     sh 'cd /var/jenkins_home/workspace/ttalkkag && ./gradlew build -x test'  // 백엔드 빌드 (테스트 제외)
                     sh 'ls -l /var/jenkins_home/workspace/ttalkkag/build/libs' // JAR 파일 확인
                     sh 'mkdir -p backend_build' // JAR 저장 폴더 생성
-                    sh 'cp /var/jenkins_home/workspace/ttalkkag/build/libs/*.jar backend_build/' // 빌드된 JAR 파일 복사
+                    sh 'cp /var/jenkins_home/workspace/ttalkkag/build/libs/*.jar /var/jenkins_home/workspace/ttalkkag/backend_build/' // 빌드된 JAR 파일 복사
                 }
             }
         }
@@ -37,7 +37,7 @@ pipeline {
                 script {
                     sh 'cd frontend && npm install && npm run build'
                     sh 'mkdir -p frontend_build' // Vue 배포 폴더 생성
-                    sh 'cp -r /var/jenkins_home/workspace/ttalkkag/frontend/dist/* frontend_build/' // Vue 빌드 결과 복사
+                    sh 'cp -r /var/jenkins_home/workspace/ttalkkag/frontend/dist/* /var/jenkins_home/workspace/ttalkkag/frontend_build/' // Vue 빌드 결과 복사
                 }
             }
         }
