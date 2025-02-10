@@ -24,6 +24,9 @@ services:
     ports:
       - "8081:8081"
     environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb_container:3306/ttalkkag
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1234
       TZ: Asia/Seoul
     volumes:
       - ./backend_build:/app
