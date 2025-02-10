@@ -27,6 +27,8 @@ services:
       TZ: Asia/Seoul
     volumes:
       - ./backend_build:/app
+      - ./uploads/profiles:/app/uploads/profiles
+      - ./logs/url-mapping.json:/app/logs/url-mapping.json
     command: ["java", "-Dspring.profiles.active=prod", "-jar", "/app/ttalkkag-0.0.1-SNAPSHOT.jar"]
 
   nginx:
