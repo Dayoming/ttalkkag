@@ -35,7 +35,7 @@ pipeline {
         stage('Build Vue.js Frontend') {
             steps {
                 script {
-                    sh 'cd frontend && && npm install && npm run build'
+                    sh 'cd frontend && npm install && npm run build'
                     sh 'mkdir -p frontend_build' // Vue 배포 폴더 생성
                     sh 'cp -r /var/jenkins_home/workspace/ttalkkag/frontend/dist/* /var/jenkins_home/workspace/ttalkkag/frontend_build/' // Vue 빌드 결과 복사
                 }
