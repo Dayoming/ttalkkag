@@ -32,12 +32,12 @@ public class EnvironmentController {
     }
 
     @PostMapping("/site")
-    public Site createSite(@Valid @RequestBody Site site) {
+    public Site createSite(@RequestBody Site site) {
         return environmentService.createSite(site);
     }
 
     @PostMapping
-    public Environment createEnvironment(@Valid @RequestBody Environment environment) {
+    public Environment createEnvironment(@RequestBody Environment environment) {
         return environmentService.createEnvironment(environment);
     }
 
@@ -79,7 +79,7 @@ public class EnvironmentController {
     }
 
     @PostMapping("/variables")
-    public void createVariable(@Valid @RequestBody EnvironmentVariable variable) {
+    public void createVariable(@RequestBody EnvironmentVariable variable) {
         environmentService.createVariable(variable);
     }
 

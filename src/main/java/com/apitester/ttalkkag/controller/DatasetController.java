@@ -38,7 +38,7 @@ public class DatasetController {
     }
 
     @PostMapping("/addDataset")
-    public Map<String, Object> addDataset(@Valid @RequestBody Dataset dataset) {
+    public Map<String, Object> addDataset(@RequestBody Dataset dataset) {
         return datasetService.addDataset(dataset);
     }
 
