@@ -21,7 +21,7 @@ public class HistoryController {
 
     @PostMapping
     public void saveHistory(@AuthenticationPrincipal @NotBlank String userEmail,
-                            @Valid @RequestBody ApiHistory history) {
+                            @RequestBody ApiHistory history) {
         historyService.saveHistory(userEmail, history);
     }
 

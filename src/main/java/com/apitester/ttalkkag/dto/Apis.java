@@ -5,7 +5,6 @@ import lombok.Data;
 
 @Data
 public class Apis {
-    @NotNull(message = "API ID는 필수입니다.")
     private Long id;
     @NotNull(message = "item ID는 필수입니다.")
     private Long itemId;

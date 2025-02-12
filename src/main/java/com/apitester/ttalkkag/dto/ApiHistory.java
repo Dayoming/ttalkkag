@@ -5,9 +5,7 @@ import lombok.Data;
 
 @Data
 public class ApiHistory {
-    @NotNull(message = "요청 기록 ID는 필수입니다.")
     private Long id;
-    @NotNull(message = "요청한 유저 ID는 필수입니다.")
     private Long userId;
     private Long projectId;
     private Long environmentId;
