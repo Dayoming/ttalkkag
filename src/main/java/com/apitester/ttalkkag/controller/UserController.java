@@ -69,7 +69,7 @@ public class UserController {
 
     @PostMapping("/renewVerified")
     public void renewVerified(@AuthenticationPrincipal @NotBlank String userEmail,
-                              @Valid @RequestBody User user) {
+                              @RequestBody User user) {
         userService.renewVerified(userEmail, user);
     }
 

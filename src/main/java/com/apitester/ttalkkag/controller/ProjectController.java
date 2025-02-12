@@ -46,7 +46,7 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping
-    public Project createProject(@Valid @RequestBody Project project,
+    public Project createProject(@RequestBody Project project,
                                  @AuthenticationPrincipal @NotBlank String userEmail) {
         return projectService.createProject(project.getName(), userEmail);
     }
