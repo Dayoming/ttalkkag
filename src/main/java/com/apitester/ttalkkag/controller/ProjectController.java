@@ -1,11 +1,13 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.service.EmailService;
 import com.apitester.ttalkkag.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +27,18 @@ public class ProjectController {
 
     // 사용자별 프로젝트 조회
     @GetMapping
-    public List<Project> getUserProjects(@AuthenticationPrincipal @NotBlank String userEmail) {
-        return projectService.getProjectsByUserId(userEmail);
+    public List<Project> getUserProjects(@AuthenticationPrincipal @NotBlank String userEmail,
+                                         @RequestParam(value = "includeInfo", required = false, defaultValue = "false") boolean includeInfo) {
+        return projectService.getProjectsByUserId(userEmail, includeInfo);
     }
 
     @GetMapping("/find/{projectId}")
     public Project getProjectByProjectId(@PathVariable Long projectId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 프로젝트 ID로 프로젝트 조회");
+
         return projectService.getProjectByProjectId(projectId);
     }
 
@@ -174,10 +182,10 @@ public class ProjectController {
 
     // API 파일 삭제
     @DeleteMapping("/items/{itemId}")
-    public Map<String, Object> deleteItemById(@PathVariable Long itemId) {
+    public Map<String, Object> deleteItemById(@AuthenticationPrincipal String userEmail, @PathVariable Long itemId) {
         Map<String, Object> response = new HashMap<>();
         try {
-            projectService.deleteItemById(itemId);
+            projectService.deleteItemById(itemId, userEmail);
             response.put("message", "API 삭제 성공");
         } catch (Exception e) {
             e.printStackTrace();

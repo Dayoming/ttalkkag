@@ -48,6 +48,18 @@
         </encoder>
     </appender>
 
+    <!--  TRANSACTION 로그 파일 출력 (일별 로테이션) -->
+    <appender name="TRANSACTION_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/transaction.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/transaction.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- WebSocket 관련 로그 -->
     <logger name="com.apitester.ttalkkag.log.WebSocketEventListener" level="INFO" additivity="false">
         <appender-ref ref="APPLICATION_LOG" />
@@ -66,6 +78,11 @@
     <!-- CALL 로그 설정 -->
     <logger name="com.apitester.ttalkkag.log.CALL" level="INFO" additivity="false">
         <appender-ref ref="CALL_LOG" />
+    </logger>
+
+    <!-- TRANSACTION 로그 설정 -->
+    <logger name="com.apitester.ttalkkag.log.TRANSACTION" level="INFO" additivity="false">
+        <appender-ref ref="TRANSACTION_LOG" />
     </logger>
 
     <!-- 루트 로거 설정 -->

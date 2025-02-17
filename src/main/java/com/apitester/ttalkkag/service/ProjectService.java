@@ -1,9 +1,14 @@
 package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.log.LoggingFilter;
+import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.mapper.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +44,23 @@ public class ProjectService {
      * @param userEmail 사용자 이메일
      * @return 사용자가 속한 프로젝트 리스트
      */
-    public List<Project> getProjectsByUserId(String userEmail) {
+    public List<Project> getProjectsByUserId(String userEmail, boolean includeInfo) {
+        String logKey = MDC.get("LOG_KEY");
         Long userId = userMapper.findByEmail(userEmail).getId();
-        return projectMapper.getProjectsByUserId(userId);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 정보로 사용자가 소유한 프로젝트 조회");
+        List<Project> projects = projectMapper.getProjectsByUserId(userId);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1-2. 만약 includeInfo가 true면 프로젝트 하위 정보를 포함한 결과 조회");
+
+        // 프로젝트 하위 정보도 함께 불러오는 경우
+        if (includeInfo) {
+            for (Project project : projects) {
+                System.out.println(projectMapper.findProjectDetailsById(project.getId()));
+            }
+        }
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 조회 결과 반환");
+
+        return projects;
     }
 
     /**
@@ -68,6 +87,11 @@ public class ProjectService {
         project.setName(name);
         project.setUserId(userId);
         projectMapper.insertProject(project);
+
+        String logKey = MDC.get("LOG_KEY");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 새 프로젝트 " + name + " 생성");
+
         log.info("새 프로젝트 생성: {} (User ID: {})", name, userId);
         return projectMapper.getProjectByProjectId(project.getId());
     }
@@ -310,11 +334,15 @@ public class ProjectService {
      * @param itemId 삭제할 항목 ID
      */
     @Transactional
-    public void deleteItemById(Long itemId) {
+    public void deleteItemById(Long itemId, String userEmail) {
         try {
             ProjectItems item = projectMapper.getItemByItemId(itemId);
             projectMapper.deleteApiByItemId(itemId);
             projectMapper.deleteByItemId(itemId);
+
+            String logKey = MDC.get("LOG_KEY");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자가 선택한 프로젝트 하위 항목 " + itemId + "번 삭제");
 
             sendProjectMessage(item.getProjectId(), "UPDATE_PROJECT_ITEM");
             log.info("프로젝트 항목 삭제 완료 (Item ID: {})", itemId);
@@ -354,6 +382,10 @@ public class ProjectService {
      * @return 조회된 항목 객체
      */
     public ProjectItems getItemByItemId(Long itemId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 프로젝트 하위 항목 ID로 하위 항목 조회");
         return projectMapper.getItemByItemId(itemId);
     }
 
@@ -371,6 +403,13 @@ public class ProjectService {
         code.setUserEmail(userEmail);
         code.setCode(inviteCode);
         code.setExpiryTime(LocalDateTime.now().plusHours(1));
+
+        String logKey = MDC.get("LOG_KEY");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 랜덤한 초대 코드 UUID 6자리 생성");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. InviteCode 객체에 초대할 프로젝트 ID, " +
+                "초대할 유저 이메일, 생성한 코드, 유효 기간 설정");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "3. 초대 코드 생성 완료");
 
         projectMapper.insertInviteCode(code);
         log.info("초대 코드 생성 (Project ID={}, Code={})", projectId, inviteCode);
@@ -446,6 +485,11 @@ public class ProjectService {
      * @return 프로젝트 참여자 리스트
      */
     public List<ProjectParticipants> getParticipantsByProjectId(Long projectId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 선택 프로젝트 참여자 목록 조회");
+
         return projectMapper.getParticipantsByProjectId(projectId);
     }
 

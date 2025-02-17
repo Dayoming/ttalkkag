@@ -2,10 +2,12 @@ package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.config.JwtTokenUtil;
 import com.apitester.ttalkkag.dto.User;
+import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -336,6 +338,13 @@ public class UserService {
             }
 
             userMapper.settingUser(user);
+
+            String logKey = MDC.get("LOG_KEY");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 로그인한 유저 Email로 사용자 ID 조회");
+            LoggingUtil.logTransactionStep(logKey, userEmail, "2. 프로필 이미지 저장 및 업데이트");
+            LoggingUtil.logTransactionStep(logKey, userEmail, "3. 사용자 설정 업데이트");
+
             log.info("사용자 설정 업데이트 완료 (User ID: {})", userId);
         } catch (Exception e) {
             log.error("사용자 설정 업데이트 실패 (Email={}): {}", userEmail, e.getMessage());
@@ -352,6 +361,11 @@ public class UserService {
     public void settingUserAutoSaveUse(Long userId, Boolean isUse) {
         try {
             userMapper.settingUserAutoSaveUse(userId, isUse);
+            String logKey = MDC.get("LOG_KEY");
+            String userEmail = MDC.get("USER_EMAIL");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 자동 저장 기능 사용 여부 " + isUse + "로 변경");
+
             log.info("자동 저장 설정 변경 (User ID: {}, AutoSave: {})", userId, isUse);
         } catch (Exception e) {
             log.error("자동 저장 설정 변경 실패 (User ID={}): {}", userId, e.getMessage());
@@ -370,6 +384,13 @@ public class UserService {
             Long userId = userMapper.findByEmail(userEmail).getId();
             user.setId(userId);
             userMapper.renewVerified(user);
+
+            String logKey = MDC.get("LOG_KEY");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 로그인한 사용자 Email로 사용자 ID 조회");
+            LoggingUtil.logTransactionStep(logKey, userEmail, "2. 사용자 최초 로그인 여부 검사");
+            LoggingUtil.logTransactionStep(logKey, userEmail, "3. 최초 로그인인 경우 해당 사용자 최초 로그인 여부 갱신");
+
             log.info("사용자 인증 갱신 완료 (User ID: {})", userId);
         } catch (Exception e) {
             log.error("사용자 인증 갱신 실패 (Email={}): {}", userEmail, e.getMessage());
@@ -386,6 +407,11 @@ public class UserService {
     public User findUserByEmail(String userEmail) {
         try {
             User user = userMapper.findByEmail(userEmail);
+
+            String logKey = MDC.get("LOG_KEY");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 Email로 사용자 조회");
+
             log.info("사용자 조회 완료 (Email: {})", userEmail);
             return user;
         } catch (Exception e) {
@@ -403,6 +429,12 @@ public class UserService {
     public User findUserById(Long userId) {
         try {
             User user = userMapper.findById(userId);
+
+            String logKey = MDC.get("LOG_KEY");
+            String userEmail = MDC.get("USER_EMAIL");
+
+            LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 ID로 사용자 조회");
+
             log.info("사용자 조회 완료 (User ID: {})", userId);
             return user;
         } catch (Exception e) {

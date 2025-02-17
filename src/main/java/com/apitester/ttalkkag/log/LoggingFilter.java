@@ -1,11 +1,13 @@
 package com.apitester.ttalkkag.log;
 
+import com.apitester.ttalkkag.config.JwtTokenUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -13,6 +15,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -22,21 +25,21 @@ import java.util.*;
  *
  * @author 정다영
  * @date 2025-02-01
- * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스.
- *              요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
+ * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스.              요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
  */
 @Component
 public class LoggingFilter implements Filter {
 
     private static final Logger CALL_LOGGER = LoggerFactory.getLogger("com.apitester.ttalkkag.log.CALL");
     private static final Logger TLO_LOGGER = LoggerFactory.getLogger("com.apitester.ttalkkag.log.TLO");
+    private static final Logger TRANSACTION_LOGGER = LoggerFactory.getLogger("com.apitester.ttalkkag.log.TRANSACTION");
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String ALPHANUMERIC_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
     private final UrlMappingResolver urlMappingResolver;
+    private final JwtTokenUtil jwtTokenUtil;
 
-    private String logKey = "";
     private Tlo tlo;
 
     /**
@@ -45,8 +48,9 @@ public class LoggingFilter implements Filter {
      * @param urlMappingResolver URL과 기능 ID 매핑을 위한 Resolver
      */
     @Autowired
-    public LoggingFilter(UrlMappingResolver urlMappingResolver) {
+    public LoggingFilter(UrlMappingResolver urlMappingResolver, JwtTokenUtil jwtTokenUtil) {
         this.urlMappingResolver = urlMappingResolver;
+        this.jwtTokenUtil = jwtTokenUtil;
     }
 
     /**
@@ -62,6 +66,7 @@ public class LoggingFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
+        String logKey;
         HttpServletRequest servletRequest = (HttpServletRequest) request;
         HttpServletResponse servletResponse = (HttpServletResponse) response;
 
@@ -77,8 +82,22 @@ public class LoggingFilter implements Filter {
 
         logKey = generateLogKey();
         String requestTime = LocalDateTime.now().format(formatter);
+        MDC.put("LOG_KEY", logKey);
 
-        createTlo(requestWrapper);
+        String userEmail = "UNKNOWN_USER";
+
+        String authHeader = requestWrapper.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtTokenUtil.validateToken(token)) {
+                userEmail = jwtTokenUtil.getEmailFromToken(token);
+            }
+        }
+
+        MDC.put("USER_EMAIL", userEmail);
+
+        createTlo(requestWrapper, logKey);
 
         // URL 및 HTTP Method 기반 매핑 처리
         Optional<UrlMapping> mapping = urlMappingResolver.resolveMapping(servletRequest);
@@ -86,6 +105,10 @@ public class LoggingFilter implements Filter {
             tlo.setFuncId(m.getFuncId());
             tlo.setMid(m.getMid());
         });
+
+        // Transaction 로그 기록 시작
+        TRANSACTION_LOGGER.info(String.format("[%s][%s][%s] - START", logKey, userEmail, requestWrapper.getMethod()
+                + " " + requestWrapper.getRequestURI()));
 
         logStart(logKey, requestTime, requestWrapper);
 
@@ -95,11 +118,32 @@ public class LoggingFilter implements Filter {
         } finally {
             // 응답 본문 로깅
             String responseTime = LocalDateTime.now().format(formatter);
+            String contentType = response.getContentType();
+            int statusCode = responseWrapper.getStatus();
+            long duration = calculateDuration(requestTime, responseTime);
+            String responseBody = "";
+
+            // 바이너리 데이터 여부 확인 (이미지 및 파일 응답 제외)
+            if (contentType != null && contentType.startsWith("image/")) {
+                // 프로필 이미지 업로드의 경우, 파일명만 로깅
+                responseBody = "[이미지 응답 - 로깅 생략]";
+            } else if (contentType != null && contentType.equals("application/octet-stream")) {
+                responseBody = "[파일 응답 - 로깅 생략]";
+            } else {
+                // 텍스트 데이터만 로깅
+                responseBody = new String(responseWrapper.getContentAsByteArray(), StandardCharsets.UTF_8);
+            }
 
             logEnd(logKey, responseTime, responseWrapper);
 
+            // Transaction 로그 기록 종료
+            TRANSACTION_LOGGER.info(String.format("[%s][%s][%s] - END : ('%s', '%s', '%s', '%s', %dms)",
+                    logKey, userEmail, requestWrapper.getMethod() + " " + requestWrapper.getRequestURI(),
+                    requestTime, responseTime, statusCode, responseBody, duration));
+
             // 응답 데이터를 클라이언트로 전달
             responseWrapper.copyBodyToResponse();
+            MDC.clear();
         }
     }
 
@@ -108,7 +152,7 @@ public class LoggingFilter implements Filter {
      *
      * @param request HTTP 요청 객체
      */
-    private void createTlo(ContentCachingRequestWrapper request) {
+    private void createTlo(ContentCachingRequestWrapper request, String logKey) {
         tlo = new Tlo();
         String clientIp = request.getRemoteAddr();
         String seqId = generateLogKey();
@@ -170,6 +214,7 @@ public class LoggingFilter implements Filter {
      */
     private void logEnd(String logKey, String responseTime, ContentCachingResponseWrapper response) {
         int statusCode = response.getStatus(); // HTTP 상태 코드
+        String contentType = response.getContentType(); // 응답 Content-Type 확인
         String responseBody = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
 
         // 상태 코드 기반 ResultCode 설정
@@ -182,6 +227,17 @@ public class LoggingFilter implements Filter {
 
         // 성공 또는 실패 여부 결정
         String statusMessage = (statusCode >= 200 && statusCode < 300) ? "성공" : "실패";
+
+        // 바이너리 데이터 여부 확인 (이미지 및 파일 응답 제외)
+        if (contentType != null && contentType.startsWith("image/")) {
+            // 프로필 이미지 업로드의 경우, 파일명만 로깅
+            responseBody = "[이미지 응답 - 로깅 생략]";
+        } else if (contentType != null && contentType.equals("application/octet-stream")) {
+            responseBody = "[파일 응답 - 로깅 생략]";
+        } else {
+            // 텍스트 데이터만 로깅
+            responseBody = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
+        }
 
         // TLO 로그 기록
         TLO_LOGGER.info(tlo.toString());
@@ -202,6 +258,20 @@ public class LoggingFilter implements Filter {
         String upgradeHeader = request.getHeader("Upgrade");
         return connectionHeader != null && connectionHeader.equalsIgnoreCase("Upgrade")
                 && upgradeHeader != null && upgradeHeader.equalsIgnoreCase("websocket");
+    }
+
+
+    /**
+     * 요청 처리 시간 계산
+     *
+     * @param startTime 요청 시작 시간
+     * @param endTime 요청 종료 시간
+     * @return 요청 처리에 걸린 시간 반환
+     */
+    private long calculateDuration(String startTime, String endTime) {
+        LocalDateTime start = LocalDateTime.parse(startTime, formatter);
+        LocalDateTime end = LocalDateTime.parse(endTime, formatter);
+        return Duration.between(start, end).toMillis();
     }
 
     /**
