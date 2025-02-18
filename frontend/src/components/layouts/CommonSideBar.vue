@@ -336,7 +336,7 @@ export default {
       this.updateKey++; // 화면 갱신
     },
     handleApiSelected(selectedTempApi) {
-      this.$emit("api-selected", selectedTempApi);
+      this.$emit("api-selected", selectedTempApi); 
     },
     handleSelectionChange(selectedItem) {
       if (selectedItem) {

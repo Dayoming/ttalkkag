@@ -32,6 +32,13 @@ public class ProjectController {
         return projectService.getProjectsByUserId(userEmail, includeInfo);
     }
 
+    @GetMapping("/details")
+    public List<Project> getUserProjectsWithDetails(
+            @AuthenticationPrincipal String userEmail) {
+        List<Project> userProjects = projectService.getUserProjectsWithDetails(userEmail);
+        return userProjects;
+    }
+
     @GetMapping("/find/{projectId}")
     public Project getProjectByProjectId(@PathVariable Long projectId) {
         String logKey = MDC.get("LOG_KEY");

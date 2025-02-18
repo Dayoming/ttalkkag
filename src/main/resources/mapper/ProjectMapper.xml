@@ -21,13 +21,16 @@
             pp.user_id = #{userId} OR p.user_id = #{userId}
     </select>
 
-    <!--  프로젝트 및 하위 요소(ProjectItems, Site, Environment, EnvironmentVariable, ProjectParticipant, Apis) 조회  -->
-    <select id="findProjectDetailsById" parameterType="long" resultMap="ProjectDetailsResultMap">
+    <select id="findProjectsByUserId" parameterType="Long" resultMap="ProjectDetailsResultMap">
         SELECT
-        p.id AS project_id, p.name AS project_name, p.create_at AS project_create_at,
+        p.id AS project_id, p.name AS project_name,
+
         pi.id AS project_item_id, pi.name AS project_item_name, pi.type AS project_item_type,
+
         s.id AS site_id, s.name AS site_name,
+
         e.id AS environment_id, e.name AS environment_name,
+
         ev.id AS env_variable_id, ev.key AS env_variable_key, ev.value AS env_variable_value
 
         FROM project p
@@ -35,40 +38,47 @@
         LEFT JOIN site s ON p.id = s.project_id
         LEFT JOIN environment e ON s.id = e.site_id
         LEFT JOIN environment_variable ev ON e.id = ev.environment_id
-        WHERE p.id = #{projectId}
-        ORDER BY p.id, pi.id, s.id, e.id, ev.id;
+        WHERE p.user_id = #{userId}
+        ORDER BY p.id, pi.id, s.id, e.id, ev.id
     </select>
 
+    <!-- 프로젝트 기본 매핑 -->
     <resultMap id="ProjectDetailsResultMap" type="Project">
         <id property="id" column="project_id"/>
         <result property="name" column="project_name"/>
-        <result property="createAt" column="project_create_at"/>
 
-        <!-- ProjectItems 컬렉션 -->
-        <collection property="projectItems" ofType="ProjectItems" javaType="ArrayList">
-            <id property="id" column="project_item_id"/>
-            <result property="name" column="project_item_name"/>
-            <result property="type" column="project_item_type"/>
-        </collection>
+        <collection property="projectItems" resultMap="ProjectItemsResultMap"/>
+        <collection property="sites" resultMap="SiteResultMap"/>
+    </resultMap>
 
-        <!-- Site 컬렉션 -->
-        <collection property="sites" ofType="Site" javaType="ArrayList">
-            <id property="id" column="site_id"/>
-            <result property="name" column="site_name"/>
+    <!-- ProjectItems 매핑 -->
+    <resultMap id="ProjectItemsResultMap" type="ProjectItems">
+        <id property="id" column="project_item_id"/>
+        <result property="name" column="project_item_name"/>
+        <result property="type" column="project_item_type"/>
+    </resultMap>
 
-            <!-- Environment 컬렉션 -->
-            <collection property="environments" ofType="Environment" javaType="ArrayList">
-                <id property="id" column="environment_id"/>
-                <result property="name" column="environment_name"/>
+    <!-- Site 매핑 -->
+    <resultMap id="SiteResultMap" type="Site">
+        <id property="id" column="site_id"/>
+        <result property="name" column="site_name"/>
 
-                <!-- EnvironmentVariable 컬렉션 -->
-                <collection property="variables" ofType="EnvironmentVariable" javaType="ArrayList">
-                    <id property="id" column="env_variable_id"/>
-                    <result property="key" column="env_variable_key"/>
-                    <result property="value" column="env_variable_value"/>
-                </collection>
-            </collection>
-        </collection>
+        <collection property="environments" resultMap="EnvironmentResultMap"/>
+    </resultMap>
+
+    <!-- Environment 매핑 -->
+    <resultMap id="EnvironmentResultMap" type="Environment">
+        <id property="id" column="environment_id"/>
+        <result property="name" column="environment_name"/>
+
+        <collection property="variables" resultMap="EnvironmentVariableResultMap"/>
+    </resultMap>
+
+    <!-- EnvironmentVariable 매핑 -->
+    <resultMap id="EnvironmentVariableResultMap" type="EnvironmentVariable">
+        <id property="id" column="env_variable_id"/>
+        <result property="key" column="env_variable_key"/>
+        <result property="value" column="env_variable_value"/>
     </resultMap>
 
 

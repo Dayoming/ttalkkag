@@ -455,6 +455,23 @@ export default {
     loadTempApi(loadTempApi) {
       this.selectedTempApi = loadTempApi;
     },
+    async fetchInitProjects() {
+      try {
+        const response = await this.$axios.get(`/api/projects/details`);
+        const data = response.data;
+
+        // 가져온 데이터를 각각의 변수에 저장
+        this.projects = [data]; // 단일 프로젝트 정보 포함
+        this.items = data.project_items; // 프로젝트 아이템 목록
+        this.sites = data.sites; // 사이트 목록
+        this.environments = data.environments; // 환경 목록
+        this.environmentVariables = data.environment_variables; // 환경 변수 목록
+
+        console.log("프로젝트 상세 데이터 로드 완료:", data);
+      } catch (error) {
+        console.error("Failed to fetch project details:", error);
+      }
+    },
     async fetchProjects(selectedProjectId = null) {
       try {
         const response = await this.$axios.get("/api/projects");
@@ -648,6 +665,7 @@ export default {
         );
 
         this.apiSelections = await this.mapUsersByApi(response.data);
+        console.log(this.apiSelections);
       } catch (error) {
         console.error("Failed update Api Selection: " + error);
       }
@@ -936,11 +954,12 @@ export default {
   },
   async mounted() {
     await this.loadUser();
-    this.fetchProjects();
-    this.fetchApiSelection();
-    this.fetchItems();
-    this.fetchSites();
-    this.fetchEnvironments();
+    await this.fetchInitProjects();
+    // this.fetchProjects();
+    // this.fetchApiSelection();
+    // this.fetchItems();
+    // this.fetchSites();
+    // this.fetchEnvironments();
     if (this.user !== null) {
       this.connectWebSocket(this.user.id);
     }

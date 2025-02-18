@@ -14,7 +14,7 @@ public interface ProjectMapper {
     List<Project> getProjectsByUserId(Long userId);
     List<ProjectItems> findByProjectId(Long projectId);
     List<ProjectItems> findByParentId(Long parentId);
-    Project findProjectDetailsById(Long projectId);
+    List<Project> findProjectsByUserId(Long userId);
     List<ProjectItems> searchProjectItems(Long projectId, String query, String type, String method);
     Project getProjectByProjectId(Long projectId);
     ProjectItems getProjectItemsById(Long id);

@@ -59,10 +59,4 @@ public class ApiController {
     public void deleteUserApiUsage(@PathVariable Long projectId, @PathVariable Long userId) {
         apiService.deleteUserApiUsage(projectId, userId);
     }
-
-    // 추가: API 사용 데이터 초기화 (테스트 또는 디버깅용)
-    @DeleteMapping("/usage/reset/{projectId}")
-    public void resetApiUsage(@PathVariable Long projectId) {
-        apiService.resetApiUsage(projectId);
-    }
 }

@@ -1,17 +1,21 @@
 package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.mapper.ApiMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -74,6 +78,9 @@ public class ApiService {
      * @return 조회된 API 객체
      */
     public Apis loadApi(Long itemId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "API " + itemId + "번 불러오기 완료");
         return apiMapper.loadApi(itemId);
     }
 
@@ -103,6 +110,7 @@ public class ApiService {
 
     /**
      * 사용자가 API를 사용하기 시작할 때 호출
+     * Key - 사용자 ID, Value - apiUsage (API 사용 정보)
      *
      * @param email 사용자 이메일
      * @param projectId 프로젝트 ID
@@ -110,9 +118,10 @@ public class ApiService {
      */
     public void updateUserApiUsage(String email, Long projectId, Long itemId) {
         User user = userMapper.findByEmail(email);
-        ApiUsage apiUsage = new ApiUsage(itemId, user.getEmail(), user.getProfileImage());
+        String userKey = String.valueOf(user.getId());
+        ApiUsage apiUsage = new ApiUsage(projectId, itemId, user.getEmail(), user.getProfileImage());
 
-        redisTemplate.opsForHash().put(String.valueOf(projectId), user.getId(), apiUsage);
+        redisTemplate.opsForHash().put(String.valueOf(user.getId()), "apiUsage", apiUsage);
 
         sendProjectMessage(projectId, "API_SELECT");
     }
@@ -123,8 +132,30 @@ public class ApiService {
      * @param projectId 프로젝트 ID
      * @return 프로젝트 내 API 사용자의 목록 (userId, ApiUsage 객체)
      */
+
     public Map<Long, ApiUsage> getUsersUsageByProjectId(Long projectId) {
-        return hashOperations.entries(String.valueOf(projectId));
+        Map<Long, ApiUsage> result = new HashMap<>();
+
+        // Redis에 저장된 모든 사용자 ID(Key) 가져오기
+        Set<String> userKeys = redisTemplate.keys("*");
+
+        if (userKeys == null || userKeys.isEmpty()) {
+            return result;
+        }
+
+        for (String userIdStr : userKeys) {
+            Long userId = Long.valueOf(userIdStr);
+
+            // 사용자별 Redis 데이터 가져오기
+            ApiUsage apiUsage = (ApiUsage) hashOperations.get(userIdStr, "apiUsage");
+
+            // 사용자가 현재 조회하는 프로젝트의 API를 사용 중인지 확인
+            if (apiUsage.getProjectId() != null && apiUsage.getProjectId().equals(projectId) && apiUsage != null) {
+                result.put(userId, apiUsage);
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -134,17 +165,15 @@ public class ApiService {
      * @param userId 사용자 ID
      */
     public void deleteUserApiUsage(Long projectId, Long userId) {
-        hashOperations.delete(String.valueOf(projectId), userId);
-        sendProjectMessage(projectId, "API_SELECT");
-    }
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
 
-    /**
-     * 특정 프로젝트의 모든 API 사용 정보 초기화
-     *
-     * @param projectId 프로젝트 ID
-     */
-    public void resetApiUsage(Long projectId) {
-        redisTemplate.delete(String.valueOf(projectId));
+        String userKey = String.valueOf(userId);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. userId를 Redis에서 삭제 시 사용할 String 형식으로 변환");
+        hashOperations.delete(userKey);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. Redis에서 현재 유저의 API 사용 정보 삭제 (projectId: " + projectId + ", userId: " + userId);
+        sendProjectMessage(projectId, "API_SELECT");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "3. 현재 프로젝트를 사용 중인 사용자들에게 웹 소켓 알림 메시지 API_SELECT 전송");
     }
 
     /**

@@ -49,18 +49,27 @@ public class ProjectService {
         Long userId = userMapper.findByEmail(userEmail).getId();
         LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 정보로 사용자가 소유한 프로젝트 조회");
         List<Project> projects = projectMapper.getProjectsByUserId(userId);
-        LoggingUtil.logTransactionStep(logKey, userEmail, "1-2. 만약 includeInfo가 true면 프로젝트 하위 정보를 포함한 결과 조회");
-
-        // 프로젝트 하위 정보도 함께 불러오는 경우
-        if (includeInfo) {
-            for (Project project : projects) {
-                System.out.println(projectMapper.findProjectDetailsById(project.getId()));
-            }
-        }
-
         LoggingUtil.logTransactionStep(logKey, userEmail, "2. 조회 결과 반환");
-
         return projects;
+    }
+
+    /**
+     * 사용자의 모든 프로젝트와 하위 정보를 조회
+     *
+     * @param userEmail 사용자 이메일
+     * @return 사용자의 프로젝트 및 하위 데이터 (ProjectItems, Sites, Environments, Variables 포함)
+     */
+    public List<Project> getUserProjectsWithDetails(String userEmail) {
+        String logKey = MDC.get("LOG_KEY");
+
+        Long userId = userMapper.findByEmail(userEmail).getId();
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 이메일로 사용자 ID 조회 완료 - userId: " + userId);
+
+        List<Project> projectsWithDetails = projectMapper.findProjectsByUserId(userId);
+        System.out.println(projectsWithDetails);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 프로젝트 및 하위 정보 조회 완료");
+
+        return projectsWithDetails;
     }
 
     /**
