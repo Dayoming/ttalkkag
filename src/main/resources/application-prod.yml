@@ -20,6 +20,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  redis:
+    host: 192.168.50.130
+    port: 6379
+    password: ${redis.password}
   mail:
     host: smtp.gmail.com
     port: 587

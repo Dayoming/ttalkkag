@@ -3,7 +3,10 @@ package com.apitester.ttalkkag.service;
 import com.apitester.ttalkkag.dto.*;
 import com.apitester.ttalkkag.mapper.ApiMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +29,16 @@ public class ApiService {
     private final UserMapper userMapper;
     private final NotificationService notificationService;
     private final ProjectService projectService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private HashOperations<String, Long, ApiUsage> hashOperations;
 
-    private final Map<Long, Map<Long, ApiUsage>> apiUsageMap = new ConcurrentHashMap<>();
+    /**
+     * 생성자에서 Redis HashOperations 초기화
+     */
+    @PostConstruct
+    public void init() {
+        this.hashOperations = redisTemplate.opsForHash();
+    }
 
     /**
      * API 저장 및 프로젝트 참가자에게 알림 전송
@@ -99,16 +110,9 @@ public class ApiService {
      */
     public void updateUserApiUsage(String email, Long projectId, Long itemId) {
         User user = userMapper.findByEmail(email);
+        ApiUsage apiUsage = new ApiUsage(itemId, user.getEmail(), user.getProfileImage());
 
-        // 프로젝트별 사용자 API 사용 정보 초기화
-        apiUsageMap.putIfAbsent(projectId, new ConcurrentHashMap<>());
-
-        // 사용자 사용 기록 업데이트
-        apiUsageMap.get(projectId).put(user.getId(), new ApiUsage(
-                itemId,
-                user.getEmail(),
-                user.getProfileImage() // 사용자 프로필 사진 URL
-        ));
+        redisTemplate.opsForHash().put(String.valueOf(projectId), user.getId(), apiUsage);
 
         sendProjectMessage(projectId, "API_SELECT");
     }
@@ -120,7 +124,7 @@ public class ApiService {
      * @return 프로젝트 내 API 사용자의 목록 (userId, ApiUsage 객체)
      */
     public Map<Long, ApiUsage> getUsersUsageByProjectId(Long projectId) {
-        return apiUsageMap.getOrDefault(projectId, Map.of());
+        return hashOperations.entries(String.valueOf(projectId));
     }
 
     /**
@@ -130,10 +134,7 @@ public class ApiService {
      * @param userId 사용자 ID
      */
     public void deleteUserApiUsage(Long projectId, Long userId) {
-        Map<Long, ApiUsage> projectUsage = apiUsageMap.get(projectId);
-        if (projectUsage != null) {
-            projectUsage.remove(userId);
-        }
+        hashOperations.delete(String.valueOf(projectId), userId);
         sendProjectMessage(projectId, "API_SELECT");
     }
 
@@ -143,7 +144,7 @@ public class ApiService {
      * @param projectId 프로젝트 ID
      */
     public void resetApiUsage(Long projectId) {
-        apiUsageMap.remove(projectId);
+        redisTemplate.delete(String.valueOf(projectId));
     }
 
     /**
@@ -170,22 +171,16 @@ public class ApiService {
      * @param api API 객체
      */
     private void notifyApiUsers(Long projectId, Apis api) {
-        if (apiUsageMap.containsKey(projectId)) {
-            Map<Long, ApiUsage> projectApiUsage = apiUsageMap.get(projectId);
+        // Redis에서 해당 프로젝트의 API 사용 목록 조회
+        Map<Long, ApiUsage> projectApiUsage = hashOperations.entries(String.valueOf(projectId));
 
+        if (projectApiUsage != null && !projectApiUsage.isEmpty()) {
             // API를 사용 중인 모든 사용자에게 알림 전송
             projectApiUsage.forEach((userId, apiUsage) -> {
                 if (apiUsage.getItemId().equals(api.getId())) {
-                    User user = userMapper.findByEmail(apiUsage.getEmail());
-                    if (user != null) {
-                        notificationService.notifyApiMessage(user.getId(), api);
-                    } else {
-                        System.err.println("User not found for email: " + apiUsage.getEmail());
-                    }
+                    notificationService.notifyApiMessage(userId, api);
                 }
             });
-        } else {
-            System.out.println("No users using the API in projectId: " + projectId);
         }
     }
 }
