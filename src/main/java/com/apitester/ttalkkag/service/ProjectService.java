@@ -49,7 +49,7 @@ public class ProjectService {
         Long userId = userMapper.findByEmail(userEmail).getId();
         LoggingUtil.logTransactionStep(logKey, userEmail, "1. 사용자 정보로 사용자가 소유한 프로젝트 조회");
         List<Project> projects = projectMapper.getProjectsByUserId(userId);
-        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 조회 결과 반환");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 사용자 소유 프로젝트 조회 결과 " + projects + " 반환");
         return projects;
     }
 
@@ -255,6 +255,11 @@ public class ProjectService {
      * @return 프로젝트 항목 리스트
      */
     public List<ProjectItems> getProjectItemsByProjectId(Long projectId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        List<ProjectItems> projectItems = projectMapper.findByProjectId(projectId);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. projectId " + projectId + "로 프로젝트 하위 항목 조회");
         return projectMapper.findByProjectId(projectId);
     }
 

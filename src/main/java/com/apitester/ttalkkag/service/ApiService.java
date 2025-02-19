@@ -52,12 +52,23 @@ public class ApiService {
      */
     @Transactional
     public Apis saveApi(Apis apis) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
         apiMapper.saveApi(apis);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. API 파일 저장 - apis: " + apis);
+
         Apis savedApi = apiMapper.findById(apis.getId());
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 저장한 API 파일 ID 반환 - apiId: " + savedApi.getId());
 
         // 프로젝트 정보 조회
         ProjectItems projectItem = projectService.getItemByItemId(apis.getItemId());
         Long projectId = projectItem.getProjectId();
+
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "3. API 파일이 저장된 프로젝트 ID 조회 - projectId: " + projectId);
 
         // 프로젝트 참가자 목록 조회 및 알림 전송
         List<ProjectParticipants> projectParticipants = projectService.getParticipantsByProjectId(projectId);
@@ -65,8 +76,12 @@ public class ApiService {
             notificationService.notifyProjectParticipants(participant.getUserId(), projectId, "API_SAVE");
         }
 
+        LoggingUtil.logTransactionStep(logKey, userEmail, "4. 프로젝트 참가자 " + projectParticipants + "에게 API_SAVE 알림 전송 완료");
+
         // 같은 API를 사용 중인 사용자에게 알림 전송
         notifyApiUsers(projectId, savedApi);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "5. 같은 API를 사용 중인 사용자에게 알림 전송 완료");
 
         return savedApi;
     }
@@ -91,12 +106,19 @@ public class ApiService {
      */
     @Transactional
     public void updateApi(Apis apis) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
         apiMapper.updateApi(apis);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. API 업데이트 완료 - apis: " + apis);
         Apis updatedApi = apiMapper.findById(apis.getId());
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 업데이트 된 API 파일 ID 조회 - apiId: " + updatedApi.getId());
 
         // 프로젝트 정보 조회
         ProjectItems projectItem = projectService.getItemByItemId(apis.getItemId());
         Long projectId = projectItem.getProjectId();
+        LoggingUtil.logTransactionStep(logKey, userEmail, "3. 업데이트 된 API 파일이 있는 프로젝트 ID 조회 - projectId: " + projectId);
 
         // 프로젝트 참가자 목록 조회 및 알림 전송
         List<ProjectParticipants> projectParticipants = projectService.getParticipantsByProjectId(projectId);
@@ -104,8 +126,11 @@ public class ApiService {
             notificationService.notifyProjectParticipants(participant.getUserId(), projectId, "API_UPDATE");
         }
 
+        LoggingUtil.logTransactionStep(logKey, userEmail, "4. 프로젝트 참가자 " + projectParticipants + "에게 API_UPDATE 알림 전송 완료");
+
         // 같은 API를 사용 중인 사용자에게 알림 전송
         notifyApiUsers(projectId, updatedApi);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "5. 같은 API를 사용 중인 사용자에게 알림 전송 완료");
     }
 
     /**
@@ -117,13 +142,20 @@ public class ApiService {
      * @param itemId API itemId
      */
     public void updateUserApiUsage(String email, Long projectId, Long itemId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
         User user = userMapper.findByEmail(email);
         String userKey = String.valueOf(user.getId());
-        ApiUsage apiUsage = new ApiUsage(projectId, itemId, user.getEmail(), user.getProfileImage());
 
-        redisTemplate.opsForHash().put(String.valueOf(user.getId()), "apiUsage", apiUsage);
+        ApiUsage apiUsage = new ApiUsage(projectId, itemId, user.getEmail(), user.getProfileImage());
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. API 사용 정보 객체 apiUsage 생성 - apiUsage: " + apiUsage);
+
+        redisTemplate.opsForHash().put(userKey, "apiUsage", apiUsage);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "2. 유저 " + userKey + "번 " + apiUsage.getItemId() + " API 파일 사용 시작");
 
         sendProjectMessage(projectId, "API_SELECT");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "4. 프로젝트 " + projectId + "번 참가자들에게 API_SELECT 알림 전송 완료");
     }
 
     /**
@@ -134,24 +166,32 @@ public class ApiService {
      */
 
     public Map<Long, ApiUsage> getUsersUsageByProjectId(Long projectId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
         Map<Long, ApiUsage> result = new HashMap<>();
 
         // Redis에 저장된 모든 사용자 ID(Key) 가져오기
         Set<String> userKeys = redisTemplate.keys("*");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. Redis에 저장된 모든 사용자 ID(Key) 가져오기 - userKeys: " + userKeys);
 
         if (userKeys == null || userKeys.isEmpty()) {
+            LoggingUtil.logTransactionStep(logKey, userEmail, "2. Redis에 사용자 ID가 존재하지 않아 빈 Map 반환");
             return result;
         }
+
 
         for (String userIdStr : userKeys) {
             Long userId = Long.valueOf(userIdStr);
 
             // 사용자별 Redis 데이터 가져오기
             ApiUsage apiUsage = (ApiUsage) hashOperations.get(userIdStr, "apiUsage");
+            LoggingUtil.logTransactionStep(logKey, userEmail, "3. 사용자별 Redis 데이터 불러오기 -  userId: " + userId + ", apiUsage: " + apiUsage);
 
             // 사용자가 현재 조회하는 프로젝트의 API를 사용 중인지 확인
             if (apiUsage.getProjectId() != null && apiUsage.getProjectId().equals(projectId) && apiUsage != null) {
                 result.put(userId, apiUsage);
+                LoggingUtil.logTransactionStep(logKey, userEmail, "4. 사용자가 현재 조회하는 프로젝트의 API를 사용 중이면 result에 저장 - result: " + result);
             }
         }
 
