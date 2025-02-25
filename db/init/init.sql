@@ -1,3 +1,23 @@
+USE history;
+
+-- history.api_change_history definition
+
+CREATE TABLE `api_change_history` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'api_change_history PK',
+  `api_id` bigint(20) NOT NULL COMMENT 'ttalkkag 스키마에 저장된 apis 테이블의 api id',
+  `user_id` bigint(20) NOT NULL COMMENT 'ttalkkag 스키마에 저장된 users 테이블의 user id',
+  `name` varchar(100) DEFAULT NULL COMMENT 'API 이름',
+  `method` varchar(100) DEFAULT NULL COMMENT 'API Method',
+  `url` varchar(100) DEFAULT NULL COMMENT 'API 요청 URL',
+  `headers` varchar(1024) DEFAULT NULL COMMENT 'API 요청 헤더',
+  `query_parameters` varchar(1024) DEFAULT NULL COMMENT 'API 요청 쿼리 파라미터',
+  `form_parameters` varchar(1024) DEFAULT NULL COMMENT 'API 요청 폼 파라미터',
+  `file` varchar(100) DEFAULT NULL COMMENT 'API 요청 파일',
+  `selected_body_type` varchar(100) DEFAULT NULL COMMENT 'API 요청 시 선택한 바디 타입',
+  `saved_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci COMMENT='API 이력 저장 테이블';
+
 USE ttalkkag;
 
 -- ttalkkag.users definition
