@@ -25,7 +25,7 @@ pipeline {
                 script {
                     sh 'chmod +x gradlew'
                     sh 'cd /var/jenkins_home/workspace/ttalkkag && ./gradlew build -x test'  // 백엔드 빌드 (테스트 제외)
-                    sh 'cd /var/jenkins_home/workspace/ttalkkag/history && ./gradlew build -x test' // history 빌드
+                    sh 'cd /var/jenkins_home/workspace/ttalkkag/history && chmod +x gradlew && ./gradlew build -x test' // history 빌드
                     sh 'ls -l /var/jenkins_home/workspace/ttalkkag/build/libs' // JAR 파일 확인
                     sh 'ls -l /var/jenkins_home/workspace/ttalkkag/history/build/libs'
                     sh 'mkdir -p backend_build' // JAR 저장 폴더 생성
