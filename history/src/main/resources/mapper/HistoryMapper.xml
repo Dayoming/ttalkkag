@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.apitester.history.mapper.ApiChangeHistoryMapper">
+
+    <!-- 이력 추가 -->
+    <insert id="insertApiChangeHistory" parameterType="ApiChangeHistory">
+        INSERT INTO api_change_history
+        (api_id, user_id, name, method, url, headers, query_parameters, form_parameters, file, selected_body_type, saved_at)
+        VALUES
+        (#{apiId}, #{userId}, #{name}, #{method}, #{url}, #{headers}, #{queryParameters}, #{formParameters}, #{file}, #{selectedBodyType}, NOW())
+    </insert>
+
+    <!-- 모든 이력 조회 -->
+    <select id="getAllApiChangeHistory" resultType="ApiChangeHistory">
+        SELECT
+            id,
+            api_id AS apiId,
+            user_id AS userId,
+            name,
+            method,
+            url,
+            headers,
+            query_parameters AS queryParameters,
+            form_parameters AS formParameters,
+            file,
+            selected_body_type AS selectedBodyType,
+            saved_at AS savedAt
+        FROM api_change_history ORDER BY saved_at DESC
+    </select>
+
+    <!-- 특정 API의 이력 조회 -->
+    <select id="getApiChangeHistoryByApiId" parameterType="Long" resultType="ApiChangeHistory">
+        SELECT
+            id,
+            api_id AS apiId,
+            user_id AS userId,
+            name,
+            method,
+            url,
+            headers,
+            query_parameters AS queryParameters,
+            form_parameters AS formParameters,
+            file,
+            selected_body_type AS selectedBodyType,
+            saved_at AS savedAt
+        FROM api_change_history WHERE api_id = #{apiId} ORDER BY saved_at DESC
+    </select>
+
+    <!-- 특정 사용자의 이력 조회 -->
+    <select id="getApiChangeHistoryByUserId" resultType="ApiChangeHistory">
+        SELECT
+            id,
+            api_id AS apiId,
+            user_id AS userId,
+            name,
+            method,
+            url,
+            headers,
+            query_parameters AS queryParameters,
+            form_parameters AS formParameters,
+            file,
+            selected_body_type AS selectedBodyType,
+            saved_at AS savedAt
+        FROM api_change_history WHERE api_id = #{apiId} AND user_id = #{userId} ORDER BY saved_at DESC
+        LIMIT #{recentCount}
+    </select>
+
+    <select id="getUserList">
+        SELECT DISTINCT
+            user_id AS userId
+        FROM api_change_history
+    </select>
+
+    <!--  30일 이전 이력 삭제  -->
+    <delete id="deleteOldHistory">
+        DELETE FROM api_change_history WHERE saved_at &lt; NOW() - INTERVAL 30 DAY
+    </delete>
+
+</mapper>

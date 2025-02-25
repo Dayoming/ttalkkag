@@ -318,9 +318,13 @@ export default {
 
         // 프로필 이미지 경로 설정
         if (socialProvider === "kakao" || socialProvider === "google") {
-          this.profileImageUrl = response.data.user.profileImage
-            ? response.data.user.profileImage
-            : `${process.env.VUE_APP_SERVER_IP}/uploads/profiles/profile-default-icon.png`;
+          if (response.data.user.profileImage.startsWith("/uploads/")) {
+            this.profileImageUrl = `${process.env.VUE_APP_SERVER_IP}${response.data.user.profileImage}`;
+          } else {
+            this.profileImageUrl = response.data.user.profileImage
+              ? response.data.user.profileImage
+              : `${process.env.VUE_APP_SERVER_IP}/uploads/profiles/profile-default-icon.png`;
+          }
         } else {
           this.profileImageUrl = response.data.user.profileImage
             ? `${process.env.VUE_APP_SERVER_IP}${response.data.user.profileImage}`

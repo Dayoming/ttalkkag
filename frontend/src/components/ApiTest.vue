@@ -31,6 +31,18 @@
             >
               저장
             </button>
+            <button
+              type="button"
+              class="btn btn-dark me-2 position-relative"
+              @click.prevent="openHistoryManageModal"
+            >
+              이력 관리
+              <span
+                class="position-absolute top-0 start-100 translate-middle p-2 bg-dark border border-light rounded-circle"
+              >
+                <span class="visually-hidden">New History</span>
+              </span>
+            </button>
             <a href="#" class="request-add" @click="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
             </a>
@@ -419,6 +431,15 @@
     @load-api="handleLoadApi"
     @update-items="this.$emit('update-items')"
   />
+  <HistoryManageModal
+    v-if="showHistoryManageModal"
+    :apiData="apiData"
+    @close="closeHistoryManageModal"
+    @project-saved="updateSavedProject"
+    @save-api="saveApiToProject"
+    @load-api="handleLoadApi"
+    @update-items="this.$emit('update-items')"
+  />
   <DatasetModal
     v-if="showDatasetModal"
     :current-tab="currentTab"
@@ -441,10 +462,16 @@ import "highlight.js/styles/default.css";
 import SaveModal from "./SaveModal.vue";
 import DatasetModal from "./DatasetModal.vue";
 import SiteEnvironmentModal from "./SiteEnvironmentModal.vue";
+import HistoryManageModal from "./HistoryManageModal.vue";
 
 export default {
   name: "ApiTest",
-  components: { SaveModal, DatasetModal, SiteEnvironmentModal },
+  components: {
+    SaveModal,
+    HistoryManageModal,
+    DatasetModal,
+    SiteEnvironmentModal,
+  },
   props: {
     projectAuth: String,
     selectedProject: Object,
@@ -477,6 +504,7 @@ export default {
       showDatasetModal: false,
       showSettingsModal: false,
       showSiteEnvironmentModal: false,
+      showHistoryManageModal: false,
       showResponse: false, // 결과 코드만 볼지, 결과를 모두 볼지 여부
       projects: [],
       selectedFolder: null,
@@ -557,6 +585,9 @@ export default {
       this.isLoad = false;
       this.showSaveModal = true;
     },
+    openHistoryManageModal() {
+      this.showHistoryManageModal = true;
+    },
     openLoadModal() {
       this.isLoad = true;
       this.showSaveModal = true;
@@ -573,6 +604,9 @@ export default {
     closeSaveModal() {
       this.showSaveModal = false;
       this.isLoad = false;
+    },
+    closeHistoryManageModal() {
+      this.showHistoryManageModal = false;
     },
     addFormParameter() {
       this.formParameters.push({ key: "", type: "text", value: "" });
@@ -1003,6 +1037,7 @@ export default {
           this.$emit("input-modified", this.hasChanges);
           console.log("자동 저장 완료");
         }
+
         this.isSave = true;
       } catch (error) {
         console.log("Failed save projectItem: " + error);

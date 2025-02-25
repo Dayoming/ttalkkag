@@ -1,0 +1,27 @@
+server:
+  port: 8083
+
+spring:
+  datasource:
+    url: jdbc:mariadb://192.168.50.130:3308/history?allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: 1234
+    driver-class-name: org.mariadb.jdbc.Driver
+  mvc:
+    cors:
+      allowed-origins: "http://192.168.50.130:8081"
+      allowed-methods: "GET, POST, PUT, DELETE"
+      allowed-headers: "*"
+      allow-credentials: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.apitester.history.dto
+
+history:
+  user-recent-count: 5
+
+jwt:
+  secret: LdqLV8d0ebKHnGek2HIOvmVtCaQHt914k7mTEZQYo33m2SUzvSVgWrBwzN2gnQ1rR0Joq90Lp9D7mFx0FLMQ1mwuV32ufB
+  expiration: 7200000 # 7200000 2 hour
+  refresh-expiration: 1209600033 # 1209600033 2 week

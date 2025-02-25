@@ -102,3 +102,6 @@ logging:
     com:
       zaxxer:
         hikari: DEBUG
+
+external:
+  api-base-url: http://192.168.50.130:8083/api/history

@@ -90,6 +90,7 @@ public class LoggingFilter implements Filter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
+            MDC.put("JWT_TOKEN", token);
             if (jwtTokenUtil.validateToken(token)) {
                 userEmail = jwtTokenUtil.getEmailFromToken(token);
             }

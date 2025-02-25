@@ -25,9 +25,13 @@ pipeline {
                 script {
                     sh 'chmod +x gradlew'
                     sh 'cd /var/jenkins_home/workspace/ttalkkag && ./gradlew build -x test'  // 백엔드 빌드 (테스트 제외)
+                    sh 'cd /var/jenkins_home/workspace/history && ./gradlew build -x test' // history 빌드
                     sh 'ls -l /var/jenkins_home/workspace/ttalkkag/build/libs' // JAR 파일 확인
+                    sh 'ls -l /var/jenkins_home/workspace/history/build/libs'
                     sh 'mkdir -p backend_build' // JAR 저장 폴더 생성
+                    sh 'mkdir -p history_build'
                     sh 'cp /var/jenkins_home/workspace/ttalkkag/build/libs/*.jar /var/jenkins_home/workspace/ttalkkag/backend_build/' // 빌드된 JAR 파일 복사
+                    sh 'cp /var/jenkins_home/workspace/history/build/libs/*.jar /var/jenkins_home/workspace/history/history_build/'
                 }
             }
         }
@@ -46,6 +50,7 @@ pipeline {
             steps {
                 script {
                     sh 'docker-compose restart backend'  // 백엔드 컨테이너만 재시작
+                    sh 'docker-compose restart history' // history 컨테이너만 재시작
                     sh 'docker-compose restart nginx'    // 프론트엔드 컨테이너만 재시작
                 }
             }

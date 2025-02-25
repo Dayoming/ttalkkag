@@ -1,5 +1,6 @@
 package com.apitester.ttalkkag.controller;
 
+import com.apitester.ttalkkag.dto.ApiChangeHistory;
 import com.apitester.ttalkkag.dto.ApiUsage;
 import com.apitester.ttalkkag.dto.Apis;
 import com.apitester.ttalkkag.service.ApiService;
@@ -11,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -40,6 +42,19 @@ public class ApiController {
         } catch (Exception e) {
             e.printStackTrace();
             response.put("errorMessage", "해당 API 파일을 불러오지 못했습니다.");
+        }
+        return response;
+    }
+
+    @GetMapping("/change-history/{apiId}")
+    public Map<String, Object> getChangeHistory(@PathVariable Long apiId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            List<ApiChangeHistory> apiChangeHistoryList = apiService.getChangeHistory(apiId);
+            response.put("apiChangeHistoryList", apiChangeHistoryList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("errorMessage", "해당 API 파일의 변경 이력을 불러오지 못했습니다.");
         }
         return response;
     }

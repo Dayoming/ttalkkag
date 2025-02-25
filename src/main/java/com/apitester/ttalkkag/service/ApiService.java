@@ -33,6 +33,7 @@ public class ApiService {
     private final UserMapper userMapper;
     private final NotificationService notificationService;
     private final ProjectService projectService;
+    private final ExternalApiHistoryService externalApiHistoryService;
     private final RedisTemplate<String, Object> redisTemplate;
     private HashOperations<String, Long, ApiUsage> hashOperations;
 
@@ -83,6 +84,24 @@ public class ApiService {
 
         LoggingUtil.logTransactionStep(logKey, userEmail, "5. 같은 API를 사용 중인 사용자에게 알림 전송 완료");
 
+        Long userId = userMapper.findByEmail(userEmail).getId();
+
+        ApiChangeHistory apiChangeHistory = new ApiChangeHistory();
+        apiChangeHistory.setApiId(savedApi.getId());
+        apiChangeHistory.setUserId(userId);
+        apiChangeHistory.setName(savedApi.getName());
+        apiChangeHistory.setMethod(savedApi.getMethod());
+        apiChangeHistory.setUrl(savedApi.getUrl());
+        apiChangeHistory.setHeaders(savedApi.getHeaders());
+        apiChangeHistory.setQueryParameters(savedApi.getQueryParameters());
+        apiChangeHistory.setFormParameters(savedApi.getFormParameters());
+        apiChangeHistory.setFile(savedApi.getFile());
+        apiChangeHistory.setSelectedBodyType(savedApi.getSelectedBodyType());
+
+        String response = externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료: " + response);
+
         return savedApi;
     }
 
@@ -131,6 +150,52 @@ public class ApiService {
         // 같은 API를 사용 중인 사용자에게 알림 전송
         notifyApiUsers(projectId, updatedApi);
         LoggingUtil.logTransactionStep(logKey, userEmail, "5. 같은 API를 사용 중인 사용자에게 알림 전송 완료");
+
+        Long userId = userMapper.findByEmail(userEmail).getId();
+
+        ApiChangeHistory apiChangeHistory = new ApiChangeHistory();
+        apiChangeHistory.setApiId(updatedApi.getId());
+        apiChangeHistory.setUserId(userId);
+        apiChangeHistory.setName(updatedApi.getName());
+        apiChangeHistory.setMethod(updatedApi.getMethod());
+        apiChangeHistory.setUrl(updatedApi.getUrl());
+        apiChangeHistory.setHeaders(updatedApi.getHeaders());
+        apiChangeHistory.setQueryParameters(updatedApi.getQueryParameters());
+        apiChangeHistory.setFormParameters(updatedApi.getFormParameters());
+        apiChangeHistory.setFile(updatedApi.getFile());
+        apiChangeHistory.setSelectedBodyType(updatedApi.getSelectedBodyType());
+
+        String response = externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료: " + response);
+    }
+
+    /**
+     * API 변경 이력 조회
+     * @param apiId 조회할 API ID
+     */
+    @Transactional
+    public List<ApiChangeHistory> getChangeHistory(Long apiId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        List<ApiChangeHistory> response = externalApiHistoryService.getExternalApiHistory(apiId);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. API 변경 이력 전체 조회 완료: " + response);
+
+        // userId로 userEmail과 profileImage 조회
+        for (ApiChangeHistory apiChangeHistory : response) {
+            User apiChangeUser = userMapper.findById(apiChangeHistory.getUserId());
+            String profileImageUrl = apiChangeUser.getProfileImage();
+            String apiChangeUserEmail = apiChangeUser.getEmail();
+
+            apiChangeHistory.setProfileImage(profileImageUrl);
+            apiChangeHistory.setEmail(apiChangeUserEmail);
+            LoggingUtil.logTransactionStep(logKey, userEmail, "2. 변경 userId로 유저 프로필 사진, 이메일 조회 완료. " +
+                    "email: " + apiChangeUserEmail + ", profileImage: " + profileImageUrl);
+        }
+
+
+        return response;
     }
 
     /**
@@ -252,4 +317,5 @@ public class ApiService {
             });
         }
     }
+
 }
