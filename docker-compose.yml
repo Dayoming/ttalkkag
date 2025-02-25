@@ -90,7 +90,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backend_build:/var/jenkins_home/workspace/ttalkkag/backend_build
       - ./frontend_build:/var/jenkins_home/workspace/ttalkkag/frontend_build
-      - ./history_build:/var/jenkins_home/workspace/history/history_build
+      - ./history_build:/var/jenkins_home/workspace/ttalkkag/history_build
     ports:
       - 8085:8080
       - 50000:50000
