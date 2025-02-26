@@ -20,8 +20,4 @@ mybatis:
 
 history:
   user-recent-count: 5
-
-jwt:
-  secret: LdqLV8d0ebKHnGek2HIOvmVtCaQHt914k7mTEZQYo33m2SUzvSVgWrBwzN2gnQ1rR0Joq90Lp9D7mFx0FLMQ1mwuV32ufB
-  expiration: 7200000 # 7200000 2 hour
-  refresh-expiration: 1209600033 # 1209600033 2 week
+  auth-url: http://localhost:8081/api/auth/validate

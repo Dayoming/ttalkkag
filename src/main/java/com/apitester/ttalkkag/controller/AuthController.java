@@ -1,9 +1,13 @@
 package com.apitester.ttalkkag.controller;
 
+import com.apitester.ttalkkag.config.JwtTokenUtil;
 import com.apitester.ttalkkag.service.UserService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -14,6 +18,7 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final JwtTokenUtil jwtTokenUtil;
 
     /* 회원가입 이메일 확인 코드 전송 */
     @PostMapping("/send-code")
@@ -51,6 +56,16 @@ public class AuthController {
     @PostMapping("/refresh-token")
     public Map<String, Object> refreshAccessToken(@RequestBody Map<String, String> request) {
         return userService.refreshAccessToken(request);
+    }
+
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String token) {
+        try {
+            boolean response = jwtTokenUtil.validateToken(token.replace("Bearer ", ""));
+            return ResponseEntity.ok(Map.of("valid", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("valid", false, "error", "Invalid Token"));
+        }
     }
 }
 

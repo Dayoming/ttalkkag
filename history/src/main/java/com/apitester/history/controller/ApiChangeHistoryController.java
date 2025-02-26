@@ -2,7 +2,11 @@ package com.apitester.history.controller;
 
 import com.apitester.history.dto.ApiChangeHistory;
 import com.apitester.history.service.ApiChangeHistoryService;
+import com.apitester.history.service.JwtValidationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -10,9 +14,11 @@ import java.util.List;
 @RequestMapping("/api-history")
 public class ApiChangeHistoryController {
     private final ApiChangeHistoryService historyService;
+    private final JwtValidationService jwtValidationService;
 
-    public ApiChangeHistoryController(ApiChangeHistoryService historyService) {
+    public ApiChangeHistoryController(ApiChangeHistoryService historyService, JwtValidationService jwtValidationService) {
         this.historyService = historyService;
+        this.jwtValidationService = jwtValidationService;
     }
 
     // 모든 이력 조회
@@ -23,20 +29,32 @@ public class ApiChangeHistoryController {
 
     // 특정 API의 변경 이력 조회
     @GetMapping("/api/{apiId}")
-    public List<ApiChangeHistory> getApiChangeHistoryByApiId(@PathVariable Long apiId) {
-        return historyService.getApiChangeHistoryByApiId(apiId);
+    public ResponseEntity<?> getApiChangeHistoryByApiId(@RequestHeader("Authorization") String token,
+                                                             @PathVariable Long apiId) {
+        if (!jwtValidationService.validateJwtToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT Token");
+        }
+        return ResponseEntity.ok(historyService.getApiChangeHistoryByApiId(apiId));
     }
 
     // 특정 사용자의 변경 이력 조회
     @GetMapping("/user/{apiId}/{userId}")
-    public List<ApiChangeHistory> getApiChangeHistoryByUserId(@PathVariable Long apiId, @PathVariable Long userId) {
-        return historyService.getApiChangeHistoryByUserId(apiId, userId);
+    public ResponseEntity<?> getApiChangeHistoryByUserId(@RequestHeader("Authorization") String token,
+                                                              @PathVariable Long apiId, @PathVariable Long userId) {
+        if (!jwtValidationService.validateJwtToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT Token");
+        }
+        return ResponseEntity.ok(historyService.getApiChangeHistoryByUserId(apiId, userId));
     }
 
     // 변경 이력 저장
     @PostMapping
-    public String saveApiChangeHistory(@RequestBody ApiChangeHistory history) {
+    public ResponseEntity<?> saveApiChangeHistory(@RequestHeader("Authorization") String token,
+                                                       @RequestBody ApiChangeHistory history) {
+        if (!jwtValidationService.validateJwtToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT Token");
+        }
         historyService.saveApiChangeHistory(history);
-        return "History saved!";
+        return ResponseEntity.ok("History saved!");
     }
 }
