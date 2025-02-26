@@ -40,7 +40,7 @@ services:
 
   history:
     image: openjdk:21-jdk
-    container_name: history_container
+    container_name: history
     restart: always
     depends_on:
       - db
