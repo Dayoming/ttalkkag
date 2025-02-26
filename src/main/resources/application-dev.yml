@@ -102,4 +102,4 @@ logging:
         hikari: DEBUG
 
 external:
-  api-base-url: http://localhost:8083/api/history
+  api-base-url: http://localhost:8083/api-history
