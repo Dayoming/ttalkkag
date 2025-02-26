@@ -31,18 +31,13 @@
             >
               저장
             </button>
-            <button
-              type="button"
-              class="btn btn-dark me-2 position-relative"
+            <a
+              href="#"
+              class="me-2 position-relative request-add"
               @click.prevent="openHistoryManageModal"
             >
-              이력 관리
-              <span
-                class="position-absolute top-0 start-100 translate-middle p-2 bg-dark border border-light rounded-circle"
-              >
-                <span class="visually-hidden">New History</span>
-              </span>
-            </button>
+            <i class="bi bi-file-text"></i>
+            </a>
             <a href="#" class="request-add" @click="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
             </a>

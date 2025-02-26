@@ -1,8 +1,12 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.ProxyRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,7 +35,30 @@ public class ProxyController {
                 request.getHeaders().forEach(headers::set);
             }
 
-            HttpEntity<?> entity = new HttpEntity<>(request.getBody(), headers);
+            HttpEntity<?> entity;
+
+            // 파일이 존재하는 경우 Multipart 요청 구성
+            if (file != null) {
+                headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+                MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+                body.add("file", new ByteArrayResource(file.getBytes()) {
+                    @Override
+                    public String getFilename() {
+                        return file.getOriginalFilename(); // 원본 파일명 유지
+                    }
+                });
+
+                // JSON 데이터도 함께 전송
+                ObjectMapper objectMapper = new ObjectMapper();
+                String jsonRequest = objectMapper.writeValueAsString(request);
+                body.add("request", new HttpEntity<>(jsonRequest, headers));
+
+                entity = new HttpEntity<>(body, headers);
+            } else {
+                // 파일이 없으면 기존 방식 유지
+                entity = new HttpEntity<>(request.getBody(), headers);
+            }
+
             ResponseEntity<String> response = restTemplate.exchange(
                     request.getUrl(),
                     HttpMethod.valueOf(request.getMethod()),
