@@ -97,6 +97,7 @@ export default {
         }
         this.$router.push("/test-api");
       } catch (error) {
+        console.log(error);
         this.errorMessage = "서버에 문제가 발생했습니다. 다시 시도해 주세요.";
       }
     },

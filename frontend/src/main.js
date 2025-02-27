@@ -34,7 +34,8 @@ axios.interceptors.response.use(
       if (spinner) spinner.style.display = 'none';
     }
 
-    return response;
+    return response.data;
+
   },
   async (error) => {
     const originalRequest = error.config;

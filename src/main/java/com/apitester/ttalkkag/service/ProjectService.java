@@ -299,6 +299,10 @@ public class ProjectService {
      * @return 조회된 프로젝트 객체
      */
     public Project getProjectByProjectId(Long projectId) {
+        String logKey = MDC.get("LOG_KEY");
+        String userEmail = MDC.get("USER_EMAIL");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 프로젝트 조회 완료, projectId: " + projectId);
         return projectMapper.getProjectByProjectId(projectId);
     }
 

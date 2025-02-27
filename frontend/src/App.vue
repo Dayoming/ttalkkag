@@ -475,9 +475,8 @@ export default {
     async fetchProjects(selectedProjectId = null) {
       try {
         const response = await this.$axios.get("/api/projects");
+        console.log(response);
         this.projects = response.data;
-
-        console.log(response.data);
 
         // 특정 프로젝트를 선택하거나 기본적으로 첫 번째 프로젝트를 선택
         if (this.projects.length > 0) {

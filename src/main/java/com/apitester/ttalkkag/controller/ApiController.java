@@ -4,6 +4,7 @@ import com.apitester.ttalkkag.dto.ApiChangeHistory;
 import com.apitester.ttalkkag.dto.ApiUsage;
 import com.apitester.ttalkkag.dto.Apis;
 import com.apitester.ttalkkag.service.ApiService;
+import com.apitester.ttalkkag.service.ResponseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class ApiController {
 
     private final ApiService apiService;
+    private final ResponseService responseService;
 
     @PostMapping
     public Apis saveApi(@Valid @RequestBody Apis apis) {

@@ -1,13 +1,17 @@
 package com.apitester.ttalkkag.controller;
 
 import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.layout.Message;
+import com.apitester.ttalkkag.layout.StatusEnum;
 import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.service.EmailService;
 import com.apitester.ttalkkag.service.ProjectService;
+import com.apitester.ttalkkag.service.ResponseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +28,12 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final EmailService emailService;
+    private final ResponseService responseService;
 
     // 사용자별 프로젝트 조회
     @GetMapping
     public List<Project> getUserProjects(@AuthenticationPrincipal @NotBlank String userEmail,
-                                         @RequestParam(value = "includeInfo", required = false, defaultValue = "false") boolean includeInfo) {
+                                                   @RequestParam(value = "includeInfo", required = false, defaultValue = "false") boolean includeInfo) {
         return projectService.getProjectsByUserId(userEmail, includeInfo);
     }
 
@@ -41,11 +46,6 @@ public class ProjectController {
 
     @GetMapping("/find/{projectId}")
     public Project getProjectByProjectId(@PathVariable Long projectId) {
-        String logKey = MDC.get("LOG_KEY");
-        String userEmail = MDC.get("USER_EMAIL");
-
-        LoggingUtil.logTransactionStep(logKey, userEmail, "1. 프로젝트 ID로 프로젝트 조회");
-
         return projectService.getProjectByProjectId(projectId);
     }
 
@@ -62,7 +62,7 @@ public class ProjectController {
     // 프로젝트 생성
     @PostMapping
     public Project createProject(@RequestBody Project project,
-                                 @AuthenticationPrincipal @NotBlank String userEmail) {
+                                                 @AuthenticationPrincipal @NotBlank String userEmail) {
         return projectService.createProject(project.getName(), userEmail);
     }
 
