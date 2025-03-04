@@ -23,7 +23,6 @@ import java.util.Map;
 public class ApiController {
 
     private final ApiService apiService;
-    private final ResponseService responseService;
 
     @PostMapping
     public Apis saveApi(@Valid @RequestBody Apis apis) {

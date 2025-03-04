@@ -5,6 +5,9 @@ spring:
     web-application-type: servlet
   application:
     name: ttalkkag
+  messages:
+    basename: messages
+    file-extension: yml
   datasource:
     url: jdbc:mariadb://192.168.50.130:3308/ttalkkag
     driver-class-name: org.mariadb.jdbc.Driver

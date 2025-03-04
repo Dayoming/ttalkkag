@@ -28,7 +28,6 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final EmailService emailService;
-    private final ResponseService responseService;
 
     // 사용자별 프로젝트 조회
     @GetMapping
@@ -61,7 +60,7 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping
-    public Project createProject(@RequestBody Project project,
+    public Project createProject(@RequestBody @Valid Project project,
                                                  @AuthenticationPrincipal @NotBlank String userEmail) {
         return projectService.createProject(project.getName(), userEmail);
     }

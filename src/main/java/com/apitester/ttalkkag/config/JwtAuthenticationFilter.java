@@ -1,11 +1,13 @@
 package com.apitester.ttalkkag.config;
 
+import com.apitester.ttalkkag.exception.JwtAuthenticationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -71,18 +73,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
                     log.warn("유효하지 않은 JWT 토큰");
-                    throw new RuntimeException("Invalid JWT token");
+                    throw new JwtAuthenticationException("Invalid JWT token");
                 }
             } catch (ExpiredJwtException e) { // JWT 토큰 만료 시 401 Unauthorized 반환
                 log.error("JWT 토큰 만료: {}", e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("JWT token has expired");
-                return;
-            } catch (Exception e) {
+                throw new JwtAuthenticationException("JWT token has expired");
+            } catch (JwtException e) {
                 log.error("JWT 인증 실패: {}", e.getMessage());
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid JWT token");
-                return;
+                throw new JwtAuthenticationException("Invalid JWT token");
             }
         }
         filterChain.doFilter(request, response);

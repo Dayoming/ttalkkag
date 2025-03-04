@@ -3,22 +3,16 @@
 
 ## About The Project
 
-### Built With
-
-<div align="left">
-    <ul>
-        <li><img alt="spring" src="https://img.shields.io/badge/Spring-6DB33F?style=for-the-badge&logo=Spring&logoColor=green"></li>    
-        <li><img alt="spring-boot" src="https://img.shields.io/badge/Spring Boot-6DB33F?style=for-the-badge&logo=Spring Boot&logoColor=yellow"></li>    
-        <li><img alt="java" src="https://img.shields.io/badge/java-%23ED8B00?style=for-the-badge&logo=openjdk&logoColor=yellow"></li>    
-        <li><img alt="vue" src="https://img.shields.io/badge/Vue.js-4FC08D?style=for-the-badge&logo=Vue.js&logoColor=white"></li>
-        <li><img alt="bootstrap" src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=Bootstrap&logoColor=white"></li>
-        <li><img alt="nginx" src="https://img.shields.io/badge/nginx-%23009639?style=for-the-badge&logo=nginx&logoColor=white"></li>
-        <li><img alt="mariadb" src="https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariaDB&logoColor=white"></li>
-        <li><img alt="redis" src="https://img.shields.io/badge/redis-%23DD0031?style=for-the-badge&logo=redis&logoColor=white"></li>
-        <li><img alt="gradle" src="https://img.shields.io/badge/gradle-%02303A?style=for-the-badge&logo=gradle&logoColor=white"></li>
-        <li><img alt="docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=Docker&logoColor=white"></li>
-    </ul>
-</div>
+### Version
+- **Spring Boot**: 3.4.0
+- **Java**: 21 (Amazon Corretto 21.0.5)
+- **Vue-cli**: @vue/cli 5.0.8
+- **Vue**: 3.2.13
+- **Nginx**: 1.27.4
+- **Docker**: 27.5.1
+- **MariaDB**: 11.5.2
+- **Redis**: 3.0.504
+- **Gradle**: 8.11.1
 
 ### Project Architect
 

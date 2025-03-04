@@ -1,5 +1,6 @@
 package com.apitester.ttalkkag.config;
 
+import com.apitester.ttalkkag.exception.JwtExceptionFilter;
 import com.apitester.ttalkkag.service.CustomOAuth2UserService;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,12 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String secretKey;
 
+    private final JwtExceptionFilter jwtExceptionFilter;
+
+    public SecurityConfig(JwtExceptionFilter jwtExceptionFilter) {
+        this.jwtExceptionFilter = jwtExceptionFilter;
+    }
+
     /**
      * JWT 인증 필터 Bean 등록
      *
@@ -78,6 +85,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login")
                         .invalidateHttpSession(true))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // 필터 추가
+                .addFilterBefore(jwtExceptionFilter, JwtAuthenticationFilter.class)
                 .oauth2Login(oauth -> oauth.loginPage("/login")
                         .defaultSuccessUrl("/test-api")
                         .failureUrl("/login")
