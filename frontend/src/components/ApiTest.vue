@@ -1389,11 +1389,13 @@ export default {
           validateStatus: (status) => status >= 100 && status < 600, // 모든 상태 코드 허용
         });
 
+        console.log(response);
+
         // 응답 데이터 설정
         this.response = {
           statusCode: response.status,
           statusMessage: response.statusText,
-          body: response.data,
+          body: response,
           headers: response.headers,
         };
 

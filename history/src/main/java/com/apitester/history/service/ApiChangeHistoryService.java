@@ -35,6 +35,7 @@ public class ApiChangeHistoryService {
      * @param history API 변경 이력
      */
     public void saveApiChangeHistory(ApiChangeHistory history) {
+        System.out.println(history);
         historyMapper.insertApiChangeHistory(history);
     }
 
