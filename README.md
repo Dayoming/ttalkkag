@@ -1,8 +1,6 @@
 # API Tester - ttalkkag
 > API Test를 편리하게 수행하고 결과를 한눈에 확인할 수 있도록 하는 프로젝트, 딸깍🖱️
 
-
-
 * * *
 
 ## Table of Contents
@@ -13,6 +11,7 @@
     - [Frontend](####Frontend)
     - [Backend](####Backend)
     - [History Module](####History Module)
+- [Debugging & Logging](##Debugging)
 
 * * *
 
@@ -37,7 +36,34 @@
 
 ### 구동 방법
 
+서버 실행 시 
+```shell
+# local
+$ java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=dev
+$ java -jar history-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=dev
 
+# development
+$ java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=prod
+$ java -jar history-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=prod
+```
+
+프론트엔드 실행 시
+```shell
+# local
+$ npm run dev
+
+# development
+$ npm run serve
+```
+
+### 배포 방법
+
+Docker 배포
+```shell
+$ docker compose up -d
+```
+- `docker-compose.yml` 파일을 수정하여 Nginx, Spring Boot, MariaDB, Redis 컨테이너를 관리
+- `Jenkinsfile`을 사용해 자동 배포 구성
 
 ### 파일 구조
 
@@ -88,148 +114,129 @@
 #### Backend
 
 ```
-📦main
-┣ 📂java
-┃ ┗ 📂com
-┃ ┃ ┗ 📂apitester
-┃ ┃ ┃ ┗ 📂ttalkkag
-┃ ┃ ┃ ┃ ┣ 📂config
-┃ ┃ ┃ ┃ ┃ ┣ 📜JwtAuthenticationFilter.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜JwtTokenUtil.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜MessageSourceConfig.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜MessageUtil.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜OAuth2UserServiceConfig.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜RedisConfig.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜RestTemplateConfig.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜SecurityConfig.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜WebConfig.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜WebSocketConfig.java
-┃ ┃ ┃ ┃ ┣ 📂controller
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜AuthController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatasetController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EnvironmentController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜HistoryController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProjectController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProxyController.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜TestController.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜UserController.java
-┃ ┃ ┃ ┃ ┣ 📂dto
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiChangeHistory.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiHistory.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiHistoryResponse.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Apis.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiUsage.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Dataset.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatasetVariable.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Environment.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EnvironmentVariable.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜InviteCode.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ItemOrderUpdateRequest.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜NotificationMessage.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Project.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProjectItems.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProjectParticipants.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProxyRequest.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Site.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜User.java
-┃ ┃ ┃ ┃ ┣ 📂exception
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatabaseExceptionHandler.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜GlobalResponseHandler.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜JwtAuthenticationException.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜JwtExceptionFilter.java
-┃ ┃ ┃ ┃ ┣ 📂layout
-┃ ┃ ┃ ┃ ┃ ┣ 📜Message.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜StatusEnum.java
-┃ ┃ ┃ ┃ ┣ 📂log
-┃ ┃ ┃ ┃ ┃ ┣ 📜DiskSpaceMonitor.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜HangLogScheduler.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜LoggingFilter.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜LoggingUtil.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ResultCode.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜Tlo.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜UrlMapping.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜UrlMappingLoader.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜UrlMappingResolver.java
-┃ ┃ ┃ ┃ ┣ 📂mapper
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatasetMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatasetVariableMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EnvironmentMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EnvironmentVariableMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜HistoryMapper.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProjectMapper.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜UserMapper.java
-┃ ┃ ┃ ┃ ┣ 📂service
-┃ ┃ ┃ ┃ ┃ ┣ 📜ApiService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜CustomOAuth2UserService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜DatasetService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EmailService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜EnvironmentService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ExternalApiHistoryService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜FileService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜GoogleOAuthService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜HistoryService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜KakaoOAuthService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜NotificationService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ProjectService.java
-┃ ┃ ┃ ┃ ┃ ┣ 📜ResponseService.java
-┃ ┃ ┃ ┃ ┃ ┗ 📜UserService.java
-┃ ┃ ┃ ┃ ┗ 📜TtalkkagApplication.java
-┗ 📂resources
-┃ ┣ 📂mapper
-┃ ┃ ┣ 📜ApiMapper.xml
-┃ ┃ ┣ 📜DatasetMapper.xml
-┃ ┃ ┣ 📜DatasetVariableMapper.xml
-┃ ┃ ┣ 📜EnvironmentMapper.xml
-┃ ┃ ┣ 📜EnvironmentVariableMapper.xml
-┃ ┃ ┣ 📜HistoryMapper.xml
-┃ ┃ ┣ 📜ProjectMapper.xml
-┃ ┃ ┗ 📜UserMapper.xml
-┃ ┣ 📜application-dev.yml
-┃ ┣ 📜application-prod.yml
-┃ ┣ 📜logback-spring.xml
-┃ ┗ 📜messages.yml
+📦ttalkkag
+ ┣ 📂config
+ ┃ ┣ 📜JwtAuthenticationFilter.java
+ ┃ ┣ 📜JwtTokenUtil.java
+ ┃ ┣ 📜MessageSourceConfig.java
+ ┃ ┣ 📜MessageUtil.java
+ ┃ ┣ 📜OAuth2UserServiceConfig.java
+ ┃ ┣ 📜RedisConfig.java
+ ┃ ┣ 📜RestTemplateConfig.java
+ ┃ ┣ 📜SecurityConfig.java
+ ┃ ┣ 📜WebConfig.java
+ ┃ ┗ 📜WebSocketConfig.java
+ ┣ 📂controller
+ ┃ ┣ 📜ApiController.java
+ ┃ ┣ 📜AuthController.java
+ ┃ ┣ 📜DatasetController.java
+ ┃ ┣ 📜EnvironmentController.java
+ ┃ ┣ 📜HistoryController.java
+ ┃ ┣ 📜ProjectController.java
+ ┃ ┣ 📜ProxyController.java
+ ┃ ┣ 📜TestController.java
+ ┃ ┗ 📜UserController.java
+ ┣ 📂dto
+ ┃ ┣ 📜ApiChangeHistory.java
+ ┃ ┣ 📜ApiHistory.java
+ ┃ ┣ 📜ApiHistoryResponse.java
+ ┃ ┣ 📜Apis.java
+ ┃ ┣ 📜ApiUsage.java
+ ┃ ┣ 📜Dataset.java
+ ┃ ┣ 📜DatasetVariable.java
+ ┃ ┣ 📜Environment.java
+ ┃ ┣ 📜EnvironmentVariable.java
+ ┃ ┣ 📜InviteCode.java
+ ┃ ┣ 📜ItemOrderUpdateRequest.java
+ ┃ ┣ 📜NotificationMessage.java
+ ┃ ┣ 📜Project.java
+ ┃ ┣ 📜ProjectItems.java
+ ┃ ┣ 📜ProjectParticipants.java
+ ┃ ┣ 📜ProxyRequest.java
+ ┃ ┣ 📜Site.java
+ ┃ ┗ 📜User.java
+ ┣ 📂exception
+ ┃ ┣ 📜DatabaseExceptionHandler.java
+ ┃ ┣ 📜GlobalResponseHandler.java
+ ┃ ┣ 📜JwtAuthenticationException.java
+ ┃ ┗ 📜JwtExceptionFilter.java
+ ┣ 📂layout
+ ┃ ┣ 📜Message.java
+ ┃ ┗ 📜StatusEnum.java
+ ┣ 📂log
+ ┃ ┣ 📜DiskSpaceMonitor.java
+ ┃ ┣ 📜HangLogScheduler.java
+ ┃ ┣ 📜LoggingFilter.java
+ ┃ ┣ 📜LoggingUtil.java
+ ┃ ┣ 📜ResultCode.java
+ ┃ ┣ 📜Tlo.java
+ ┃ ┣ 📜UrlMapping.java
+ ┃ ┣ 📜UrlMappingLoader.java
+ ┃ ┗ 📜UrlMappingResolver.java
+ ┣ 📂mapper
+ ┃ ┣ 📜ApiMapper.java
+ ┃ ┣ 📜DatasetMapper.java
+ ┃ ┣ 📜DatasetVariableMapper.java
+ ┃ ┣ 📜EnvironmentMapper.java
+ ┃ ┣ 📜EnvironmentVariableMapper.java
+ ┃ ┣ 📜HistoryMapper.java
+ ┃ ┣ 📜ProjectMapper.java
+ ┃ ┗ 📜UserMapper.java
+ ┣ 📂service
+ ┃ ┣ 📜ApiService.java
+ ┃ ┣ 📜CustomOAuth2UserService.java
+ ┃ ┣ 📜DatasetService.java
+ ┃ ┣ 📜EmailService.java
+ ┃ ┣ 📜EnvironmentService.java
+ ┃ ┣ 📜ExternalApiHistoryService.java
+ ┃ ┣ 📜FileService.java
+ ┃ ┣ 📜GoogleOAuthService.java
+ ┃ ┣ 📜HistoryService.java
+ ┃ ┣ 📜KakaoOAuthService.java
+ ┃ ┣ 📜NotificationService.java
+ ┃ ┣ 📜ProjectService.java
+ ┃ ┣ 📜ResponseService.java
+ ┃ ┗ 📜UserService.java
+ ┗ 📜TtalkkagApplication.java
 ```
 
 #### History Module
 
 ```
-📦src
- ┣ 📂main
- ┃ ┣ 📂java
- ┃ ┃ ┗ 📂com
- ┃ ┃ ┃ ┗ 📂apitester
- ┃ ┃ ┃ ┃ ┗ 📂history
- ┃ ┃ ┃ ┃ ┃ ┣ 📂config
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📜RestTemplateConfig.java
- ┃ ┃ ┃ ┃ ┃ ┣ 📂controller
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📜ApiChangeHistoryController.java
- ┃ ┃ ┃ ┃ ┃ ┣ 📂dto
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📜ApiChangeHistory.java
- ┃ ┃ ┃ ┃ ┃ ┣ 📂mapper
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📜ApiChangeHistoryMapper.java
- ┃ ┃ ┃ ┃ ┃ ┣ 📂service
- ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📜ApiChangeHistoryService.java
- ┃ ┃ ┃ ┃ ┃ ┃ ┣ 📜HistoryCleanUpService.java
- ┃ ┃ ┃ ┃ ┃ ┃ ┗ 📜JwtValidationService.java
- ┃ ┃ ┃ ┃ ┃ ┗ 📜HistoryApplication.java
- ┃ ┗ 📂resources
- ┃ ┃ ┣ 📂mapper
- ┃ ┃ ┃ ┗ 📜HistoryMapper.xml
- ┃ ┃ ┣ 📂static
- ┃ ┃ ┣ 📂templates
- ┃ ┃ ┣ 📜application-dev.yml
- ┃ ┃ ┗ 📜application-prod.yml
- ┗ 📂test
- ┃ ┗ 📂java
- ┃ ┃ ┗ 📂com
- ┃ ┃ ┃ ┗ 📂apitester
- ┃ ┃ ┃ ┃ ┗ 📂history
- ┃ ┃ ┃ ┃ ┃ ┗ 📜HistoryApplicationTests.java
+📦history
+ ┣ 📂config
+ ┃ ┗ 📜RestTemplateConfig.java
+ ┣ 📂controller
+ ┃ ┗ 📜ApiChangeHistoryController.java
+ ┣ 📂dto
+ ┃ ┗ 📜ApiChangeHistory.java
+ ┣ 📂mapper
+ ┃ ┗ 📜ApiChangeHistoryMapper.java
+ ┣ 📂service
+ ┃ ┣ 📜ApiChangeHistoryService.java
+ ┃ ┣ 📜HistoryCleanUpService.java
+ ┃ ┗ 📜JwtValidationService.java
+ ┗ 📜HistoryApplication.java
 ```
 
+## Debugging
 
-## Usage
+### Backend Debugging
 
-## 
+- 로컬 개발 환경에서 디버깅
+
+```shell
+$ ./gradlew bootRun --args='--spring.profiles.active=dev'
+```
+
+- 로그 확인
+  - 기본적으로 `logs/` 디렉토리에 로그 파일 저장
+  - 실시간 로그 확인:
+    ```shell
+    $ tail -f logs/transaction.log
+    ```
+
+### Frontend Debugging
+- 콘솔 로그 확인
+  - 브라우저 개발자 도구 `Console` 탭 확인
+  - API 요청 오류 시 `Network` 탭에서 요청 상태 확인
