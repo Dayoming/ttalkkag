@@ -1395,8 +1395,8 @@ export default {
         this.response = {
           statusCode: response.status,
           statusMessage: response.statusText,
-          body: response,
-          headers: response.headers,
+          body: response.data.body,
+          headers: response.data.headers,
         };
 
         const endTime = performance.now(); // 요청 완료 시간

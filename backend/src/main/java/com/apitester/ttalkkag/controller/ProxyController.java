@@ -1,6 +1,8 @@
 package com.apitester.ttalkkag.controller;
 
+import com.apitester.ttalkkag.config.MessageUtil;
 import com.apitester.ttalkkag.dto.ProxyRequest;
+import com.apitester.ttalkkag.layout.Message;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.core.io.ByteArrayResource;
@@ -24,9 +26,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProxyController {
 
     private final RestTemplate restTemplate;
+    private final MessageUtil messageUtil;
 
-    public ProxyController(RestTemplate restTemplate) {
+    public ProxyController(RestTemplate restTemplate, MessageUtil messageUtil) {
         this.restTemplate = restTemplate;
+        this.messageUtil = messageUtil;
     }
 
     @PostMapping
@@ -69,7 +73,11 @@ public class ProxyController {
                     String.class
             );
 
-            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+
+            Message message = new Message(Integer.toString(response.getStatusCodeValue()),
+                    messageUtil.getMessage("response.ok"), response);
+
+            return ResponseEntity.ok(message);
         } catch (HttpClientErrorException e) {
             return ResponseEntity.status(e.getStatusCode()).body("Client error: " + e.getMessage());
         } catch (HttpServerErrorException e) {
