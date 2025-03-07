@@ -88,12 +88,12 @@ jwt:
 
 file:
   upload:
-    dir: C:/ttalkkag-dev/uploads/profiles
+    dir: /app/uploads/profiles
 
 url:
   mapping:
     file:
-      path: C:/ttalkkag-dev/logs/url-mapping.json
+      path: /app/logs/url-mapping.json
 
 cors:
   allowed:
