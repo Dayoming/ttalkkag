@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
@@ -28,6 +29,7 @@ import java.util.*;
  * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스.              요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
  */
 @Component
+@Order(Integer.MIN_VALUE) // Spring Security에서 가장 먼저 실행되도록 설정
 public class LoggingFilter implements Filter {
 
     private static final Logger CALL_LOGGER = LoggerFactory.getLogger("com.apitester.ttalkkag.log.CALL");

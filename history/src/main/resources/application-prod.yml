@@ -13,6 +13,29 @@ spring:
       allowed-methods: "GET, POST, PUT, DELETE"
       allowed-headers: "*"
       allow-credentials: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring:
+          json:
+            trusted.packages: "*"
+            type.mapping: "jwtValidationRequest:com.apitester.history.dto.JwtValidationRequest,
+            apiHistoryExternalResponse:com.apitester.history.dto.ApiHistoryExternalResponse"
+    consumer:
+      group-id: history-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            trusted.packages: "*"
+            type.mapping: "apiChangeHistoryMessage:com.apitester.history.dto.ApiChangeHistoryMessage,
+            jwtValidationResponse:com.apitester.history.dto.JwtValidationResponse,
+            apiHistoryExternalRequest:com.apitester.history.dto.ApiHistoryExternalRequest"
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

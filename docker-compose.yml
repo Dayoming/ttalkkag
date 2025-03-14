@@ -36,7 +36,7 @@ services:
       - ./uploads/profiles:/app/uploads/profiles
       - ./logs/url-mapping.json:/app/logs/url-mapping.json
       - ./logs:/app/logs
-    command: ["java", "-Dspring.profiles.active=prod", "-jar", "/app/ttalkkag-0.0.1-SNAPSHOT.jar"]
+    command: ["java", "-Dspring.profiles.active=dev", "-jar", "/app/ttalkkag-0.0.1-SNAPSHOT.jar"]
 
   history:
     image: openjdk:21-jdk
@@ -53,7 +53,7 @@ services:
       TZ: Asia/Seoul
     volumes:
       - ./history/history_build:/app
-    command: ["java", "-Dspring.profiles.active=prod", "-jar", "/app/history-0.0.1-SNAPSHOT.jar"]
+    command: ["java", "-Dspring.profiles.active=dev", "-jar", "/app/history-0.0.1-SNAPSHOT.jar"]
 
 
   redis:
@@ -94,6 +94,23 @@ services:
     ports:
       - 8085:8080
       - 50000:50000
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
 
 volumes:
   mariadb_data:

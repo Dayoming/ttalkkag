@@ -1,6 +1,7 @@
 package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.dto.*;
+import com.apitester.ttalkkag.kafka.ApiChangeHistoryProducer;
 import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.mapper.ApiMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
@@ -34,6 +35,7 @@ public class ApiService {
     private final ProjectService projectService;
     private final ExternalApiHistoryService externalApiHistoryService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ApiChangeHistoryProducer producer;
     private HashOperations<String, Long, ApiUsage> hashOperations;
 
     /**
@@ -97,9 +99,9 @@ public class ApiService {
         apiChangeHistory.setFile(savedApi.getFile());
         apiChangeHistory.setSelectedBodyType(savedApi.getSelectedBodyType());
 
-        String response = externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
+        externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
 
-        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료: " + response);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료");
 
         return savedApi;
     }
@@ -164,9 +166,9 @@ public class ApiService {
         apiChangeHistory.setFile(updatedApi.getFile());
         apiChangeHistory.setSelectedBodyType(updatedApi.getSelectedBodyType());
 
-        String response = externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
+        externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
 
-        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료: " + response);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료");
     }
 
     /**
@@ -174,7 +176,7 @@ public class ApiService {
      * @param apiId 조회할 API ID
      */
     @Transactional
-    public List<ApiChangeHistory> getChangeHistory(Long apiId) {
+    public List<ApiChangeHistory> getChangeHistory(Long apiId) throws InterruptedException {
         String logKey = MDC.get("LOG_KEY");
         String userEmail = MDC.get("USER_EMAIL");
 

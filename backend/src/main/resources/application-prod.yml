@@ -27,6 +27,30 @@ spring:
     host: 192.168.50.130
     port: 6379
     password: ${redis.password}
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring:
+          json:
+            trusted.packages: "*"
+            type.mapping: "apiChangeHistoryMessage:com.apitester.ttalkkag.dto.ApiChangeHistoryMessage,
+            jwtValidationResponse:com.apitester.ttalkkag.dto.JwtValidationResponse,
+            apiHistoryExternalRequest:com.apitester.ttalkkag.dto.ApiHistoryExternalRequest"
+    consumer:
+      group-id: history-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            trusted.packages: "*"
+            type.mapping: "jwtValidationRequest:com.apitester.ttalkkag.dto.JwtValidationRequest,
+            apiHistoryExternalResponse:com.apitester.ttalkkag.dto.ApiHistoryExternalResponse"
+
   mail:
     host: smtp.gmail.com
     port: 587

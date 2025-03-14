@@ -1,6 +1,7 @@
 package com.apitester.ttalkkag.config;
 
 import com.apitester.ttalkkag.exception.JwtExceptionFilter;
+import com.apitester.ttalkkag.log.LoggingFilter;
 import com.apitester.ttalkkag.service.CustomOAuth2UserService;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -43,9 +45,11 @@ public class SecurityConfig {
     private String secretKey;
 
     private final JwtExceptionFilter jwtExceptionFilter;
+    private final LoggingFilter loggingFilter;
 
-    public SecurityConfig(JwtExceptionFilter jwtExceptionFilter) {
+    public SecurityConfig(JwtExceptionFilter jwtExceptionFilter, LoggingFilter loggingFilter) {
         this.jwtExceptionFilter = jwtExceptionFilter;
+        this.loggingFilter = loggingFilter;
     }
 
     /**
@@ -84,6 +88,7 @@ public class SecurityConfig {
                         .logoutUrl("/api/auth/logout")
                         .logoutSuccessUrl("/login")
                         .invalidateHttpSession(true))
+                .addFilterBefore(loggingFilter, SecurityContextPersistenceFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // 필터 추가
                 .addFilterBefore(jwtExceptionFilter, JwtAuthenticationFilter.class)
                 .oauth2Login(oauth -> oauth.loginPage("/login")
