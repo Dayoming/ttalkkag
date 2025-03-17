@@ -4,20 +4,16 @@ import com.apitester.ttalkkag.dto.ApiChangeHistory;
 import com.apitester.ttalkkag.kafka.ApiChangeHistoryProducer;
 import com.apitester.ttalkkag.kafka.ApiHistoryConsumer;
 import com.apitester.ttalkkag.log.LoggingUtil;
-import lombok.AllArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class ExternalApiHistoryService {
-    private final RestTemplate restTemplate;
     private final ApiChangeHistoryProducer apiChangeHistoryProducer;
     private final ApiHistoryConsumer apiHistoryConsumer;
 
@@ -25,8 +21,7 @@ public class ExternalApiHistoryService {
     private String EXTERNAL_API_BASE_URL;
 
     @Autowired
-    public ExternalApiHistoryService(RestTemplate restTemplate, ApiChangeHistoryProducer apiChangeHistoryProducer, ApiHistoryConsumer apiHistoryConsumer) {
-        this.restTemplate = restTemplate;
+    public ExternalApiHistoryService(ApiChangeHistoryProducer apiChangeHistoryProducer, ApiHistoryConsumer apiHistoryConsumer) {
         this.apiChangeHistoryProducer = apiChangeHistoryProducer;
         this.apiHistoryConsumer = apiHistoryConsumer;
     }
