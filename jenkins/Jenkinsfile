@@ -49,9 +49,9 @@ pipeline {
         stage('Restart Containers') {
             steps {
                 script {
-                    sh 'docker-compose restart backend'  // 백엔드 컨테이너만 재시작
-                    sh 'docker-compose restart history' // history 컨테이너만 재시작
-                    sh 'docker-compose restart nginx'    // 프론트엔드 컨테이너만 재시작
+                    sh 'docker compose restart backend'  // 백엔드 컨테이너만 재시작
+                    sh 'docker compose restart history' // history 컨테이너만 재시작
+                    sh 'docker compose restart nginx'    // 프론트엔드 컨테이너만 재시작
                 }
             }
         }
