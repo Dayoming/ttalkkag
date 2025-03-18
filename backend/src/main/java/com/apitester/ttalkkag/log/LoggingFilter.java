@@ -26,7 +26,7 @@ import java.util.*;
  *
  * @author 정다영
  * @date 2025-02-01
- * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스.              요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
+ * @description 모든 HTTP 요청 및 응답을 로깅하는 필터 클래스. 요청 URL, 헤더, 본문 및 응답 상태 코드를 기록하며, TLO 로그를 생성
  */
 @Component
 @Order(Integer.MIN_VALUE) // Spring Security에서 가장 먼저 실행되도록 설정
@@ -41,6 +41,8 @@ public class LoggingFilter implements Filter {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
     private final UrlMappingResolver urlMappingResolver;
     private final JwtTokenUtil jwtTokenUtil;
+
+    private static final String LOGGING_FILTER_EXECUTED = "LOGGING_FILTER_EXECUTED";
 
     private Tlo tlo;
 
@@ -71,6 +73,14 @@ public class LoggingFilter implements Filter {
         String logKey;
         HttpServletRequest servletRequest = (HttpServletRequest) request;
         HttpServletResponse servletResponse = (HttpServletResponse) response;
+
+        // 중복 실행 방지(필터가 이미 실행되었으면 그대로 통과)
+        if (servletRequest.getAttribute(LOGGING_FILTER_EXECUTED) != null) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        servletRequest.setAttribute(LOGGING_FILTER_EXECUTED, true); // 필터 실행 플래그 설정
 
         // WebSocket 요청 감지
         if (isWebSocketRequest(servletRequest)) {
