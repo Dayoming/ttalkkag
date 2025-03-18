@@ -32,6 +32,7 @@
     <li style="list-style: none;"><b>🔨 MariaDB</b>: 11.5.2</li>
     <li style="list-style: none;"><b>🔨 Redis</b>: 3.0.504</li>
     <li style="list-style: none;"><b>🔨 Gradle</b>: 8.11.1</li>
+    <li style="list-style: none;"><b>🔨 Kafka</b>: 7.9.0-ccs</li>
 </ul>
 
 ### 구동 방법
@@ -230,10 +231,16 @@ $ ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
 - 로그 확인
-  - 기본적으로 `logs/` 디렉토리에 로그 파일 저장
-  - 실시간 로그 확인:
+  - 기본적으로 `logs/` 디렉토리에 로그 파일 저장 (30일 보관)
+    - TLO log: `logs/tlo.yyyy-mm-dd.log` 에서 확인 가능
+    - Call log: `logs/call.yyyy-mm-dd.log` 에서 확인 가능
+    - Transaction log: `logs/transaction.yyyy-mm-dd.log` 에서 확인 가능
+  - 실시간 로그 확인 명령어 예시
     ```shell
+    # 현재 날짜 로그 확인
     $ tail -f logs/transaction.log
+    # 특정 날짜 로그 확인
+    $ tail -f logs/call.2025-03-14.log
     ```
 
 ### Frontend Debugging
