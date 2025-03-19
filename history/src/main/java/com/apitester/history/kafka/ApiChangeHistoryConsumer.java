@@ -31,7 +31,6 @@ public class ApiChangeHistoryConsumer {
 
         if (response.isValid()) {
             System.out.println("JWT is valid. Saving API Change History to DB.");
-            // JWT가 유효하면 해당 API 변경 이력을 저장
             Object originalRequest = jwtValidationCache.getRequest(response.getJwtToken(), Object.class);
 
             // API 변경 이력 저장 요청인 경우

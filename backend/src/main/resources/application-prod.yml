@@ -40,7 +40,7 @@ spring:
             jwtValidationResponse:com.apitester.ttalkkag.dto.JwtValidationResponse,
             apiHistoryExternalRequest:com.apitester.ttalkkag.dto.ApiHistoryExternalRequest"
     consumer:
-      group-id: history-group
+      group-id: ttalkkag-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
