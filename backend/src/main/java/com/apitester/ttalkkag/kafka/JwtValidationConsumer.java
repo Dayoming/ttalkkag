@@ -14,7 +14,7 @@ public class JwtValidationConsumer {
     private final KafkaTemplate<String, JwtValidationResponse> kafkaTemplate;
     private final JwtTokenUtil jwtTokenUtil;
 
-    @KafkaListener(topics = "jwt-validation-request", groupId = "jwt-validation-group")
+    @KafkaListener(topics = "jwt-validation-request", groupId = "ttalkkag-group")
     public void validateJwt(JwtValidationRequest request) {
         System.out.println("JwtValidationRequest: " + request);
         String jwtToken = request.getJwtToken();

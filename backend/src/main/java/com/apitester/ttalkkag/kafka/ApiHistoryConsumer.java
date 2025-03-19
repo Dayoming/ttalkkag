@@ -19,7 +19,7 @@ public class ApiHistoryConsumer {
     private final ConcurrentHashMap<String, CountDownLatch> latchMap = new ConcurrentHashMap<>();
 
 
-    @KafkaListener(topics = "api-history-response", groupId = "history-group")
+    @KafkaListener(topics = "api-history-response", groupId = "ttalkkag-group")
     public void consumeApiHistoryResponse(ApiHistoryExternalResponse response) {
         System.out.println("Received API History Response: " + response);
 
