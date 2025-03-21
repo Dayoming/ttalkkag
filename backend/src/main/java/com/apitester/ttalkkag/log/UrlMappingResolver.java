@@ -49,4 +49,18 @@ public class UrlMappingResolver {
                         && mapping.getMethod().equalsIgnoreCase(requestMethod))
                 .findFirst();
     }
+
+    /**
+     * 그 외 요청에 해당하는 URL 매핑 정보 직접 찾기
+     *
+     * @param requestURI 요청 URI
+     * @param method 요청 method
+     * @return 매칭된 URL 매핑 객체 (`Optional<UrlMapping>`)
+     */
+    public Optional<UrlMapping> resolveMapping(String requestURI, String method) {
+        return urlMappings.stream()
+                .filter(mapping -> pathMatcher.match(mapping.getUrl(), requestURI)
+                        && mapping.getMethod().equalsIgnoreCase(method))
+                .findFirst();
+    }
 }

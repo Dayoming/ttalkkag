@@ -4,16 +4,21 @@ import com.apitester.ttalkkag.dto.ApiChangeHistory;
 import com.apitester.ttalkkag.kafka.ApiChangeHistoryProducer;
 import com.apitester.ttalkkag.kafka.ApiHistoryConsumer;
 import com.apitester.ttalkkag.log.LoggingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
 @Service
 public class ExternalApiHistoryService {
+
     private final ApiChangeHistoryProducer apiChangeHistoryProducer;
     private final ApiHistoryConsumer apiHistoryConsumer;
 
@@ -47,12 +52,20 @@ public class ExternalApiHistoryService {
     }
 
     // Kafka로 API 변경 이력 저장 요청 보내기
+    @Async("asyncExecutor")
+    @TransactionalEventListener
     public void saveExternalApiHistory(ApiChangeHistory history) {
         String logKey = MDC.get("LOG_KEY");
         String userEmail = MDC.get("USER_EMAIL");
+        String jwtToken = getJwtToken();
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "[Async] 현재 스레드: " + Thread.currentThread().getName());
 
         LoggingUtil.logTransactionStep(logKey, userEmail, "1. Kafka로 변경 이력 저장 요청");
-        apiChangeHistoryProducer.sendApiChangeHistory(history, getJwtToken());
+        LoggingUtil.logTransactionStep(logKey, userEmail, "요청 토큰: " + jwtToken);
+        LoggingUtil.logTransactionStep(logKey, userEmail, "변경 이력: " + history);
+        apiChangeHistoryProducer.sendApiChangeHistory(history, jwtToken);
         LoggingUtil.logTransactionStep(logKey, userEmail, "2. 변경 이력 저장 요청 완료");
+
     }
 }

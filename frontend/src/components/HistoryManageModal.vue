@@ -238,7 +238,11 @@ export default {
     async fetchApiHistory() {
       console.log(this.apiData);
       const response = await this.$axios.get(
-        `/api/apis/change-history/${this.apiData.id}`
+        `/api/apis/change-history/${this.apiData.id}`, {
+          headers: {
+              MID: "P03003", // 헤더에 MID 추가
+            },
+        }
       );
       this.apiHistory = response.data.apiChangeHistoryList;
       console.log(this.apiHistory);

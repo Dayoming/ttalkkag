@@ -262,5 +262,17 @@
     "funcId": "FN00041",
     "method": "DELETE",
     "mid": "P03102"
+  },
+  {
+    "url": "/api/apis/change-history/{apiId}",
+    "funcId": "FN00042",
+    "method": "GET",
+    "mid": "P03003"
+  },
+  {
+    "url": "api-change-events",
+    "funcId": "FN00045",
+    "method": "",
+    "mid": "P03003"
   }
 ]

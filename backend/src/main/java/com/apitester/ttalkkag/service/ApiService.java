@@ -2,6 +2,7 @@ package com.apitester.ttalkkag.service;
 
 import com.apitester.ttalkkag.dto.*;
 import com.apitester.ttalkkag.kafka.ApiChangeHistoryProducer;
+import com.apitester.ttalkkag.log.KafkaLoggingUtil;
 import com.apitester.ttalkkag.log.LoggingUtil;
 import com.apitester.ttalkkag.mapper.ApiMapper;
 import com.apitester.ttalkkag.mapper.UserMapper;
@@ -35,7 +36,7 @@ public class ApiService {
     private final ProjectService projectService;
     private final ExternalApiHistoryService externalApiHistoryService;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ApiChangeHistoryProducer producer;
+    private final KafkaLoggingUtil kafkaLoggingUtil;
     private HashOperations<String, Long, ApiUsage> hashOperations;
 
     /**
@@ -58,6 +59,8 @@ public class ApiService {
         String userEmail = MDC.get("USER_EMAIL");
 
         apiMapper.saveApi(apis);
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "[Sync] 현재 스레드: " + Thread.currentThread().getName());
 
         LoggingUtil.logTransactionStep(logKey, userEmail, "1. API 파일 저장 - apis: " + apis);
 
@@ -102,6 +105,7 @@ public class ApiService {
         externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
 
         LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "[Sync] " + Thread.currentThread().getName() + " 스레드 종료");
 
         return savedApi;
     }
@@ -128,6 +132,8 @@ public class ApiService {
     public void updateApi(Apis apis) {
         String logKey = MDC.get("LOG_KEY");
         String userEmail = MDC.get("USER_EMAIL");
+
+        LoggingUtil.logTransactionStep(logKey, userEmail, "[Sync] 현재 스레드: " + Thread.currentThread().getName());
 
         apiMapper.updateApi(apis);
 
@@ -168,7 +174,10 @@ public class ApiService {
 
         externalApiHistoryService.saveExternalApiHistory(apiChangeHistory);
 
+        kafkaLoggingUtil.logKafkaTLO(logKey, "api-change-events");
+        LoggingUtil.logExternalCallStep(logKey, "history", apiChangeHistory);
         LoggingUtil.logTransactionStep(logKey, userEmail, "6. API 변경 이력 저장 요청 완료");
+        LoggingUtil.logTransactionStep(logKey, userEmail, "[Sync] " + Thread.currentThread().getName() + " 스레드 종료");
     }
 
     /**
