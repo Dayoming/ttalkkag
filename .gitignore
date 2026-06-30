@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+## 설정 파일 제외
+backend/src/main/resources/application-dev.yml
+backend/src/main/resources/application-prod.yml
