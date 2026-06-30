@@ -4,11 +4,12 @@
 * * *
 
 ## Table of Contents
-- [About The Project](##About The Project)
-  - [개발 환경](###개발 환경)
-  - [구동 방법](###구동 방법)
-- [Debugging & Logging](##Debugging)
-- [ERD](##ERD)
+- [About The Project](#about-the-project)
+  - [개발 환경](#개발-환경)
+  - [구동 방법](#구동-방법)
+- [Debugging & Logging](#debugging)
+- [ERD](#erd)
+- [기능 소개](#기능-소개)
 
 * * *
 
@@ -32,15 +33,15 @@
 </ul>
 
 ### 구동 방법
-환경 구축
+**환경 구축**
 - 로컬인 경우 `docker compose -f docker-compose-local.yml up -d` 명령어를 통해 컨테이너 생성
 - 배포 환경인 경우 `docker compose up -d` 명령어를 통해 컨테이너 생성
 
-로컬 실행
+**로컬 실행**
 - Environment Variables에 --spring.profiles.active=dev 추가
 - Bootrun으로 실행
 
-배포 실행
+**배포 실행**
 ```shell
 # local
 $ java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=dev
@@ -51,7 +52,7 @@ $ java -jar ttalkkag-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=prod
 $ java -jar history-0.0.1-SNAPSHOT.jar -Dspring.profiles.active=prod
 ```
 
-프론트엔드 실행 시
+**프론트엔드 실행**
 ```shell
 # development
 $ npm run serve
@@ -59,7 +60,7 @@ $ npm run serve
 
 ### 배포 방법
 
-Docker 배포
+**Docker 배포**
 ```shell
 $ docker compose up -d
 ```
@@ -84,3 +85,5 @@ $ docker compose up -d
 
 ## ERD
 <img width="1074" height="1347" alt="Image" src="https://github.com/user-attachments/assets/0f512807-4143-48a3-ac9f-d62a6160f13a" />
+
+## 기능 소개
