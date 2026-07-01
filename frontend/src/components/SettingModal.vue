@@ -1,24 +1,13 @@
 <template>
   <!-- Bootstrap 모달 -->
-  <div
-    class="modal fade show d-block"
-    tabindex="-1"
-    data-bs-backdrop="static"
-    data-bs-keyboard="false"
-    aria-labelledby="settingsModalLabel"
-    aria-hidden="true"
-  >
+  <div class="modal fade show d-block" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+    aria-labelledby="settingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <!-- 모달 헤더 -->
         <div class="modal-header">
           <h5 class="modal-title fw-bold" id="settingsModalLabel">Settings</h5>
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Close"
-            @click="closeModal"
-          ></button>
+          <button type="button" class="btn-close" aria-label="Close" @click="closeModal"></button>
         </div>
 
         <!-- 모달 본문 -->
@@ -26,11 +15,7 @@
           <!-- 프로필 사진 업로드 -->
           <div class="d-flex flex-column align-items-center mb-3">
             <span>프로필 사진</span>
-            <img
-              :src="previewImage"
-              alt="프로필 사진"
-              class="profile-preview mb-2"
-            />
+            <img :src="previewImage" alt="프로필 사진" class="profile-preview mb-2" />
             <input type="file" @change="handleFileUpload" accept="image/*" />
           </div>
 
@@ -38,12 +23,7 @@
           <div class="d-flex justify-content-between align-items-center mb-3">
             <span>응답 결과만 보기</span>
             <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                v-model="showResponse"
-                id="viewResultOnly"
-              />
+              <input class="form-check-input" type="checkbox" v-model="showResponse" id="viewResultOnly" />
             </div>
           </div>
 
@@ -51,12 +31,7 @@
           <div class="d-flex justify-content-between align-items-center mb-3">
             <span>자동 저장</span>
             <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                v-model="autoSave"
-                id="autoSave"
-              />
+              <input class="form-check-input" type="checkbox" v-model="autoSave" id="autoSave" />
             </div>
           </div>
           <div class="ms-3">
@@ -64,14 +39,8 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <span>입력 중 자동 저장 간격</span>
               <div class="d-flex align-items-center">
-                <input
-                  type="number"
-                  class="form-control form-control-sm w-25 text-end"
-                  v-model="autoSaveTime"
-                  min="1"
-                  :disabled="!autoSave"
-                  @keyup.enter="confirmSettings"
-                />
+                <input type="number" class="form-control form-control-sm w-25 text-end" v-model="autoSaveTime" min="1"
+                  :disabled="!autoSave" @keyup.enter="confirmSettings" />
                 <span class="ms-2">초</span>
               </div>
             </div>
@@ -80,14 +49,8 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <span>입력 후 자동 저장 간격</span>
               <div class="d-flex align-items-center">
-                <input
-                  type="number"
-                  class="form-control form-control-sm w-25 text-end"
-                  v-model="autoSaveTerm"
-                  min="1"
-                  :disabled="!autoSave"
-                  @keyup.enter="confirmSettings"
-                />
+                <input type="number" class="form-control form-control-sm w-25 text-end" v-model="autoSaveTerm" min="1"
+                  :disabled="!autoSave" @keyup.enter="confirmSettings" />
                 <span class="ms-2">초</span>
               </div>
             </div>
@@ -104,11 +67,7 @@
         </div>
         <!-- 모달 푸터 -->
         <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-dark w-100"
-            @click="confirmSettings"
-          >
+          <button type="button" class="btn btn-dark w-100" @click="confirmSettings">
             OK
           </button>
         </div>
@@ -200,10 +159,10 @@ export default {
           .then((response) => {
             console.log(response.data);
             // 서버에서 반환된 URL로 미리보기 업데이트
-            this.previewImage = response.data.profileImageUrl ? 
+            this.previewImage = response.data.profileImageUrl ?
               process.env.VUE_APP_SERVER_IP + response.data.profileImageUrl :
               process.env.VUE_APP_SERVER_IP +
-                "/uploads/profiles/profile-default-icon.png";
+              "/uploads/profiles/profile-default-icon.png";
             console.log("Uploaded profile image URL:", this.previewImage);
           })
           .catch((error) => {
@@ -221,10 +180,18 @@ export default {
         this.autoSaveTerm = response.data.user.autoSaveTerm;
         this.savePath = response.data.user.autoSavePath;
 
-        // 사용자 프로필 이미지 경로 설정
-        this.previewImage = response.data.user.profileImage ? 
-          process.env.VUE_APP_SERVER_IP + response.data.user.profileImage :
-          process.env.VUE_APP_SERVER_IP + "/uploads/profiles/profile-default-icon.png";
+        // 사용자 프로필 이미지 경로 설정 - 기본 로그인인 경우
+        if (response.data.user.socialProvider == null) {
+          this.previewImage = response.data.user.profileImage ?
+            process.env.VUE_APP_SERVER_IP + response.data.user.profileImage :
+            process.env.VUE_APP_SERVER_IP + "/uploads/profiles/profile-default-icon.png";
+        } else {
+          // 사용자 프로필 이미지 경로 설정 - 소셜 로그인인 경우
+          this.previewImage = response.data.user.profileImage ?
+            response.data.user.profileImage :
+            process.env.VUE_APP_SERVER_IP + "/uploads/profiles/profile-default-icon.png";
+        }
+
       } catch (error) {
         console.log("Failed to load user settings:", error);
       }
