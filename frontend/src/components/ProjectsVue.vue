@@ -4,17 +4,9 @@
       <!-- Project Dropdown -->
       <div>
         <label for="projectSelect" class="form-label me-2">Project:</label>
-        <select
-          id="projectSelect"
-          class="form-select d-inline-block w-auto"
-          v-model="localSelectedProject"
-          @change="fetchItems"
-        >
-          <option
-            v-for="project in localProjects"
-            :key="project.id"
-            :value="project"
-          >
+        <select id="projectSelect" class="form-select d-inline-block w-auto" v-model="localSelectedProject"
+          @change="fetchItems">
+          <option v-for="project in localProjects" :key="project.id" :value="project">
             {{ project.name }}
           </option>
         </select>
@@ -30,22 +22,11 @@
       </div>
     </div>
 
-    <CommonModal
-      v-if="showNewProjectModal"
-      :isVisible="showNewProjectModal"
-      title="새로운 프로젝트명을 입력하세요."
-      confirmText="OK"
-      @confirm="addNewProject"
-      @close="showNewProjectModal = false"
-    >
+    <CommonModal v-if="showNewProjectModal" :isVisible="showNewProjectModal" title="새로운 프로젝트명을 입력하세요." confirmText="OK"
+      @confirm="addNewProject" @close="showNewProjectModal = false">
       <template #body>
-        <input
-          type="text"
-          class="form-control"
-          v-model="newProjectName"
-          placeholder="프로젝트명을 입력하세요."
-          @keyup.enter="addNewProject"
-        />
+        <input type="text" class="form-control" v-model="newProjectName" placeholder="프로젝트명을 입력하세요."
+          @keyup.enter="addNewProject" />
       </template>
     </CommonModal>
 
@@ -53,26 +34,14 @@
     <div class="mt-4">
       <div class="d-flex align-items-center mb-4 w-75">
         <i class="bi bi-search" style="margin-right: 5px"></i>
-        <input
-          type="text"
-          class="form-control me-2 input-search"
-          v-model="searchQuery"
-        />
-        <select
-          class="form-select me-2"
-          v-model="selectedType"
-          style="width: 230px"
-        >
+        <input type="text" class="form-control me-2 input-search" v-model="searchQuery" />
+        <select class="form-select me-2" v-model="selectedType" style="width: 230px">
           <option value="">ALL</option>
           <option value="folder">Folder</option>
           <option value="api">API</option>
         </select>
-        <select
-          v-show="this.selectedType === 'api'"
-          class="form-select me-2"
-          v-model="selectedMethod"
-          style="width: 230px"
-        >
+        <select v-show="this.selectedType === 'api'" class="form-select me-2" v-model="selectedMethod"
+          style="width: 230px">
           <option value="">ALL</option>
           <option value="GET">GET</option>
           <option value="POST">POST</option>
@@ -81,32 +50,16 @@
           <option value="PATCH">PATCH</option>
         </select>
       </div>
-      <button
-        v-if="projectAuth === 'write'"
-        class="btn btn-dark me-2"
-        @click="addFolder"
-      >
+      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="addFolder">
         새 폴더 추가
       </button>
-      <button
-        v-if="projectAuth === 'write'"
-        class="btn btn-dark me-2"
-        @click="this.$router.push('/test-api')"
-      >
+      <button v-if="projectAuth === 'write'" class="btn btn-dark me-2" @click="this.$router.push('/test-api')">
         새 요청 추가
       </button>
-      <button
-        v-if="isMyProject"
-        class="btn btn-dark me-2"
-        @click="showInviteCodeModal = true"
-      >
+      <button v-if="isMyProject" class="btn btn-dark me-2" @click="showInviteCodeModal = true">
         프로젝트 초대
       </button>
-      <button
-        v-if="isMyProject"
-        class="btn btn-dark"
-        @click="manageParticipants"
-      >
+      <button v-if="isMyProject" class="btn btn-dark" @click="manageParticipants">
         참여자 관리
       </button>
       <button v-if="!isMyProject" class="btn btn-dark" @click="exitParticipant">
@@ -116,44 +69,25 @@
 
     <!-- 모든 폴더 열기/닫기 버튼 -->
     <div class="d-flex justify-content-end mb-2">
-      <button
-        class="btn btn-dark mt-2 me-2 folder-toggle-btn"
-        @click="toggleAllFolders(true)"
-      >
+      <button class="btn btn-dark mt-2 me-2 folder-toggle-btn" @click="toggleAllFolders(true)">
         Open
       </button>
-      <button
-        class="btn btn-dark mt-2 folder-toggle-btn"
-        @click="toggleAllFolders(false)"
-      >
+      <button class="btn btn-dark mt-2 folder-toggle-btn" @click="toggleAllFolders(false)">
         Close
       </button>
     </div>
     <!-- 테이블 -->
-    <div
-      class="table-responsive mt-4"
-      @dragover.prevent
-      @drop="handleDropOutside"
-    >
+    <div class="table-responsive mt-4" @dragover.prevent @drop="handleDropOutside">
       <table class="table table-borderless">
         <th>API명/폴더명</th>
         <th>URL</th>
         <th>METHOD</th>
         <tbody>
-          <RecursiveFolderItem
-            v-for="item in localItems"
-            :key="item.id + '_' + updateKey"
-            :item="item"
-            :depth="0"
-            :selected-file-id="selectedFileId"
-            :projectAuth="projectAuth"
-            :apiSelections="apiSelections"
-            :profileImageUrl="profileImageUrl"
-            @selection-change="handleSelectionChange"
-            @toggle-folder="toggleFolder"
-            @update-items="$emit('update-items')"
-            @api-selected="handleApiSelected"
-          />
+          <RecursiveFolderItem v-for="item in localItems" :key="item.id + '_' + updateKey" :item="item" :depth="0"
+            :selected-file-id="selectedFileId" :projectAuth="projectAuth" :apiSelections="apiSelections"
+            :profileImageUrl="profileImageUrl" :selectedProject="localSelectedProject"
+            @selection-change="handleSelectionChange" @toggle-folder="toggleFolder"
+            @update-items="$emit('update-items')" @api-selected="handleApiSelected" />
         </tbody>
       </table>
     </div>
@@ -164,31 +98,18 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">프로젝트 초대</h5>
-          <button
-            type="button"
-            class="btn-close"
-            @click="closeInviteCodeModal"
-          ></button>
+          <button type="button" class="btn-close" @click="closeInviteCodeModal"></button>
         </div>
         <div class="modal-body">
           <p class="mb-4">
             프로젝트에 초대하고자 하는 사용자의 이메일을 입력해 주세요. <br />
             초대코드의 유효시간은 <strong>1시간</strong>입니다.
           </p>
-          <input
-            type="text"
-            class="form-control"
-            v-model="inviteUserEmail"
-            placeholder="이메일을 입력하세요."
-            @keyup.enter="generateInviteCode"
-          />
+          <input type="text" class="form-control" v-model="inviteUserEmail" placeholder="이메일을 입력하세요."
+            @keyup.enter="generateInviteCode" />
         </div>
         <div class="modal-footer justify-content-center">
-          <button
-            class="btn btn-dark w-100"
-            type="button"
-            @click="generateInviteCode"
-          >
+          <button class="btn btn-dark w-100" type="button" @click="generateInviteCode">
             초대코드 전송
           </button>
         </div>
@@ -197,61 +118,33 @@
   </div>
 
   <!-- 참여자 관리 모달 -->
-  <div
-    v-if="showManageParticipantsModal"
-    class="modal fade show d-block"
-    tabindex="-1"
-  >
+  <div v-if="showManageParticipantsModal" class="modal fade show d-block" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">참여자 관리</h5>
-          <button
-            type="button"
-            class="btn-close"
-            @click="this.showManageParticipantsModal = false"
-          ></button>
+          <button type="button" class="btn-close" @click="this.showManageParticipantsModal = false"></button>
         </div>
         <div class="modal-body">
           <template v-if="participants.length > 0">
-            <div
-              v-for="participant in participants"
-              :key="participant.id"
-              class="d-flex align-items-center mb-3"
-            >
-              <img
-                src="../assets/profiles/profile-default-icon.png"
-                class="rounded-circle me-2"
-                width="40"
-                height="40"
-              />
+            <div v-for="participant in participants" :key="participant.id" class="d-flex align-items-center mb-3">
+              <img src="../assets/profiles/profile-default-icon.png" class="rounded-circle me-2" width="40"
+                height="40" />
               <div class="participants-info">
                 <p class="mb-0">{{ participant.email }}</p>
                 <div>
                   <label>
-                    <input
-                      type="radio"
-                      :value="'read'"
-                      v-model="participant.permissionLevel"
-                    />
+                    <input type="radio" :value="'read'" v-model="participant.permissionLevel" />
                     읽기
                   </label>
                   <label class="ms-2">
-                    <input
-                      type="radio"
-                      :value="'write'"
-                      v-model="participant.permissionLevel"
-                    />
+                    <input type="radio" :value="'write'" v-model="participant.permissionLevel" />
                     수정
                   </label>
                 </div>
               </div>
               <div class="remove-btn-div">
-                <button
-                  class="btn btn-danger"
-                  @click="removeParticipant(participant)"
-                  style="margin-left: 200px"
-                >
+                <button class="btn btn-danger" @click="removeParticipant(participant)" style="margin-left: 200px">
                   강퇴
                 </button>
               </div>
@@ -262,18 +155,10 @@
           </template>
         </div>
         <div class="modal-footer">
-          <button
-            v-if="participants.length > 0"
-            class="btn btn-dark w-100"
-            @click="saveParticipants"
-          >
+          <button v-if="participants.length > 0" class="btn btn-dark w-100" @click="saveParticipants">
             저장
           </button>
-          <button
-            v-else
-            class="btn btn-secondary"
-            @click="this.showManageParticipantsModal = false"
-          >
+          <button v-else class="btn btn-secondary" @click="this.showManageParticipantsModal = false">
             확인
           </button>
         </div>
@@ -335,8 +220,8 @@ export default {
         if (this.localProjects.length > 0) {
           const selectProject = selectedProject
             ? this.localProjects.find(
-                (project) => project.id === selectedProject.id
-              )
+              (project) => project.id === selectedProject.id
+            )
             : this.localProjects[0];
 
           if (selectProject) {
@@ -869,8 +754,10 @@ export default {
   padding: 20px;
   overflow: scroll;
   height: 450px;
-  -ms-overflow-style: none; /* 인터넷 익스플로러 */
-  scrollbar-width: none; /* 파이어폭스 */
+  -ms-overflow-style: none;
+  /* 인터넷 익스플로러 */
+  scrollbar-width: none;
+  /* 파이어폭스 */
 }
 
 /* ( 크롬, 사파리, 오페라, 엣지 ) 동작 */
@@ -879,7 +766,8 @@ export default {
 }
 
 .table .folder-children {
-  padding-left: 20px; /* 하위 항목의 들여쓰기 */
+  padding-left: 20px;
+  /* 하위 항목의 들여쓰기 */
 }
 
 .input-search {

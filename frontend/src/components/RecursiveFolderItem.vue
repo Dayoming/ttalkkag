@@ -1,88 +1,36 @@
 <template>
-  <tr
-    draggable="true"
-    :class="isDrop ? 'top-line' : ''"
-    @dragstart="handleDragStart"
-    @dragover.prevent="handleDragOver"
-    @dragleave="handleDragLeave"
-    @drop.stop="handleDrop"
-  >
-    <td
-      :style="{ paddingLeft: `${depth * 20}px` }"
-      :class="isHighlighted ? 'saved-folder' : ''"
-    >
+  <tr draggable="true" :class="isDrop ? 'top-line' : ''" @dragstart="handleDragStart" @dragover.prevent="handleDragOver"
+    @dragleave="handleDragLeave" @drop.stop="handleDrop">
+    <td :style="{ paddingLeft: `${depth * 20}px` }" :class="isHighlighted ? 'saved-folder' : ''">
       <!-- 수정 모드일 때 -->
-      <input
-        v-if="isEditing"
-        v-model="editingName"
-        @blur="saveEdit(localItem)"
-        @keyup.enter="saveEdit(localItem)"
-        class="form-control form-control-sm"
-        autofocus
-      />
+      <input v-if="isEditing" v-model="editingName" @blur="saveEdit(localItem)" @keyup.enter="saveEdit(localItem)"
+        class="form-control form-control-sm" autofocus />
       <!-- 폴더 아이콘 -->
-      <span
-        v-else-if="localItem.type === 'folder'"
-        @mousedown="startLongPress"
-        @mouseup="clearLongPress"
-        @mouseleave="clearLongPress"
-        @click="toggleFolder"
-        class="toggle-class"
-      >
+      <span v-else-if="localItem.type === 'folder'" @mousedown="startLongPress" @mouseup="clearLongPress"
+        @mouseleave="clearLongPress" @click="toggleFolder" class="toggle-class">
         <i class="bi bi-folder-fill"></i>
         {{ localItem.name }}
-        <i
-          v-if="localItem.isProjectsVue && projectAuth === 'write'"
-          class="bi bi-plus"
-          @click="addFolder"
-        ></i>
-        <i
-          v-if="localItem.isProjectsVue && projectAuth === 'write'"
-          class="bi bi-trash-fill"
-          @click="deleteFolder"
-        ></i>
+        <i v-if="localItem.isProjectsVue && projectAuth === 'write'" class="bi bi-plus" @click="addFolder"></i>
+        <i v-if="localItem.isProjectsVue && projectAuth === 'write'" class="bi bi-trash-fill" @click="deleteFolder"></i>
       </span>
       <!-- API 아이콘 -->
-      <span
-        v-else-if="localItem.type === 'api'"
-        @mousedown="startLongPress"
-        @mouseup="clearLongPress"
-        @mouseleave="clearLongPress"
-        @click="editApiFile(localItem.id)"
-      >
+      <span v-else-if="localItem.type === 'api'" @mousedown="startLongPress" @mouseup="clearLongPress"
+        @mouseleave="clearLongPress" @click="editApiFile(localItem.id)">
         <i :class="isSelected ? 'bi bi-check-lg' : 'bi bi-file-earmark'"></i>
         {{ localItem.name }}
-        <i
-          v-if="localItem.isProjectsVue && projectAuth === 'write'"
-          class="bi bi-trash-fill"
-          @click="deleteFile($event)"
-        ></i>
+        <i v-if="localItem.isProjectsVue && projectAuth === 'write'" class="bi bi-trash-fill"
+          @click="deleteFile($event)"></i>
       </span>
       <span class="user-icons" v-if="apiSelections[localItem.id]">
-        <span
-          v-for="user in apiSelections[localItem.id]"
-          :key="user.id"
-          class="user-icon-wrapper"
-        >
-          <img
-            :src="user.profileImageUrl"
-            class="profile-img"
-            :alt="user.email"
-            :title="user.email"
-          />
+        <span v-for="user in apiSelections[localItem.id]" :key="user.id" class="user-icon-wrapper">
+          <img :src="user.profileImageUrl" class="profile-img" :alt="user.email" :title="user.email" />
         </span>
       </span>
     </td>
-    <td
-      v-if="localItem.type === 'api' && localItem.isProjectsVue"
-      class="url-column"
-    >
+    <td v-if="localItem.type === 'api' && localItem.isProjectsVue" class="url-column">
       {{ localItem.apiUrl }}
     </td>
-    <td
-      v-if="localItem.type === 'api' && localItem.isProjectsVue"
-      class="method-column"
-    >
+    <td v-if="localItem.type === 'api' && localItem.isProjectsVue" class="method-column">
       <span class="badge text-bg-dark">{{ localItem.apiMethod }}</span>
     </td>
   </tr>
@@ -91,21 +39,10 @@
     <td colspan="3" class="child-table-cell">
       <table class="child-table">
         <tbody>
-          <RecursiveFolderItem
-            v-for="child in localItem.children"
-            :key="child.id"
-            :item="child"
-            :depth="depth + 1"
-            :savedItemId="savedItemId"
-            :selected-file-id="selectedFileId"
-            :projectAuth="projectAuth"
-            :apiSelections="apiSelections"
-            :profileImageUrl="profileImageUrl"
-            @selection-change="onChildSelectionChange"
-            @toggle-folder="onToggleFolder"
-            @update-items="$emit('update-items')"
-            @api-selected="handleApiSelected"
-          />
+          <RecursiveFolderItem v-for="child in localItem.children" :key="child.id" :item="child" :depth="depth + 1"
+            :savedItemId="savedItemId" :selected-file-id="selectedFileId" :projectAuth="projectAuth"
+            :apiSelections="apiSelections" :profileImageUrl="profileImageUrl" @selection-change="onChildSelectionChange"
+            @toggle-folder="onToggleFolder" @update-items="$emit('update-items')" @api-selected="handleApiSelected" />
         </tbody>
       </table>
     </td>
@@ -129,6 +66,7 @@ export default {
       type: Object,
       required: true, // 반드시 필요한 props로 설정
     },
+    selectedProject: Object,
   },
   data() {
     return {
@@ -416,6 +354,7 @@ export default {
         {
           name: this.editingName,
           id: Number(item.id),
+          projectId: Number(this.selectedProject.id)
         }
       );
 
@@ -471,21 +410,24 @@ td {
 }
 
 .name-column {
-  width: 40%; /* API명/폴더명 열 */
+  width: 40%;
+  /* API명/폴더명 열 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .url-column {
-  width: 40%; /* URL 열 */
+  width: 40%;
+  /* URL 열 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .method-column {
-  width: 20%; /* METHOD 열 */
+  width: 20%;
+  /* METHOD 열 */
 }
 
 .profile-img {
@@ -496,6 +438,7 @@ td {
 }
 
 .top-line {
-  border-top: 2px solid #007bff; /* 선 색상과 두께 */
+  border-top: 2px solid #007bff;
+  /* 선 색상과 두께 */
 }
 </style>
