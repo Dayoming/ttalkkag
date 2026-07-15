@@ -1,21 +1,13 @@
 <template>
   <div class="api-tester d-flex flex-column">
     <div class="request-section flex-glow-1">
-      <div
-        class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
-      >
+      <div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
         <form class="d-flex w-100">
           <!-- Input Box -->
           <div class="me-3 flex-grow-1">
             <span v-if="apiPath" style="font-size: x-small">{{ apiPath }}</span>
-            <input
-              v-model="apiName"
-              type="text"
-              class="form-control input-api-name"
-              placeholder="API Name"
-              maxlength="50"
-              style="margin-bottom: 10px"
-            />
+            <input v-model="apiName" type="text" class="form-control input-api-name" placeholder="API Name"
+              maxlength="50" style="margin-bottom: 10px" />
             <span v-if="fileConflict" class="change-warning">
               ⚠️ 파일에 변경 사항이 있습니다. 적용하시려면
               <a href="#" @click.prevent="reloadApi">여기</a>를 눌러 주세요.
@@ -24,19 +16,11 @@
 
           <!-- Select Box and Buttons -->
           <div class="d-flex align-items-center justify-content-end">
-            <button
-              type="button"
-              class="btn btn-dark me-2"
-              @click.prevent="openSaveModal"
-            >
+            <button type="button" class="btn btn-dark me-2" @click.prevent="openSaveModal">
               저장
             </button>
-            <a
-              href="#"
-              class="me-2 position-relative request-add"
-              @click.prevent="openHistoryManageModal"
-            >
-            <i class="bi bi-file-text"></i>
+            <a href="#" class="me-2 position-relative request-add" @click.prevent="openHistoryManageModal">
+              <i class="bi bi-file-text"></i>
             </a>
             <a href="#" class="request-add" @click="saveApiDataPlus">
               <i class="bi bi-plus-lg"></i>
@@ -44,9 +28,7 @@
           </div>
         </form>
       </div>
-      <div
-        class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3"
-      >
+      <div class="d-flex flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
         <form class="d-flex w-100">
           <select v-model="method" class="form-select me-2" style="width: auto">
             <option value="GET" selected>GET</option>
@@ -55,35 +37,16 @@
             <option value="DELETE">DELETE</option>
             <option value="PATCH">PATCH</option>
           </select>
-          <input
-            v-model="url"
-            type="text"
-            class="form-control"
-            placeholder="URL"
-            @keyup.enter="sendRequest"
-            :title="resolveTooltip(url)"
-          />
-          <button
-            v-if="!isRequest"
-            class="btn btn-dark ms-3"
-            @click.prevent="sendRequest"
-          >
+          <input v-model="url" type="text" class="form-control" placeholder="URL" @keyup.enter="sendRequest"
+            :title="resolveTooltip(url)" />
+          <button v-if="!isRequest" class="btn btn-dark ms-3" @click.prevent="sendRequest">
             Send
           </button>
-          <button
-            v-else
-            class="btn btn-dark ms-3"
-            style="width: 150px"
-            disabled
-          >
+          <button v-else class="btn btn-dark ms-3" style="width: 150px" disabled>
             <i class="bi bi-stop-fill"></i>Wait...
           </button>
           <div class="spinner-container">
-            <div
-              v-if="isSaving"
-              class="spinner-border spinner-border-sm ms-2"
-              role="status"
-            >
+            <div v-if="isSaving" class="spinner-border spinner-border-sm ms-2" role="status">
               <span class="visually-hidden">Loading...</span>
             </div>
           </div>
@@ -97,49 +60,24 @@
         <ul class="nav nav-tabs" id="tabMenu" role="tablist">
           <!-- Headers Tab -->
           <li class="nav-item" role="presentation">
-            <button
-              class="nav-link active"
-              id="headers-tab"
-              data-bs-toggle="tab"
-              data-bs-target="#headers"
-              type="button"
-              role="tab"
-              aria-controls="headers"
-              aria-selected="true"
-            >
+            <button class="nav-link active" id="headers-tab" data-bs-toggle="tab" data-bs-target="#headers"
+              type="button" role="tab" aria-controls="headers" aria-selected="true">
               HEADERS
             </button>
           </li>
           <!-- Query Parameters Tab -->
           <li class="nav-item" role="presentation">
-            <button
-              class="nav-link"
-              id="query-tab"
-              data-bs-toggle="tab"
-              data-bs-target="#query-parameters"
-              type="button"
-              role="tab"
-              aria-controls="query-parameters"
-              aria-selected="false"
-              @click="updateCurrentTab('queryParameters')"
-            >
+            <button class="nav-link" id="query-tab" data-bs-toggle="tab" data-bs-target="#query-parameters"
+              type="button" role="tab" aria-controls="query-parameters" aria-selected="false"
+              @click="updateCurrentTab('queryParameters')">
               Query Parameter
             </button>
           </li>
           <!-- Body Tab -->
           <li class="nav-item" role="presentation">
-            <button
-              v-if="method === 'POST' || method === 'PUT' || method === 'PATCH'"
-              class="nav-link"
-              id="body-tab"
-              data-bs-toggle="tab"
-              data-bs-target="#body-content"
-              type="button"
-              role="tab"
-              aria-controls="body-content"
-              aria-selected="false"
-              @click="updateCurrentTab('formParameters')"
-            >
+            <button v-if="method === 'POST' || method === 'PUT' || method === 'PATCH'" class="nav-link" id="body-tab"
+              data-bs-toggle="tab" data-bs-target="#body-content" type="button" role="tab" aria-controls="body-content"
+              aria-selected="false" @click="updateCurrentTab('formParameters')">
               Body
             </button>
           </li>
@@ -148,132 +86,63 @@
         <!-- Tab Contents -->
         <div class="tab-content mt-3" id="tabContent">
           <!-- Headers Content -->
-          <div
-            class="tab-pane fade show active"
-            id="headers"
-            role="tabpanel"
-            aria-labelledby="headers-tab"
-          >
+          <div class="tab-pane fade show active" id="headers" role="tabpanel" aria-labelledby="headers-tab">
             <h5>Headers</h5>
             <hr />
             <form>
-              <div
-                v-for="(header, index) in headers"
-                :key="index"
-                class="row g-3 align-items-center mb-2"
-              >
+              <div v-for="(header, index) in headers" :key="index" class="row g-3 align-items-center mb-2">
                 <div class="col">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Key"
-                    v-model="header.key"
-                    :title="resolveTooltip(header.key)"
-                  />
+                  <input type="text" class="form-control" placeholder="Key" v-model="header.key"
+                    :title="resolveTooltip(header.key)" />
                 </div>
                 <div class="col-auto">=</div>
                 <div class="col">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Value"
-                    v-model="header.value"
-                    :title="resolveTooltip(header.value)"
-                    @keyup.enter="addHeader"
-                  />
+                  <input type="text" class="form-control" placeholder="Value" v-model="header.value"
+                    :title="resolveTooltip(header.value)" @keyup.enter="addHeader" />
                 </div>
                 <div class="col-auto">
-                  <i
-                    class="bi bi-x-lg remove-icon"
-                    @click="removeHeader(index)"
-                  ></i>
+                  <i class="bi bi-x-lg remove-icon" @click="removeHeader(index)"></i>
                 </div>
               </div>
-              <button
-                type="button"
-                class="btn btn-dark me-2 mt-4"
-                @click="addHeader"
-              >
+              <button type="button" class="btn btn-dark me-2 mt-4" @click="addHeader">
                 + Add header
               </button>
             </form>
           </div>
 
           <!-- Query Parameters Content -->
-          <div
-            class="tab-pane fade"
-            id="query-parameters"
-            role="tabpanel"
-            aria-labelledby="query-tab"
-          >
+          <div class="tab-pane fade" id="query-parameters" role="tabpanel" aria-labelledby="query-tab">
             <h5>Query Parameters</h5>
             <hr />
             <form>
-              <div
-                v-for="(queryParam, index) in queryParameters"
-                :key="index"
-                class="row g-3 align-items-center mb-2"
-              >
+              <div v-for="(queryParam, index) in queryParameters" :key="index" class="row g-3 align-items-center mb-2">
                 <div class="col">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Key"
-                    v-model="queryParam.key"
-                    :title="resolveTooltip(queryParam.key)"
-                    @input="updateUrl"
-                  />
+                  <input type="text" class="form-control" placeholder="Key" v-model="queryParam.key"
+                    :title="resolveTooltip(queryParam.key)" @input="updateUrl" />
                 </div>
                 <div class="col-auto">=</div>
                 <div class="col">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Value"
-                    v-model="queryParam.value"
-                    :title="resolveTooltip(queryParam.value)"
-                    @input="updateUrl"
-                    @keyup.enter="addQueryParameter"
-                  />
+                  <input type="text" class="form-control" placeholder="Value" v-model="queryParam.value"
+                    :title="resolveTooltip(queryParam.value)" @input="updateUrl" @keyup.enter="addQueryParameter" />
                 </div>
                 <div class="col-auto">
-                  <i
-                    class="bi bi-x-lg remove-icon"
-                    @click="removeQueryParam(index)"
-                  ></i>
+                  <i class="bi bi-x-lg remove-icon" @click="removeQueryParam(index)"></i>
                 </div>
               </div>
-              <button
-                type="button"
-                class="btn btn-dark me-2 mt-4"
-                @click="addQueryParameter"
-              >
+              <button type="button" class="btn btn-dark me-2 mt-4" @click="addQueryParameter">
                 + Add query parameter
               </button>
-              <button
-                type="button"
-                class="btn btn-dark mt-4"
-                @click="openDatasetModal"
-              >
+              <button type="button" class="btn btn-dark mt-4" @click="openDatasetModal">
                 ✓ Select Object variable
               </button>
             </form>
           </div>
 
           <!-- Body Parameters Content -->
-          <div
-            class="tab-pane fade"
-            id="body-content"
-            role="tabpanel"
-            aria-labelledby="body-tab"
-          >
+          <div class="tab-pane fade" id="body-content" role="tabpanel" aria-labelledby="body-tab">
             <div class="mb-3">
               <label for="bodyType" class="form-label">Body</label>
-              <select
-                class="form-select"
-                v-model="selectedBodyType"
-                id="bodyType"
-              >
+              <select class="form-select" v-model="selectedBodyType" id="bodyType">
                 <option value="text">Text</option>
                 <option value="file">File</option>
                 <option value="form">Form</option>
@@ -283,42 +152,22 @@
             <!-- Text Body -->
             <div v-if="selectedBodyType === 'text'">
               <label for="textBody" class="form-label">Body</label>
-              <textarea
-                id="textBody"
-                class="form-control"
-                rows="10"
-                placeholder="Enter your body text here..."
-              ></textarea>
+              <textarea v-model="textBody" id="textBody" class="form-control" rows="10"
+                placeholder="Enter your body text here..."></textarea>
             </div>
 
             <!-- File Upload Body -->
-            <div
-              v-if="selectedBodyType === 'file'"
-              class="border p-4 text-center"
-            >
+            <div v-if="selectedBodyType === 'file'" class="border p-4 text-center">
               <p>파일을 여기에 올려주세요.</p>
-              <input
-                type="file"
-                class="form-control"
-                @change="handleFileUpload"
-              />
+              <input type="file" class="form-control" @change="handleFileUpload" />
             </div>
 
             <!-- Form Parameters -->
             <div v-if="selectedBodyType === 'form'">
-              <div
-                v-for="(formParam, index) in formParameters"
-                :key="index"
-                class="row g-3 align-items-center mb-2"
-              >
+              <div v-for="(formParam, index) in formParameters" :key="index" class="row g-3 align-items-center mb-2">
                 <div class="col">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Key"
-                    v-model="formParam.key"
-                    :title="resolveTooltip(formParam.key)"
-                  />
+                  <input type="text" class="form-control" placeholder="Key" v-model="formParam.key"
+                    :title="resolveTooltip(formParam.key)" />
                 </div>
                 <div class="col">
                   <select class="form-select" v-model="formParam.type">
@@ -327,26 +176,13 @@
                   </select>
                 </div>
                 <div class="col">
-                  <input
-                    v-if="formParam.type === 'text'"
-                    type="text"
-                    class="form-control"
-                    placeholder="Value"
-                    v-model="formParam.value"
-                    :title="resolveTooltip(formParam.value)"
-                    @keyup.enter="addFormParameter"
-                  />
-                  <input
-                    v-if="formParam.type === 'file'"
-                    type="file"
-                    class="form-control"
-                  />
+                  <input v-if="formParam.type === 'text'" type="text" class="form-control" placeholder="Value"
+                    v-model="formParam.value" :title="resolveTooltip(formParam.value)"
+                    @keyup.enter="addFormParameter" />
+                  <input v-if="formParam.type === 'file'" type="file" class="form-control" />
                 </div>
                 <div class="col-auto">
-                  <i
-                    class="bi bi-x-lg remove-icon"
-                    @click="removeFormParameter(index)"
-                  ></i>
+                  <i class="bi bi-x-lg remove-icon" @click="removeFormParameter(index)"></i>
                 </div>
               </div>
               <button class="btn btn-dark me-2 mt-4" @click="addFormParameter">
@@ -367,24 +203,16 @@
     </div>
 
     <!-- Response Section -->
-    <div
-      class="response-section mt-4"
-      :style="{
-        height: responseHeight + 'px',
-        overflow: showResponse ? 'hidden' : 'auto',
-      }"
-    >
+    <div class="response-section mt-4" :style="{
+      height: responseHeight + 'px',
+      overflow: showResponse ? 'hidden' : 'auto',
+    }">
       <h5>Response</h5>
 
       <!-- HTTP Status Code -->
-      <div
-        class="status-code text-white p-2 mb-3"
-        :style="{ backgroundColor: statusColor || '#6c757d' }"
-      >
+      <div class="status-code text-white p-2 mb-3" :style="{ backgroundColor: statusColor || '#6c757d' }">
         <span v-if="response.statusCode === null">HTTP Status Code</span>
-        <span v-else
-          >{{ response.statusCode }} {{ response.statusMessage }}</span
-        >
+        <span v-else>{{ response.statusCode }} {{ response.statusMessage }}</span>
       </div>
 
       <!-- Response Details -->
@@ -413,41 +241,16 @@
     </div>
   </div>
   <!-- SaveModal 추가 -->
-  <SaveModal
-    v-if="showSaveModal"
-    :selectedProject="selectedProject"
-    :projects="projects"
-    :apiData="apiData"
-    :isLoad="isLoad"
-    :items="items"
-    @close="closeSaveModal"
-    @project-saved="updateSavedProject"
-    @save-api="saveApiToProject"
-    @load-api="handleLoadApi"
-    @update-items="this.$emit('update-items')"
-  />
-  <HistoryManageModal
-    v-if="showHistoryManageModal"
-    :apiData="apiData"
-    @close="closeHistoryManageModal"
-    @project-saved="updateSavedProject"
-    @save-api="saveApiToProject"
-    @load-api="handleLoadApi"
-    @update-items="this.$emit('update-items')"
-  />
-  <DatasetModal
-    v-if="showDatasetModal"
-    :current-tab="currentTab"
-    :selectedProject="selectedProject"
-    @add-variables="handleAddVariables"
-    @close="showDatasetModal = false"
-  />
-  <SiteEnvironmentModal
-    :isVisible="showSiteEnvironmentModal"
-    :selectedProject="selectedProject"
-    @modal-selected-environment="handleModalSelectedEnvironment"
-    @close="showSiteEnvironmentModal = false"
-  />
+  <SaveModal v-if="showSaveModal" :selectedProject="selectedProject" :projects="projects" :apiData="apiData"
+    :isLoad="isLoad" :items="items" @close="closeSaveModal" @project-saved="updateSavedProject"
+    @save-api="saveApiToProject" @load-api="handleLoadApi" @update-items="this.$emit('update-items')" />
+  <HistoryManageModal v-if="showHistoryManageModal" :apiData="apiData" @close="closeHistoryManageModal"
+    @project-saved="updateSavedProject" @save-api="saveApiToProject" @load-api="handleLoadApi"
+    @update-items="this.$emit('update-items')" />
+  <DatasetModal v-if="showDatasetModal" :current-tab="currentTab" :selectedProject="selectedProject"
+    @add-variables="handleAddVariables" @close="showDatasetModal = false" />
+  <SiteEnvironmentModal :isVisible="showSiteEnvironmentModal" :selectedProject="selectedProject"
+    @modal-selected-environment="handleModalSelectedEnvironment" @close="showSiteEnvironmentModal = false" />
   <!-- 모달 컴포넌트 -->
 </template>
 
@@ -557,6 +360,7 @@ export default {
       this.queryParameters = [{ key: "", value: "" }];
       this.formParameters = [{ key: "", type: "text", value: "" }];
       this.selectedBodyType = "text";
+      this.textBody = "";
       this.response = {
         statusCode: null,
         statusMessage: "",
@@ -1357,10 +1161,17 @@ export default {
         // FormData 객체 생성
         let data = new FormData();
 
-        const requestBody = {};
-        processedFormParameters.forEach((param) => {
-          requestBody[param.key] = param.value; // key-value 매핑
-        });
+        let requestBody = null;
+
+        if (this.selectedBodyType === 'form') {
+          const formObj = {};
+          processedFormParameters.forEach((param) => {
+            requestBody[param.key] = param.value; // key-value 매핑
+          });
+          requestBody = formObj;
+        } else if (this.selectedBodyType === 'text') {
+          requestBody = this.textBody;
+        }
 
         // ProxyRequest의 JSON 데이터를 문자열로 추가
         const jsonRequest = {
@@ -1379,8 +1190,6 @@ export default {
           data.append("file", this.file);
         }
 
-        console.log(data);
-
         // 요청 전송
         const response = await this.$axios.post("/api/proxy", data, {
           headers: {
@@ -1388,8 +1197,6 @@ export default {
           },
           validateStatus: (status) => status >= 100 && status < 600, // 모든 상태 코드 허용
         });
-
-        console.log(response);
 
         // 응답 데이터 설정
         this.response = {
@@ -1514,10 +1321,9 @@ export default {
       // If JSON
       try {
         const json = JSON.parse(body);
-        return `<code class="hljs json">${
-          hljs.highlight(JSON.stringify(json, null, 2), { language: "json" })
-            .value
-        }</code>`;
+        return `<code class="hljs json">${hljs.highlight(JSON.stringify(json, null, 2), { language: "json" })
+          .value
+          }</code>`;
       } catch (err) {
         // If not JSON, continue to other formats
       }
@@ -1777,14 +1583,17 @@ export default {
 
 .request-section,
 .response-section {
-  -ms-overflow-style: none; /* 인터넷 익스플로러 */
-  scrollbar-width: none; /* 파이어폭스 */
+  -ms-overflow-style: none;
+  /* 인터넷 익스플로러 */
+  scrollbar-width: none;
+  /* 파이어폭스 */
 }
 
 .resizer {
   text-align: center;
   height: 6px;
-  cursor: pointer; /* 상하 리사이즈 커서 */
+  cursor: pointer;
+  /* 상하 리사이즈 커서 */
 }
 
 .input-api-name {
@@ -1830,7 +1639,8 @@ textarea {
 }
 
 .response-body {
-  height: calc(100% - 50px); /* 상태 코드 아래 스크롤 영역 */
+  height: calc(100% - 50px);
+  /* 상태 코드 아래 스크롤 영역 */
   overflow-y: auto;
   background-color: #f1f1f1;
   white-space: pre-wrap;
@@ -1844,7 +1654,8 @@ textarea {
 }
 
 .auto-save-spinner {
-  margin-left: 8px; /* 버튼과의 여백 */
+  margin-left: 8px;
+  /* 버튼과의 여백 */
 }
 
 .spinner-border {
